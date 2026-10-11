@@ -53,6 +53,22 @@ impl fmt::Display for Severity {
     }
 }
 
+/// The workspace file a finding is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum File {
+    Lockfile,
+    Manifest,
+}
+
+impl fmt::Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            File::Lockfile => "pixi.lock",
+            File::Manifest => "pixi.toml",
+        })
+    }
+}
+
 /// One thing a rule found.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
@@ -63,6 +79,9 @@ pub struct Finding {
     pub version: Option<String>,
     pub environment: String,
     pub platform: String,
+    /// Where it is: the file, and the line when the rule knows it.
+    pub file: File,
+    pub line: Option<u32>,
     pub message: String,
     /// What to do about it.
     pub help: Option<String>,
@@ -72,6 +91,8 @@ pub struct Finding {
 pub trait Rule {
     /// `family.rule`.
     fn id(&self) -> &'static str;
+    /// What the rule checks, in one line (SARIF's rule description, the docs' rule list).
+    fn summary(&self) -> &'static str;
     /// What this rule finds in one environment and platform's packages.
     fn check(&self, policy: &Policy, facts: &Facts) -> Vec<Finding>;
 }
@@ -85,6 +106,8 @@ pub fn rules() -> Vec<Box<dyn Rule>> {
 #[derive(Debug, Default)]
 pub struct Outcome {
     pub findings: Vec<Finding>,
+    /// Findings a waiver let through: reported, never failing the check.
+    pub waived: Vec<Finding>,
     /// Environment and platform pairs checked.
     pub targets: usize,
     /// Packages across all of them.
@@ -142,6 +165,9 @@ mod tests {
         fn id(&self) -> &'static str {
             "test.no-python"
         }
+        fn summary(&self) -> &'static str {
+            "no python"
+        }
         fn check(&self, _policy: &Policy, facts: &Facts) -> Vec<Finding> {
             facts
                 .packages
@@ -154,6 +180,8 @@ mod tests {
                     version: p.version.clone(),
                     environment: facts.environment.clone(),
                     platform: facts.platform.clone(),
+                    file: File::Lockfile,
+                    line: None,
                     message: "found".into(),
                     help: None,
                 })
@@ -180,6 +208,11 @@ mod tests {
         assert!(some.failed());
         assert!(some.findings.iter().all(|f| f.rule == "test.no-python"));
         assert_eq!(Severity::Warning.to_string(), "warning");
+        assert_eq!(NoPython.summary(), "no python");
+        assert_eq!(
+            (File::Lockfile.to_string(), File::Manifest.to_string()),
+            ("pixi.lock".into(), "pixi.toml".into())
+        );
     }
 
     #[test]

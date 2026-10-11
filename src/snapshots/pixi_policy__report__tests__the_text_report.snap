@@ -1,0 +1,18 @@
+---
+source: crates/pixi-policy/src/report.rs
+expression: "text(&sample(), Palette::new(false))"
+---
+error[bans.deny] pycrypto 2.6.1: is denied (unmaintained)
+  --> pixi.lock: environment "default", linux-64
+  = help: use pycryptodome instead
+
+error[bans.deny] pycrypto2 2.6.1: is denied (unmaintained)
+  --> pixi.lock: environment "default", linux-64
+  = help: use pycryptodome instead
+
+warning[lock.fresh] the lockfile is older than the manifest
+  --> pixi.toml:12: environment "default", linux-64
+
+waived[bans.deny] legacy 2.6.1: is denied (unmaintained) (pixi.lock: environment "default", linux-64)
+
+2 errors, 1 warning, 1 waived in 40 packages across 2 environment-platform pairs

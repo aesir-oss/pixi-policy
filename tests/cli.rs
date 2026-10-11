@@ -34,7 +34,7 @@ fn a_policy_with_nothing_to_find_passes_and_says_what_it_checked() {
             .args(args)
             .assert()
             .code(0)
-            .stdout(contains("0 errors, 0 warnings in ").and(contains(" across ")));
+            .stdout(contains("0 errors, 0 warnings, 0 waived in ").and(contains(" across ")));
     }
 }
 
@@ -141,7 +141,7 @@ fn every_example_workspace_is_checked() {
             String::from_utf8_lossy(&output.stderr)
         );
         assert!(
-            stdout.starts_with("0 errors, 0 warnings in ") && !stdout.contains(" in 0 packages"),
+            stdout.starts_with("0 errors, 0 warnings, 0 waived in ") && !stdout.contains(" in 0 packages"),
             "{}: {stdout}",
             manifest.display()
         );
@@ -159,6 +159,86 @@ fn a_pyproject_workspace_is_found() {
     )
     .unwrap();
     policy().current_dir(ws.path()).assert().code(0);
+}
+
+fn validator(file: &str) -> jsonschema::Validator {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(file);
+    let schema: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    jsonschema::options().offline().build(&schema).unwrap()
+}
+
+#[test]
+fn json_and_sarif_match_their_schemas() {
+    let ws = workspace(Some(""));
+    for (format, schema) in [
+        ("json", "schemas/pixi-policy-report.schema.json"),
+        ("sarif", "../pixi-sbom/tests/schemas/sarif-schema-2.1.0.json"),
+    ] {
+        let output = policy()
+            .current_dir(ws.path())
+            .args(["--format", format])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(0), "{format}");
+        let doc: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let errors: Vec<String> = validator(schema).iter_errors(&doc).map(|e| e.to_string()).collect();
+        assert!(errors.is_empty(), "{format}: {errors:#?}");
+    }
+    let output = policy()
+        .current_dir(ws.path())
+        .args(["check", "--format", "json"])
+        .output()
+        .unwrap();
+    let doc: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        doc["workspace"]["lockfile"], "pixi.lock",
+        "relative to the working directory"
+    );
+    assert_eq!(doc["summary"]["passed"], true);
+}
+
+#[test]
+fn output_writes_a_file_without_colour_unless_always() {
+    let ws = workspace(Some(""));
+    let report = ws.path().join("report.txt");
+    policy()
+        .current_dir(ws.path())
+        .env_remove("NO_COLOR")
+        .arg("--output")
+        .arg(&report)
+        .assert()
+        .code(0)
+        .stdout("");
+    let text = std::fs::read_to_string(&report).unwrap();
+    assert!(text.starts_with("0 errors") && !text.contains('\u{1b}'), "{text:?}");
+    policy()
+        .current_dir(ws.path())
+        .args(["--color", "always", "--output"])
+        .arg(&report)
+        .assert()
+        .code(0);
+    assert!(std::fs::read_to_string(&report).unwrap().contains('\u{1b}'));
+}
+
+#[test]
+fn an_unwritable_output_is_an_error() {
+    let ws = workspace(Some(""));
+    policy()
+        .current_dir(ws.path())
+        .arg("--output")
+        .arg(ws.path().join("missing-dir/report.json"))
+        .assert()
+        .code(2)
+        .stderr(contains("cannot write the report"));
+}
+
+#[test]
+fn an_unknown_format_is_a_usage_error() {
+    policy()
+        .args(["--format", "xml"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid value 'xml'").and(contains("text, json, sarif")));
 }
 
 #[test]

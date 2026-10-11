@@ -1,0 +1,5 @@
+---
+source: crates/pixi-policy/src/report.rs
+expression: "text(&Outcome::default(), Palette::new(false))"
+---
+0 errors, 0 warnings, 0 waived in 0 packages across 0 environment-platform pairs

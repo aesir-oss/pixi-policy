@@ -27,15 +27,20 @@ name = "pixi-policy"
 path = "src/main.rs"
 
 [dependencies]
+anstyle = "1.0.14"
 clap = { version = "4.6.7", features = ["derive", "string"] }
 common = { package = "pixi-ext-common", path = "../pixi-ext-common" }
 miette = { version = "7.6.0", features = ["fancy"] }
 rattler_lock = { version = "0.33.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
 thiserror = "2.0.20"
 toml = "1.1.6"
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
+insta = "1.48.0"
+jsonschema = { version = "0.56.0", default-features = false }
 predicates = "3.1.4"
+serde_json = "1.0.151"
 tempfile = "3.27.0"
