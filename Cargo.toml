@@ -31,6 +31,8 @@ anstyle = "1.0.14"
 clap = { version = "4.6.7", features = ["derive", "string"] }
 common = { package = "pixi-ext-common", path = "../pixi-ext-common" }
 miette = { version = "7.6.0", features = ["fancy"] }
+pep440_rs = "0.7.3"
+rattler_conda_types = { version = "0.53", default-features = false }
 rattler_lock = { version = "0.33.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.151", features = ["preserve_order"] }

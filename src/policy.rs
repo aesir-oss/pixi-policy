@@ -31,6 +31,13 @@ pub enum PolicyError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Parse(Box<ParseError>),
+
+    #[error("{path}: {message}")]
+    #[diagnostic(
+        code(pixi_policy::policy::invalid),
+        help("fix the entry in the policy; see the docs for what each key takes")
+    )]
+    Invalid { path: String, message: String },
 }
 
 /// A policy file that is not valid TOML or has keys pixi-policy does not know, pointing at the spot.
@@ -69,6 +76,37 @@ pub struct Sources {
     pub allow_path: Option<bool>,
 }
 
+/// Which kind of package a ban applies to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PackageKind {
+    Conda,
+    Pypi,
+}
+
+/// One `[bans] deny` entry: a package, optionally only some of its versions, that is never allowed.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Ban {
+    pub name: String,
+    /// A version range: conda's syntax for conda packages, PEP 440 for PyPI ones (`<3`, `>=1.0,<1.1.1w`).
+    pub version: Option<String>,
+    /// A conda build-string pattern (`*_cuda*`); conda packages only.
+    pub build: Option<String>,
+    /// Only conda packages, or only PyPI ones (and the conda packages that provide them).
+    pub kind: Option<PackageKind>,
+    pub reason: Option<String>,
+    pub use_instead: Option<String>,
+}
+
+/// `[bans]`: packages and versions that are never allowed.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Bans {
+    #[serde(default)]
+    pub deny: Vec<Ban>,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -78,7 +116,7 @@ pub struct Policy {
     pub sources: Option<Sources>,
     /// Packages and versions that are never allowed.
     #[serde(default)]
-    pub bans: Option<Table>,
+    pub bans: Option<Bans>,
     /// Allow, review and deny lists of SPDX licenses.
     #[serde(default)]
     pub licenses: Option<Table>,
@@ -96,6 +134,19 @@ pub struct Policy {
 impl Policy {
     /// Parse a policy's text; `path` names it in a diagnostic.
     pub fn parse(text: &str, path: &str) -> Result<Self, PolicyError> {
+        let policy: Self = Self::deserialize(text, path)?;
+        if let Some(bans) = &policy.bans {
+            for ban in &bans.deny {
+                crate::rules::bans::Matcher::new(ban).map_err(|message| PolicyError::Invalid {
+                    path: path.to_string(),
+                    message: format!("[bans] deny entry for {:?}: {message}", ban.name),
+                })?;
+            }
+        }
+        Ok(policy)
+    }
+
+    fn deserialize(text: &str, path: &str) -> Result<Self, PolicyError> {
         toml::from_str(text).map_err(|err| {
             PolicyError::Parse(Box::new(ParseError {
                 path: path.to_string(),

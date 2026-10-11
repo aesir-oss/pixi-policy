@@ -298,7 +298,43 @@ fn a_failing_sources_policy_exits_1_and_says_why() {
         .collect();
     assert!(errors.is_empty(), "{errors:#?}");
     assert_eq!(doc["runs"][0]["results"].as_array().unwrap().len(), 8);
-    assert_eq!(doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(), 5);
+    assert_eq!(doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(), 6);
+}
+
+#[test]
+fn a_ban_fails_a_real_workspace_and_names_the_replacement() {
+    let dir = tempfile::tempdir().unwrap();
+    let policy_file = dir.path().join("pixi-policy.toml");
+    std::fs::write(
+        &policy_file,
+        "[bans]\ndeny = [{ name = \"django\", version = \"<6\", reason = \"too old\", use-instead = \"django 6\" }]\n",
+    )
+    .unwrap();
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/01-django/pixi.toml");
+    let output = policy()
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--policy")
+        .arg(&policy_file)
+        .output()
+        .unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(
+        text.contains("error[bans.deny] django ") && text.contains("is banned (version <6): too old"),
+        "{text}"
+    );
+    assert!(text.contains("= help: use django 6 instead"), "{text}");
+}
+
+#[test]
+fn a_ban_that_cannot_be_compiled_exits_2() {
+    let ws = workspace(Some("[bans]\ndeny = [{ name = \"openssl\", version = \"<1.1.1w\" }]\n"));
+    policy()
+        .current_dir(ws.path())
+        .assert()
+        .code(2)
+        .stderr(contains("pixi_policy::policy::invalid").and(contains("kind")));
 }
 
 #[test]
