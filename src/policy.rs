@@ -107,6 +107,37 @@ pub struct Bans {
     pub deny: Vec<Ban>,
 }
 
+/// What a package with no license, or one that is not an SPDX expression, gets.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Unknown {
+    /// A warning (the default, decided on #63: pixi.lock records no PyPI licenses).
+    #[default]
+    Warn,
+    /// An error.
+    Error,
+    /// Nothing.
+    Allow,
+}
+
+/// `[licenses]`: allow, review and deny lists of SPDX licenses. Entries are SPDX identifiers or patterns with `*`
+/// (`LGPL-*`), expanded against the SPDX license list.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Licenses {
+    /// When given, only these (and `review`) are acceptable.
+    #[serde(default)]
+    pub allow: Vec<String>,
+    /// Acceptable after a review: a warning.
+    #[serde(default)]
+    pub review: Vec<String>,
+    /// Never acceptable.
+    #[serde(default)]
+    pub deny: Vec<String>,
+    #[serde(default)]
+    pub unknown: Unknown,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -119,7 +150,7 @@ pub struct Policy {
     pub bans: Option<Bans>,
     /// Allow, review and deny lists of SPDX licenses.
     #[serde(default)]
-    pub licenses: Option<Table>,
+    pub licenses: Option<Licenses>,
     /// pixi.toml hygiene.
     #[serde(default)]
     pub manifest: Option<Table>,
@@ -135,6 +166,12 @@ impl Policy {
     /// Parse a policy's text; `path` names it in a diagnostic.
     pub fn parse(text: &str, path: &str) -> Result<Self, PolicyError> {
         let policy: Self = Self::deserialize(text, path)?;
+        if let Some(licenses) = &policy.licenses {
+            crate::rules::licenses::Compiled::new(licenses).map_err(|message| PolicyError::Invalid {
+                path: path.to_string(),
+                message: format!("[licenses]: {message}"),
+            })?;
+        }
         if let Some(bans) = &policy.bans {
             for ban in &bans.deny {
                 crate::rules::bans::Matcher::new(ban).map_err(|message| PolicyError::Invalid {

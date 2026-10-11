@@ -298,7 +298,10 @@ fn a_failing_sources_policy_exits_1_and_says_why() {
         .collect();
     assert!(errors.is_empty(), "{errors:#?}");
     assert_eq!(doc["runs"][0]["results"].as_array().unwrap().len(), 8);
-    assert_eq!(doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(), 6);
+    assert_eq!(
+        doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(),
+        pixi_policy::check::rules().len()
+    );
 }
 
 #[test]
@@ -335,6 +338,37 @@ fn a_ban_that_cannot_be_compiled_exits_2() {
         .assert()
         .code(2)
         .stderr(contains("pixi_policy::policy::invalid").and(contains("kind")));
+}
+
+#[test]
+fn a_license_policy_fails_a_real_workspace_with_errors_and_review_warnings() {
+    let dir = tempfile::tempdir().unwrap();
+    let policy_file = dir.path().join("pixi-policy.toml");
+    std::fs::write(
+        &policy_file,
+        "[licenses]\nreview = [\"LGPL-*\"]\ndeny = [\"GPL-3.0-only\"]\nunknown = \"allow\"\n",
+    )
+    .unwrap();
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/02-flask/pixi.toml");
+    let output = policy()
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--policy")
+        .arg(&policy_file)
+        .output()
+        .unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(
+        text.contains("error[licenses.deny] ")
+            && text.contains("license GPL-3.0-only cannot be satisfied without a denied license"),
+        "{text}"
+    );
+    assert!(
+        text.contains("warning[licenses.review] ") && text.contains("license LGPL-2.1-only needs a review"),
+        "{text}"
+    );
+    assert!(!text.contains("licenses.unknown"), "{text}");
 }
 
 #[test]
