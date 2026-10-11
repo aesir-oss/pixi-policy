@@ -1,0 +1,4 @@
+[workspace]
+name = "sources"
+channels = ["conda-forge", "https://prefix.dev/conda-forge", "https://conda.acme.internal/prod", "bioconda"]
+platforms = ["linux-64"]

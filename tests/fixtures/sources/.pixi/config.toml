@@ -1,0 +1,3 @@
+# pixi fetches conda-forge from a mirror; pixi.lock still records conda-forge, which is what the policy matches.
+[mirrors]
+"https://conda.anaconda.org/conda-forge" = ["https://mirror.example/conda-forge"]

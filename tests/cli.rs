@@ -241,6 +241,66 @@ fn an_unknown_format_is_a_usage_error() {
         .stderr(contains("invalid value 'xml'").and(contains("text, json, sarif")));
 }
 
+/// The sources fixture: one package from every kind of origin (#61).
+fn sources_fixture() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources")
+}
+
+const STRICT_SOURCES: &str = r#"[sources]
+allowed-channels = ["conda-forge", "https://conda.acme.internal/prod"]
+allowed-indexes = ["https://pypi.org/simple", "https://pypi.acme.internal/simple"]
+allow-git = false
+allow-url = false
+allow-path = false
+"#;
+
+#[test]
+fn a_failing_sources_policy_exits_1_and_says_why() {
+    let dir = tempfile::tempdir().unwrap();
+    let policy_file = dir.path().join("pixi-policy.toml");
+    std::fs::write(&policy_file, STRICT_SOURCES).unwrap();
+    let manifest = sources_fixture().join("pixi.toml");
+    let output = policy()
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--policy")
+        .arg(&policy_file)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        text.contains("error[sources.channels] samtools 1.21: comes from channel https://conda.anaconda.org/bioconda/"),
+        "{text}"
+    );
+    assert!(
+        text.contains("error[sources.indexes] typosquat 1.0: comes from index https://evil.example/simple"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("8 errors, 0 warnings, 0 waived in 13 packages across 1 environment-platform pair\n"),
+        "{text}"
+    );
+
+    let output = policy()
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--policy")
+        .arg(&policy_file)
+        .args(["--format", "sarif"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let doc: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let errors: Vec<String> = validator("../pixi-sbom/tests/schemas/sarif-schema-2.1.0.json")
+        .iter_errors(&doc)
+        .map(|e| e.to_string())
+        .collect();
+    assert!(errors.is_empty(), "{errors:#?}");
+    assert_eq!(doc["runs"][0]["results"].as_array().unwrap().len(), 8);
+    assert_eq!(doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(), 5);
+}
+
 #[test]
 fn help_names_the_pixi_command() {
     policy()

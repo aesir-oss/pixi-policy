@@ -52,13 +52,30 @@ pub struct ParseError {
 /// A rule family's settings, as written. Each family reads its own keys from it as its rules are added.
 pub type Table = toml::Table;
 
+/// `[sources]`: where packages may come from. A key left out restricts nothing.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Sources {
+    /// Channels conda packages may come from: a name (`conda-forge`, matching its anaconda.org and prefix.dev URLs)
+    /// or a full URL.
+    pub allowed_channels: Option<Vec<String>>,
+    /// Indexes PyPI packages may come from, by URL.
+    pub allowed_indexes: Option<Vec<String>>,
+    /// Whether packages may come from a git repository.
+    pub allow_git: Option<bool>,
+    /// Whether packages may come from a direct URL (an archive, not a channel or an index).
+    pub allow_url: Option<bool>,
+    /// Whether packages may come from a local path.
+    pub allow_path: Option<bool>,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Policy {
     /// Where packages may come from.
     #[serde(default)]
-    pub sources: Option<Table>,
+    pub sources: Option<Sources>,
     /// Packages and versions that are never allowed.
     #[serde(default)]
     pub bans: Option<Table>,
@@ -111,11 +128,13 @@ mod tests {
     fn an_empty_policy_is_valid_and_each_family_is_a_table() {
         assert_eq!(Policy::parse("", "p.toml").unwrap(), Policy::default());
         let policy = Policy::parse(
-            "[sources]\nallowed-channels = [\"conda-forge\"]\n[[waivers]]\nrule = \"bans.deny\"\n",
+            "[sources]\nallowed-channels = [\"conda-forge\"]\nallow-git = false\n[[waivers]]\nrule = \"bans.deny\"\n",
             "p.toml",
         )
         .unwrap();
-        assert!(policy.sources.unwrap().contains_key("allowed-channels"));
+        let sources = policy.sources.unwrap();
+        assert_eq!(sources.allowed_channels, Some(vec!["conda-forge".to_string()]));
+        assert_eq!((sources.allow_git, sources.allow_url), (Some(false), None));
         assert_eq!(policy.waivers.len(), 1);
     }
 
@@ -128,6 +147,12 @@ mod tests {
         assert!(parse.message.contains("nope"), "{}", parse.message);
         assert!(parse.span.is_some());
         assert!(err.to_string().starts_with("p.toml is not a valid policy"));
+    }
+
+    #[test]
+    fn a_misspelt_sources_key_is_an_error() {
+        let err = Policy::parse("[sources]\nallowed-channel = []\n", "p.toml").unwrap_err();
+        assert!(err.to_string().contains("allowed-channel"), "{err}");
     }
 
     #[test]

@@ -9,6 +9,7 @@ pub mod check;
 pub mod cli;
 pub mod policy;
 pub mod report;
+pub mod rules;
 pub mod workspace;
 
 /// Nothing failed the policy.

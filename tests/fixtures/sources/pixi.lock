@@ -1,0 +1,77 @@
+version: 7
+platforms:
+- name: linux-64
+environments:
+  default:
+    channels:
+    - url: https://conda.anaconda.org/conda-forge/
+    - url: https://prefix.dev/conda-forge/
+    - url: https://conda.acme.internal/prod/
+    - url: https://conda.anaconda.org/bioconda/
+    indexes:
+    - https://pypi.org/simple
+    - https://pypi.acme.internal/simple
+    - https://evil.example/simple
+    packages:
+      linux-64:
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_3.conda
+      - conda: https://prefix.dev/conda-forge/noarch/tzdata-2026a-h8577fbf_0.conda
+      - conda: https://conda.acme.internal/prod/linux-64/acme-tools-1.0-h0_0.conda
+      - conda: https://conda.anaconda.org/bioconda/noarch/samtools-1.21-h0_0.conda
+      - conda_source: git-built[1111aaaa] @ git-built
+      - conda_source: url-built[2222bbbb] @ url-built
+      - conda_source: path-built[3333cccc] @ ../path-built
+      - pypi: https://files.pythonhosted.org/packages/00/00/requests-2.32.5-py3-none-any.whl
+      - pypi: https://pypi.acme.internal/packages/acme_client-1.0-py3-none-any.whl
+      - pypi: https://evil.example/packages/typosquat-1.0-py3-none-any.whl
+      - pypi: git+https://github.com/example/gitpkg?rev=v1.0#0123456789abcdef0123456789abcdef01234567
+      - pypi: https://example.com/archives/urlpkg-1.0.tar.gz
+      - pypi: ./libs/localpkg
+packages:
+- conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_3.conda
+  sha256: eb8a0db0aa570124f7d2a93d7c7f596e3390df5e047818d873baad32985fc736
+  license: Zlib
+- conda: https://prefix.dev/conda-forge/noarch/tzdata-2026a-h8577fbf_0.conda
+  sha256: 0000000000000000000000000000000000000000000000000000000000000001
+  license: LicenseRef-Public-Domain
+- conda: https://conda.acme.internal/prod/linux-64/acme-tools-1.0-h0_0.conda
+  sha256: 0000000000000000000000000000000000000000000000000000000000000002
+- conda: https://conda.anaconda.org/bioconda/noarch/samtools-1.21-h0_0.conda
+  sha256: 0000000000000000000000000000000000000000000000000000000000000003
+- conda_source: git-built[1111aaaa] @ git-built
+  version: 1.0.0
+  build: h0
+  subdir: linux-64
+  source:
+    git: https://github.com/example/git-built.git
+    rev: def456789012345
+- conda_source: url-built[2222bbbb] @ url-built
+  version: 2.0.0
+  build: h0
+  subdir: linux-64
+  source:
+    url: https://example.com/url-built-2.0.0.tar.gz
+    sha256: a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+- conda_source: path-built[3333cccc] @ ../path-built
+  version: '0.1'
+  build: h0
+  subdir: linux-64
+  source:
+    path: ../path-built
+- pypi: https://files.pythonhosted.org/packages/00/00/requests-2.32.5-py3-none-any.whl
+  name: requests
+  version: 2.32.5
+- pypi: https://pypi.acme.internal/packages/acme_client-1.0-py3-none-any.whl
+  name: acme-client
+  version: '1.0'
+  index: https://pypi.acme.internal/simple
+- pypi: https://evil.example/packages/typosquat-1.0-py3-none-any.whl
+  name: typosquat
+  version: '1.0'
+  index: https://evil.example/simple
+- pypi: git+https://github.com/example/gitpkg?rev=v1.0#0123456789abcdef0123456789abcdef01234567
+  name: gitpkg
+- pypi: https://example.com/archives/urlpkg-1.0.tar.gz
+  name: urlpkg
+- pypi: ./libs/localpkg
+  name: localpkg

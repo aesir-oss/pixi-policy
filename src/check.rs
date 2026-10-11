@@ -97,9 +97,9 @@ pub trait Rule {
     fn check(&self, policy: &Policy, facts: &Facts) -> Vec<Finding>;
 }
 
-/// Every rule pixi-policy has. Each rule family adds its rules here (#61 onward).
+/// Every rule pixi-policy has.
 pub fn rules() -> Vec<Box<dyn Rule>> {
-    Vec::new()
+    crate::rules::all()
 }
 
 /// What a check found, and what it looked at.
