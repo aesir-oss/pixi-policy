@@ -535,7 +535,29 @@ fn waivers_let_findings_through_with_their_reason_and_report_expired_and_unused_
         text.contains("warning[waivers.unused] not-here: waiver for licenses.deny on not-here matches no finding"),
         "{text}"
     );
-    assert!(text.contains("  --> pixi-policy.toml:"), "{text}");
+    // The policy file as it was given (#121): here an absolute path in a temporary directory.
+    assert!(text.contains(&format!("  --> {}:", policy_file.display())), "{text}");
+}
+
+/// #121: a finding about a waiver names the policy file the check read, relative to the working directory.
+#[test]
+fn a_waiver_finding_names_the_policy_file_given() {
+    let ws = workspace(None);
+    std::fs::create_dir(ws.path().join("policies")).unwrap();
+    std::fs::write(
+        ws.path().join("policies/strict.toml"),
+        "max-waiver-days = 0\n\n[[waivers]]\nrule = \"bans.deny\"\npackage = \"nothing-here\"\nreason = \"r\"\nexpires = 2099-12-31\n",
+    )
+    .unwrap();
+    let output = policy()
+        .current_dir(ws.path())
+        .args(["--policy", "policies/strict.toml"])
+        .output()
+        .unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("warning[waivers.unused] nothing-here: "), "{text}");
+    assert!(text.contains("  --> policies/strict.toml:3\n"), "{text}");
+    assert!(!text.contains("pixi-policy.toml"), "{text}");
 }
 
 #[test]

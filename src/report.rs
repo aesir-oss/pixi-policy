@@ -40,7 +40,7 @@ pub struct Context<'a> {
 /// The report in `format`; `palette` colours only the text format.
 pub fn render(format: Format, outcome: &Outcome, context: &Context<'_>, palette: Palette) -> String {
     match format {
-        Format::Text => text(outcome, palette),
+        Format::Text => text(outcome, palette, &relative(context.policy, context.base).0),
         Format::Json => pretty(&json(outcome, context)),
         Format::Sarif => pretty(&sarif(outcome, context)),
     }
@@ -78,10 +78,15 @@ fn package(finding: &Finding) -> String {
     }
 }
 
-fn location(finding: &Finding) -> String {
+/// Where a finding is, as the text report says it: a finding about the policy names the policy file as given (#121).
+fn location(finding: &Finding, policy: &str) -> String {
+    let name = match finding.file {
+        File::Policy => policy.to_string(),
+        other => other.to_string(),
+    };
     let file = match finding.line {
-        Some(line) => format!("{}:{line}", finding.file),
-        None => finding.file.to_string(),
+        Some(line) => format!("{name}:{line}"),
+        None => name,
     };
     match (finding.environment.is_empty(), finding.platform.is_empty()) {
         (true, _) => file,
@@ -90,8 +95,9 @@ fn location(finding: &Finding) -> String {
     }
 }
 
-/// The report people read: findings grouped by severity (errors first), the waived ones, then a summary line.
-pub fn text(outcome: &Outcome, palette: Palette) -> String {
+/// The report people read: findings grouped by severity (errors first), the waived ones, then a summary line. `policy`
+/// is the policy file's name as the report shows it.
+pub fn text(outcome: &Outcome, palette: Palette, policy: &str) -> String {
     let mut out = String::new();
     for finding in &outcome.findings {
         let style = match finding.severity {
@@ -100,7 +106,7 @@ pub fn text(outcome: &Outcome, palette: Palette) -> String {
         };
         let head = palette.paint(style, &format!("{}[{}]", finding.severity, finding.rule));
         let _ = writeln!(out, "{head} {}{}", package(finding), finding.message);
-        let _ = writeln!(out, "  {} {}", palette.dim("-->"), location(finding));
+        let _ = writeln!(out, "  {} {}", palette.dim("-->"), location(finding, policy));
         if let Some(help) = &finding.help {
             let _ = writeln!(out, "  {} {help}", palette.dim("= help:"));
         }
@@ -117,7 +123,7 @@ pub fn text(outcome: &Outcome, palette: Palette) -> String {
             finding.rule,
             package(finding),
             finding.message,
-            location(finding)
+            location(finding, policy)
         );
         let _ = writeln!(out, "{}", palette.dim(&line));
     }
@@ -414,13 +420,37 @@ mod tests {
 
     #[test]
     fn the_text_report() {
-        insta::assert_snapshot!(text(&sample(), Palette::new(false)));
-        insta::assert_snapshot!("text_empty", text(&Outcome::default(), Palette::new(false)));
+        insta::assert_snapshot!(text(&sample(), Palette::new(false), "pixi-policy.toml"));
+        insta::assert_snapshot!(
+            "text_empty",
+            text(&Outcome::default(), Palette::new(false), "pixi-policy.toml")
+        );
+    }
+
+    #[test]
+    fn a_finding_about_the_policy_names_the_policy_file_as_given() {
+        let waiver = Finding {
+            package: Some("readline".into()),
+            version: None,
+            environment: String::new(),
+            platform: String::new(),
+            help: None,
+            message: "waiver for licenses.deny on readline matches no finding".into(),
+            ..finding("waivers.unused", Severity::Warning, "readline", File::Policy, Some(11))
+        };
+        let outcome = Outcome {
+            findings: vec![waiver],
+            ..Outcome::default()
+        };
+        let other = text(&outcome, Palette::new(false), "policies/strict.toml");
+        assert!(other.contains("  --> policies/strict.toml:11\n"), "{other}");
+        let default = text(&outcome, Palette::new(false), "pixi-policy.toml");
+        assert!(default.contains("  --> pixi-policy.toml:11\n"), "{default}");
     }
 
     #[test]
     fn colour_marks_the_severity_and_dims_the_rest() {
-        let coloured = text(&sample(), Palette::new(true));
+        let coloured = text(&sample(), Palette::new(true), "pixi-policy.toml");
         assert!(coloured.contains("\u{1b}[1m\u{1b}[31merror[bans.deny]"), "{coloured:?}");
         assert!(coloured.contains("\u{1b}[33mwarning[lock.fresh]"), "{coloured:?}");
         assert!(coloured.contains("\u{1b}[2m-->"), "{coloured:?}");
