@@ -39,6 +39,13 @@ pub struct Args {
 pub enum Command {
     /// Check every environment and platform in pixi.lock against the policy (what `pixi policy` alone does).
     Check,
+    /// Write a starting pixi-policy.toml (or --policy FILE) that the workspace passes today; never overwrites.
+    Init,
+    /// Say what a rule checks, its keys and an example; without RULE, list every rule.
+    Explain {
+        /// A rule ID, such as licenses.deny.
+        rule: Option<String>,
+    },
 }
 
 impl Args {

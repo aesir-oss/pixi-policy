@@ -11,6 +11,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::check::{File, Finding, Outcome, Severity, Waived};
 use crate::policy::{Policy, Waiver};
 
+/// The findings about waivers, with their summaries: not rules a policy turns on, so not in the rule list, but
+/// explained and listed in SARIF like one.
+pub const RULES: [(&str, &str); 3] = [
+    (
+        "waivers.expired",
+        "A waiver has expired, and what it waived fails again",
+    ),
+    ("waivers.unused", "A waiver matches no finding"),
+    ("waivers.too-long", "A waiver runs further out than max-waiver-days"),
+];
+
 /// The default `max-waiver-days`.
 pub const MAX_WAIVER_DAYS: u32 = 365;
 

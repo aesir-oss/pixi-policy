@@ -230,6 +230,11 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
         .iter()
         .map(|rule| (rule.id().to_string(), rule.summary().to_string()))
         .collect();
+    for (id, summary) in crate::waivers::RULES {
+        if !rules.iter().any(|(listed, _)| listed == id) {
+            rules.push((id.to_string(), summary.to_string()));
+        }
+    }
     for finding in outcome.findings.iter().chain(outcome.waived.iter().map(|w| &w.finding)) {
         if !rules.iter().any(|(id, _)| id == finding.rule) {
             rules.push((finding.rule.to_string(), finding.rule.to_string()));
@@ -298,6 +303,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "id": id,
                 "name": rule_name(id),
                 "shortDescription": { "text": summary },
+                "help": { "text": crate::explain::details(id).unwrap_or(summary) },
                 "helpUri": "https://aesir-oss.github.io/pixi-ext-contrib/",
             })
         })
@@ -482,10 +488,26 @@ mod tests {
             .collect();
         assert_eq!(
             ids,
-            ["bans.deny", "lock.fresh"],
-            "the catalog's rules, then any other a finding names"
+            [
+                "bans.deny",
+                "waivers.expired",
+                "waivers.unused",
+                "waivers.too-long",
+                "lock.fresh"
+            ],
+            "the catalog's rules, the waiver findings, then any other a finding names"
         );
-        assert_eq!(run["tool"]["driver"]["rules"][1]["name"], "LockFresh");
+        assert_eq!(run["tool"]["driver"]["rules"][4]["name"], "LockFresh");
+        assert_eq!(
+            run["tool"]["driver"]["rules"][4]["help"]["text"], "lock.fresh",
+            "no explain text: the summary"
+        );
+        assert!(
+            run["tool"]["driver"]["rules"][1]["help"]["text"]
+                .as_str()
+                .unwrap()
+                .contains("expires date has passed")
+        );
         let results = run["results"].as_array().unwrap();
         assert_eq!(results.len(), 4);
         assert_eq!(results[0]["level"], "error");
@@ -493,7 +515,7 @@ mod tests {
             results[0]["locations"][0]["physicalLocation"]["artifactLocation"],
             json!({"uri": "app/pixi.lock", "uriBaseId": "%SRCROOT%"})
         );
-        assert_eq!(results[2]["ruleIndex"], 1);
+        assert_eq!(results[2]["ruleIndex"], 4);
         assert_eq!(
             results[2]["locations"][0]["physicalLocation"]["region"]["startLine"],
             12

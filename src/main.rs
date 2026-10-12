@@ -6,6 +6,7 @@ use common::style::Palette;
 use miette::{IntoDiagnostic, WrapErr};
 use pixi_policy::check::Outcome;
 use pixi_policy::cli::{Args, Command};
+use pixi_policy::init::plural;
 use pixi_policy::manifest::Manifest;
 use pixi_policy::policy::Policy;
 use pixi_policy::report::{self, Context};
@@ -77,6 +78,50 @@ fn run(args: &Args) -> miette::Result<i32> {
                 }
             }
             Ok(if outcome.failed() { EXIT_FAILED } else { EXIT_OK })
+        }
+        Command::Init => {
+            let cwd = std::env::current_dir()
+                .into_diagnostic()
+                .wrap_err("cannot read the working directory")?;
+            let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
+            if !workspace.has_lockfile() {
+                return Err(workspace.no_lockfile().into());
+            }
+            let lock = check::load_lockfile(&workspace.lockfile)?;
+            let manifest = Manifest::load(&workspace.manifest)?;
+            let used = pixi_policy::init::in_use(&lock)?;
+            let path = workspace.policy_path(args.policy.as_deref());
+            pixi_policy::init::write(&path, &pixi_policy::init::propose(&used, &manifest))?;
+            let mut out = common::pipe::stdout();
+            writeln!(
+                out,
+                "wrote {}: {}, {}, {}; check it with `pixi policy`",
+                path.display(),
+                plural(used.channels.len(), "channel", "channels"),
+                plural(used.indexes.len(), "index", "indexes"),
+                plural(used.licenses.len(), "license", "licenses")
+            )
+            .and_then(|()| out.flush())
+            .into_diagnostic()?;
+            Ok(EXIT_OK)
+        }
+        Command::Explain { rule } => {
+            let text = match rule {
+                None => pixi_policy::explain::list(),
+                Some(id) => pixi_policy::explain::text(id).ok_or_else(|| {
+                    let ids: Vec<&str> = pixi_policy::explain::catalog().iter().map(|(id, _)| *id).collect();
+                    miette::miette!(
+                        code = "pixi_policy::explain::unknown",
+                        help = format!("the rules are: {}", ids.join(", ")),
+                        "pixi-policy has no rule {id:?}"
+                    )
+                })?,
+            };
+            let mut out = common::pipe::stdout();
+            out.write_all(text.as_bytes())
+                .and_then(|()| out.flush())
+                .into_diagnostic()?;
+            Ok(EXIT_OK)
         }
     }
 }

@@ -372,7 +372,7 @@ fn a_failing_sources_policy_exits_1_and_says_why() {
     assert_eq!(doc["runs"][0]["results"].as_array().unwrap().len(), 8);
     assert_eq!(
         doc["runs"][0]["tool"]["driver"]["rules"].as_array().unwrap().len(),
-        pixi_policy::check::rules().len()
+        pixi_policy::explain::catalog().len()
     );
 }
 
@@ -599,6 +599,100 @@ fn an_unreadable_manifest_exits_2_only_when_the_manifest_rules_need_it() {
         .assert()
         .code(2)
         .stderr(contains("pixi_policy::manifest::read"));
+}
+
+/// #68's acceptance: on every example workspace, `init` writes a policy that `check` then passes.
+#[test]
+fn init_writes_a_policy_every_example_passes() {
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi");
+    let out = tempfile::tempdir().unwrap();
+    let mut seen = 0;
+    for entry in std::fs::read_dir(&examples).unwrap() {
+        let dir = entry.unwrap().path();
+        let manifest = dir.join("pixi.toml");
+        if !manifest.is_file() {
+            continue;
+        }
+        seen += 1;
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let policy_file = out.path().join(format!("{name}.toml"));
+        let init = policy()
+            .arg("--manifest-path")
+            .arg(&manifest)
+            .arg("--policy")
+            .arg(&policy_file)
+            .arg("init")
+            .output()
+            .unwrap();
+        assert_eq!(
+            init.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&init.stderr)
+        );
+        assert!(String::from_utf8_lossy(&init.stdout).starts_with("wrote "), "{name}");
+        let check = policy()
+            .arg("--manifest-path")
+            .arg(&manifest)
+            .arg("--policy")
+            .arg(&policy_file)
+            .output()
+            .unwrap();
+        let text = String::from_utf8_lossy(&check.stdout);
+        assert_eq!(
+            check.status.code(),
+            Some(0),
+            "{name}: {text}\n{}",
+            std::fs::read_to_string(&policy_file).unwrap()
+        );
+    }
+    assert!(seen >= 19, "found {seen} example workspaces");
+}
+
+#[test]
+fn init_never_overwrites_a_policy() {
+    let ws = workspace(Some("[bans]\n"));
+    policy()
+        .current_dir(ws.path())
+        .arg("init")
+        .assert()
+        .code(2)
+        .stderr(contains("pixi_policy::init::exists"));
+    assert_eq!(
+        std::fs::read_to_string(ws.path().join("pixi-policy.toml")).unwrap(),
+        "[bans]\n"
+    );
+    let bare = workspace(None);
+    policy()
+        .current_dir(bare.path())
+        .arg("init")
+        .assert()
+        .code(0)
+        .stdout(contains("wrote "));
+    policy().current_dir(bare.path()).assert().code(0);
+    std::fs::remove_file(bare.path().join("pixi.lock")).unwrap();
+    std::fs::remove_file(bare.path().join("pixi-policy.toml")).unwrap();
+    policy()
+        .current_dir(bare.path())
+        .arg("init")
+        .assert()
+        .code(2)
+        .stderr(contains("pixi_policy::workspace::no_lockfile"));
+}
+
+#[test]
+fn explain_says_what_a_rule_checks_and_lists_every_rule() {
+    policy().args(["explain", "licenses.deny"]).assert().code(0).stdout(
+        contains("licenses.deny: No package needs a license the policy denies").and(contains("[licenses]\ndeny = ")),
+    );
+    let list = policy().arg("explain").output().unwrap();
+    let text = String::from_utf8(list.stdout).unwrap();
+    assert_eq!(text.lines().count(), pixi_policy::explain::catalog().len());
+    policy()
+        .args(["explain", "licences.deny"])
+        .assert()
+        .code(2)
+        .stderr(contains("pixi_policy::explain::unknown").and(contains("licenses.deny")));
 }
 
 #[test]
