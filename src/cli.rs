@@ -2,8 +2,8 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
 use crate::style::ColorChoice;
+use clap::{Parser, Subcommand};
 
 use crate::report::Format;
 

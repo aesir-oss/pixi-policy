@@ -3,9 +3,9 @@
 use std::fmt::Write;
 use std::path::{Component, Path};
 
+use crate::style::Palette;
 use anstyle::{AnsiColor, Style};
 use clap::ValueEnum;
-use crate::style::Palette;
 use serde_json::{Value, json};
 
 use crate::check::{File, Finding, Outcome, Rule, Severity, Waived};

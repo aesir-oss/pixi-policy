@@ -2,7 +2,6 @@ use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Parser;
-use pixi_policy::style::Palette;
 use miette::{IntoDiagnostic, WrapErr};
 use pixi_policy::check::Outcome;
 use pixi_policy::cli::{Args, Command};
@@ -10,6 +9,7 @@ use pixi_policy::init::plural;
 use pixi_policy::manifest::Manifest;
 use pixi_policy::policy::Policy;
 use pixi_policy::report::{self, Context};
+use pixi_policy::style::Palette;
 use pixi_policy::workspace::Workspace;
 use pixi_policy::{EXIT_ERROR, EXIT_FAILED, EXIT_OK, check};
 

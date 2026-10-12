@@ -27,10 +27,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/aesir-oss/pixi-ext-contrib"
-Documentation = "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/"
-Changelog = "https://github.com/aesir-oss/pixi-ext-contrib/blob/main/crates/pixi-policy/CHANGELOG.md"
-Issues = "https://github.com/aesir-oss/pixi-ext-contrib/issues"
+Homepage = "https://github.com/aesir-oss/pixi-policy"
+Documentation = "https://aesir-oss.github.io/pixi-policy/latest/"
+Changelog = "https://github.com/aesir-oss/pixi-policy/blob/main/CHANGELOG.md"
+Issues = "https://github.com/aesir-oss/pixi-policy/issues"
 
 [tool.maturin]
 bindings = "bin"

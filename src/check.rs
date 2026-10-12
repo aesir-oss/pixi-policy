@@ -223,10 +223,8 @@ mod tests {
     }
 
     fn fixture() -> LockFile {
-        load_lockfile(
-            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/with-pypi/pixi.lock"),
-        )
-        .unwrap()
+        load_lockfile(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/with-pypi/pixi.lock"))
+            .unwrap()
     }
 
     #[test]

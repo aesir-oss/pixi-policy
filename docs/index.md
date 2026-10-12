@@ -34,7 +34,7 @@ checks, and the [policy file reference](reference.md) lists every key with its t
 |---|---|
 | From PyPI (the wheel carries only the binary) | `uv tool install pixi-policy`, `pipx install pixi-policy` or `pip install pixi-policy` |
 | In a pixi workspace, pinned with the rest of its tools | `[feature.lint.pypi-dependencies] pixi-policy = ">=0.1,<0.2"` in a feature that has Python, then `pixi run -e lint pixi-policy` |
-| A release archive | download it from [GitHub Releases](https://github.com/aesir-oss/pixi-ext-contrib/releases) and check where it came from with `gh attestation verify <archive> --repo aesir-oss/pixi-ext-contrib` |
+| A release archive | download it from [GitHub Releases](https://github.com/aesir-oss/pixi-policy/releases) and check where it came from with `gh attestation verify <archive> --repo aesir-oss/pixi-policy` |
 
 pixi finds any `pixi-<name>` executable on `PATH`, so once `pixi-policy` is installed `pixi policy` works. A
 conda-forge package, for `pixi global install`, is planned

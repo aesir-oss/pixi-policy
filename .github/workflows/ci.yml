@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push to a pull request replaces the run; every commit on main gets a complete one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: default
+          cache: true
+          activate-environment: true
+      # Compiled dependencies, restored from what main saved; a pull request never writes its own.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: pre-commit
+        run: pixi run pre-commit-run
+      - name: cargo fmt / clippy / check
+        run: |
+          pixi run cargo fmt --check
+          pixi run lint
+          pixi run check
+      - name: actionlint
+        run: pixi run actionlint
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: default
+          cache: true
+          activate-environment: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: debug
+      - name: Unit + integration tests
+        run: pixi run test
+
+  coverage:
+    name: Coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: default
+          cache: true
+          activate-environment: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: cargo llvm-cov (>= 90% lines)
+        run: pixi run cov
+
+  # What we carry ourselves: advisories, licenses, banned crates and sources, against deny.toml.
+  deny:
+    name: Dependency advisories and licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: lint
+          cache: true
+      - name: cargo deny
+        run: pixi run -e lint deny
+
+  # The MSRV is a promise: every other job builds on the far newer rustc the default environment pins.
+  msrv:
+    name: Builds on the MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: msrv
+          cache: true
+          activate-environment: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: cargo check on the oldest supported toolchain
+        run: pixi run -e msrv msrv-check
+
+  # The release profile (LTO, one codegen unit) on every platform, on main only: a pull request's
+  # debug build already compiled the same code.
+  build:
+    name: Build (${{ matrix.os }})
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: default
+          cache: true
+          activate-environment: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: release
+      - name: Release build
+        run: pixi run build
+      - name: Smoke test
+        run: pixi run cargo run --release -- --version
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: docs
+          cache: true
+      - name: Build the site strictly
+        run: pixi run -e docs docs-build
+
+  # The one check the branch ruleset requires and the Release workflow reads: every job that ran passed.
+  result:
+    name: CI result
+    if: ${{ always() }}
+    needs: [lint, test, coverage, deny, msrv, build, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job that ran passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::a job ended $result"; exit 1 ;;
+            esac
+          done

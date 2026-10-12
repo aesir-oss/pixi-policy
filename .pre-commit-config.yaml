@@ -1,0 +1,52 @@
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # The exported decks, the example lockfiles and the lab cache are generated files: whatever the exporter or
+      # the lock tool wrote is what should be in git, or the copy here stops being that tool's.
+      - id: end-of-file-fixer
+        exclude: ^(examples/projects/.*|tests/fixtures/.*|tests/schemas/.*)$
+      - id: trailing-whitespace
+        exclude: ^(examples/projects/.*|tests/fixtures/.*|tests/schemas/.*)$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: rustfmt
+        entry: pixi run cargo fmt --
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: clippy
+        name: clippy
+        entry: pixi run cargo clippy --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: taplo
+        name: taplo
+        entry: pixi run taplo format
+        language: system
+        types: [toml]
+        # uv, Poetry and PDM wrote these; reformatting them would make them not theirs.
+        exclude: ^(examples/projects|tests/fixtures)/
+      - id: typos
+        name: typos
+        entry: pixi run typos
+        language: system
+        pass_filenames: false
+      # The release path cannot be exercised by a pull request, so its expressions and `needs:`
+      # graph are checked here instead of discovered on the day of a release.
+      - id: actionlint
+        name: actionlint
+        entry: pixi run actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: false

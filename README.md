@@ -1,7 +1,7 @@
 # pixi-policy
 
 [![PyPI](https://img.shields.io/pypi/v/pixi-policy.svg)](https://pypi.org/project/pixi-policy/)
-[![Docs](https://img.shields.io/badge/docs-pixi--policy-07835d.svg)](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/)
+[![Docs](https://img.shields.io/badge/docs-pixi--policy-07835d.svg)](https://aesir-oss.github.io/pixi-policy/)
 
 Write down what your [pixi](https://pixi.sh) environments are allowed to contain, and check it everywhere pixi runs.
 One file, `pixi-policy.toml`, committed beside `pixi.toml` and `pixi.lock`; one command, `pixi policy`, that reports
@@ -78,7 +78,7 @@ uv tool install pixi-policy     # or: pipx install pixi-policy, pip install pixi
 
 The wheel carries only the `pixi-policy` binary, for Linux (x86-64 and aarch64, glibc and musl), macOS and Windows.
 pixi runs any `pixi-<name>` executable on `PATH` as `pixi <name>`. Release archives with build provenance are on
-[GitHub Releases](https://github.com/aesir-oss/pixi-ext-contrib/releases).
+[GitHub Releases](https://github.com/aesir-oss/pixi-policy/releases).
 
 ## In CI
 
@@ -95,14 +95,13 @@ writes a report with a published schema, and `--format sarif` one for GitHub cod
 
 ## Documentation
 
-**https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/**:
-[getting started](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/getting-started/),
-[development and CI](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/ci/),
-[every rule](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/rules/),
-[every key, with its values and default](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/reference/),
-[waivers](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/waivers/) and
-[output formats](https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/output/).
+**https://aesir-oss.github.io/pixi-policy/**:
+[getting started](https://aesir-oss.github.io/pixi-policy/latest/getting-started/),
+[development and CI](https://aesir-oss.github.io/pixi-policy/latest/ci/),
+[every rule](https://aesir-oss.github.io/pixi-policy/latest/rules/),
+[every key, with its values and default](https://aesir-oss.github.io/pixi-policy/latest/reference/),
+[waivers](https://aesir-oss.github.io/pixi-policy/latest/waivers/) and
+[output formats](https://aesir-oss.github.io/pixi-policy/latest/output/).
 
-Part of [pixi-ext-contrib](https://github.com/aesir-oss/pixi-ext-contrib), with
-[pixi-sbom](https://aesir-oss.github.io/pixi-ext-contrib/pixi-sbom/). Apache-2.0. A community project, not affiliated
-with prefix.dev.
+From [Aesir Open Source Solutions](https://github.com/aesir-oss), beside
+[pixi-sbom](https://github.com/aesir-oss/pixi-sbom). Apache-2.0. A community project, not affiliated with prefix.dev.

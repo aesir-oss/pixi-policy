@@ -1,10 +1,11 @@
-INHERIT: ../../mkdocs.base.yml
 site_name: pixi-policy
 site_description: Check what a pixi workspace's environments may contain against a written policy
-site_url: https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/
-edit_uri: edit/main/crates/pixi-policy/docs/
+site_url: https://aesir-oss.github.io/pixi-policy/
+edit_uri: edit/main/docs/
 
 docs_dir: docs
+exclude_docs: |
+  overrides/
 
 nav:
   - Overview: index.md
@@ -15,29 +16,95 @@ nav:
   - License policy: licenses.md
   - Waivers: waivers.md
   - Output formats: output.md
-  - Contributing:
-      - Development: https://aesir-oss.github.io/pixi-ext-contrib/development/
-  - Security policy: https://aesir-oss.github.io/pixi-ext-contrib/security/
+  - Development: development.md
+  - Security policy: security.md
   - Changelog: changelog.md
 
 hooks:
-  - ../../mkdocs_hooks.py
-
-theme:
-  custom_dir: ../../docs/overrides
-  favicon: https://aesir-oss.github.io/pixi-ext-contrib/assets/favicon.svg
+  - mkdocs_hooks.py
 
 plugins:
   - search
+  # Aliases (`latest`) are real copies so GitHub Pages serves them without symlinks or redirects, and every
+  # version's pages declare the `latest` URL as canonical for search engines.
   - mike:
       alias_type: copy
       canonical_version: latest
 
+repo_url: https://github.com/aesir-oss/pixi-policy
+repo_name: aesir-oss/pixi-policy
+copyright: Apache-2.0 licensed · Aesir Open Source Solutions
+
+strict: true
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  favicon: assets/favicon.svg
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+  # The Aesir brand (docs/overrides/aesir.css): Inter for text, JetBrains Mono for code.
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    logo: aesir/mark
+  # Light by default regardless of the OS preference; the toggle switches to dark. The colours themselves are the
+  # brand's light and dark theme mapping, set in docs/overrides/aesir.css.
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+      clickable_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+
 extra:
+  # Repository files published as pages of the site (mkdocs_hooks.py).
   repo_pages:
-    crates/pixi-policy/CHANGELOG.md: changelog.md
+    CHANGELOG.md: changelog.md
+    SECURITY.md: security.md
     # The JSON report's schema, at the address its $id names.
-    crates/pixi-policy/schemas/pixi-policy-report.schema.json: schemas/pixi-policy-report.schema.json
+    schemas/pixi-policy-report.schema.json: schemas/pixi-policy-report.schema.json
+  # Version selector fed by mike's versions.json; the site root opens `latest`.
   version:
     provider: mike
     default: latest
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/aesir-oss/pixi-policy
