@@ -23,9 +23,8 @@ version = 2
 # that tracks getting off it — never a bare id, or nobody will know why it is still here.
 ignore = [
   # unsafe-libyaml is unmaintained (archived 2024-03-25), not vulnerable. It comes through serde_yaml, which
-  # rattler_conda_types depends on; getting off it is tracked in this repository's issues (copied from
-  # aesir-oss/pixi-ext-contrib#127).
-  { id = "RUSTSEC-2024-0449", reason = "unmaintained, via serde_yaml (rattler_conda_types); tracked in an issue here" },
+  # rattler_conda_types depends on; #13 tracks getting off it.
+  { id = "RUSTSEC-2024-0449", reason = "unmaintained, via serde_yaml (rattler_conda_types); tracked in #13" },
 ]
 
 [licenses]

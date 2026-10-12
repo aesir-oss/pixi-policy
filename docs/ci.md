@@ -50,7 +50,7 @@ repos:
         files: ^(pixi\.toml|pixi\.lock|pixi-policy\.toml)$
 ```
 
-A published hook is planned ([#77](https://github.com/aesir-oss/pixi-ext-contrib/issues/77)).
+A published hook is planned ([#5](https://github.com/aesir-oss/pixi-policy/issues/5)).
 
 ## GitHub Actions
 
@@ -85,7 +85,7 @@ jobs:
 
 Make the job a required status check, or a failing policy is only advice. Code scanning is free on public
 repositories; private ones need GitHub code security. Without it, drop the upload and read the text report in the
-job log. A packaged GitHub Action is planned ([#76](https://github.com/aesir-oss/pixi-ext-contrib/issues/76)).
+job log. A packaged GitHub Action is planned ([#4](https://github.com/aesir-oss/pixi-policy/issues/4)).
 
 ## Other CI systems
 

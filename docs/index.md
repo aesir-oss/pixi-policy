@@ -38,7 +38,7 @@ checks, and the [policy file reference](reference.md) lists every key with its t
 
 pixi finds any `pixi-<name>` executable on `PATH`, so once `pixi-policy` is installed `pixi policy` works. A
 conda-forge package, for `pixi global install`, is planned
-([#78](https://github.com/aesir-oss/pixi-ext-contrib/issues/78)).
+([#6](https://github.com/aesir-oss/pixi-policy/issues/6)).
 
 ## Exit codes
 
