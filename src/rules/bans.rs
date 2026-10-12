@@ -15,6 +15,17 @@ use rattler_conda_types::{ParseStrictness, StringMatcher, Version as CondaVersio
 use crate::check::{File, Finding, Rule, Severity};
 use crate::policy::{Ban, PackageKind, Policy};
 
+/// A parser's error as one clause for the policy diagnostic (#122): its first line, without a trailing colon or a
+/// "Failed to parse version:" lead-in. pep440's errors go on to draw the input and carets on lines of their own.
+fn reason(err: &impl std::fmt::Display) -> String {
+    let text = err.to_string();
+    let first = text.lines().map(str::trim).find(|line| !line.is_empty()).unwrap_or("");
+    let first = first
+        .strip_prefix("Failed to parse version:")
+        .map_or(first, str::trim_start);
+    first.trim_end_matches(':').trim_end().to_string()
+}
+
 /// A ban, compiled.
 #[derive(Debug)]
 pub struct Matcher<'a> {
@@ -38,20 +49,24 @@ impl<'a> Matcher<'a> {
             if conda_applies {
                 conda = Some(VersionSpec::from_str(range, ParseStrictness::Lenient).map_err(|err| {
                     format!(
-                        "version {range:?} is not a conda version range ({err}); set kind = \"pypi\" if it is PEP 440"
+                        "version {range:?} is not a conda version range ({}); set kind = \"pypi\" if it is PEP 440",
+                        reason(&err)
                     )
                 })?);
             }
             if pypi_applies {
                 pypi = Some(VersionSpecifiers::from_str(range).map_err(|err| {
-                    format!("version {range:?} is not a PEP 440 range ({err}); set kind = \"conda\" if it is conda's")
+                    format!(
+                        "version {range:?} is not a PEP 440 range ({}); set kind = \"conda\" if it is conda's",
+                        reason(&err)
+                    )
                 })?);
             }
         }
         let build = match &ban.build {
             Some(pattern) => Some(
                 StringMatcher::from_str(pattern)
-                    .map_err(|err| format!("build {pattern:?} is not a pattern ({err})"))?,
+                    .map_err(|err| format!("build {pattern:?} is not a pattern ({})", reason(&err)))?,
             ),
             None => None,
         };
@@ -423,6 +438,28 @@ mod tests {
             .is_ok()
         );
         assert!(Policy::parse("[bans]\ndeny = [{ title = \"x\" }]\n", "p.toml").is_err());
+    }
+
+    #[test]
+    fn an_invalid_range_is_explained_in_one_line() {
+        let err = Policy::parse(
+            "[bans]\ndeny = [{ name = \"openssl\", version = \"<1.1.1w\" }]\n",
+            "p.toml",
+        )
+        .unwrap_err();
+        let message = err.to_string();
+        assert!(!message.contains('\n'), "{message}");
+        assert!(
+            !message.contains('^') && !message.contains("Failed to parse"),
+            "{message}"
+        );
+        assert!(
+            message.contains("found `w`") && message.ends_with("set kind = \"conda\" if it is conda's"),
+            "{message}"
+        );
+        assert_eq!(reason(&"first line:\n  second\n"), "first line");
+        assert_eq!(reason(&"Failed to parse version: after `1`:"), "after `1`");
+        assert_eq!(reason(&""), "");
     }
 
     #[test]
