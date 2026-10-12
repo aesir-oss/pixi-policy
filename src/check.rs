@@ -58,6 +58,8 @@ impl fmt::Display for Severity {
 pub enum File {
     Lockfile,
     Manifest,
+    /// The policy itself: a finding about a waiver.
+    Policy,
 }
 
 impl fmt::Display for File {
@@ -65,6 +67,7 @@ impl fmt::Display for File {
         f.write_str(match self {
             File::Lockfile => "pixi.lock",
             File::Manifest => "pixi.toml",
+            File::Policy => "pixi-policy.toml",
         })
     }
 }
@@ -87,6 +90,15 @@ pub struct Finding {
     pub help: Option<String>,
 }
 
+/// A finding a waiver let through, and the waiver's reason and expiry.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Waived {
+    pub finding: Finding,
+    pub reason: String,
+    /// `YYYY-MM-DD`.
+    pub expires: String,
+}
+
 /// A rule of the policy.
 pub trait Rule {
     /// `family.rule`.
@@ -107,7 +119,7 @@ pub fn rules() -> Vec<Box<dyn Rule>> {
 pub struct Outcome {
     pub findings: Vec<Finding>,
     /// Findings a waiver let through: reported, never failing the check.
-    pub waived: Vec<Finding>,
+    pub waived: Vec<Waived>,
     /// Environment and platform pairs checked.
     pub targets: usize,
     /// Packages across all of them.

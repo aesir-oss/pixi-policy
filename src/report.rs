@@ -8,7 +8,7 @@ use clap::ValueEnum;
 use common::style::Palette;
 use serde_json::{Value, json};
 
-use crate::check::{Finding, Outcome, Rule, Severity};
+use crate::check::{File, Finding, Outcome, Rule, Severity, Waived};
 
 /// The version of the JSON report's shape; it changes only when a field is renamed or removed.
 pub const JSON_VERSION: u32 = 1;
@@ -83,6 +83,9 @@ fn location(finding: &Finding) -> String {
         Some(line) => format!("{}:{line}", finding.file),
         None => finding.file.to_string(),
     };
+    if finding.environment.is_empty() {
+        return file;
+    }
     format!("{file}: environment {:?}, {}", finding.environment, finding.platform)
 }
 
@@ -102,9 +105,14 @@ pub fn text(outcome: &Outcome, palette: Palette) -> String {
         }
         out.push('\n');
     }
-    for finding in &outcome.waived {
+    for Waived {
+        finding,
+        reason,
+        expires,
+    } in &outcome.waived
+    {
         let line = format!(
-            "waived[{}] {}{} ({})",
+            "waived[{}] {}{} ({}); waiver: {reason}, expires {expires}",
             finding.rule,
             package(finding),
             finding.message,
@@ -193,7 +201,11 @@ pub fn json(outcome: &Outcome, context: &Context<'_>) -> Value {
             "targets": outcome.targets,
         },
         "findings": outcome.findings.iter().map(finding_json).collect::<Vec<_>>(),
-        "waived": outcome.waived.iter().map(finding_json).collect::<Vec<_>>(),
+        "waived": outcome.waived.iter().map(|waived| {
+            let mut entry = finding_json(&waived.finding);
+            entry["waiver"] = json!({ "reason": waived.reason, "expires": waived.expires });
+            entry
+        }).collect::<Vec<_>>(),
     })
 }
 
@@ -217,15 +229,16 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
         .iter()
         .map(|rule| (rule.id().to_string(), rule.summary().to_string()))
         .collect();
-    for finding in outcome.findings.iter().chain(&outcome.waived) {
+    for finding in outcome.findings.iter().chain(outcome.waived.iter().map(|w| &w.finding)) {
         if !rules.iter().any(|(id, _)| id == finding.rule) {
             rules.push((finding.rule.to_string(), finding.rule.to_string()));
         }
     }
-    let result = |finding: &Finding, waived: bool| {
+    let result = |finding: &Finding, waived: Option<&Waived>| {
         let file = match finding.file {
-            crate::check::File::Lockfile => context.lockfile,
-            crate::check::File::Manifest => context.manifest,
+            File::Lockfile => context.lockfile,
+            File::Manifest => context.manifest,
+            File::Policy => context.policy,
         };
         let mut physical = json!({ "artifactLocation": artifact_location(file, context.base) });
         if let Some(line) = finding.line {
@@ -261,16 +274,21 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "platform": finding.platform,
             },
         });
-        if waived {
-            result["suppressions"] = json!([{ "kind": "external", "status": "accepted" }]);
+        if let Some(waived) = waived {
+            result["suppressions"] = json!([{
+                "kind": "external",
+                "status": "accepted",
+                "justification": waived.reason,
+                "properties": { "expires": waived.expires },
+            }]);
         }
         result
     };
     let results: Vec<Value> = outcome
         .findings
         .iter()
-        .map(|f| result(f, false))
-        .chain(outcome.waived.iter().map(|f| result(f, true)))
+        .map(|f| result(f, None))
+        .chain(outcome.waived.iter().map(|w| result(&w.finding, Some(w))))
         .collect();
     let rules: Vec<Value> = rules
         .iter()
@@ -310,7 +328,6 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-    use crate::check::File;
 
     struct Deny;
 
@@ -354,7 +371,11 @@ mod tests {
                     ..finding("lock.fresh", Severity::Warning, "", File::Manifest, Some(12))
                 },
             ],
-            waived: vec![finding("bans.deny", Severity::Error, "legacy", File::Lockfile, None)],
+            waived: vec![Waived {
+                finding: finding("bans.deny", Severity::Error, "legacy", File::Lockfile, None),
+                reason: "vendored; LEGAL-1234".into(),
+                expires: "2027-03-31".into(),
+            }],
             targets: 2,
             packages: 40,
         }
@@ -422,6 +443,16 @@ mod tests {
         assert_eq!(doc["findings"][2]["line"], 12);
         assert_eq!(doc["findings"][2]["package"], Value::Null);
         assert_eq!(doc["waived"][0]["package"], "legacy");
+        assert_eq!(
+            doc["waived"][0]["waiver"],
+            json!({"reason": "vendored; LEGAL-1234", "expires": "2027-03-31"})
+        );
+        let mut stripped = doc.clone();
+        stripped["waived"][0].as_object_mut().unwrap().remove("waiver");
+        assert!(!validator.is_valid(&stripped), "a waived finding needs its waiver");
+        let mut extra = doc.clone();
+        extra["findings"][0]["surprise"] = json!(1);
+        assert!(!validator.is_valid(&extra), "a finding has no other fields");
         assert!(render(Format::Json, &sample(), &context, Palette::new(true)).ends_with("}\n"));
     }
 
@@ -468,6 +499,8 @@ mod tests {
         );
         assert!(results[2]["locations"][0].get("logicalLocations").is_none());
         assert_eq!(results[3]["suppressions"][0]["kind"], "external");
+        assert_eq!(results[3]["suppressions"][0]["justification"], "vendored; LEGAL-1234");
+        assert_eq!(results[3]["suppressions"][0]["properties"]["expires"], "2027-03-31");
         assert!(render(Format::Sarif, &Outcome::default(), &context, Palette::new(false)).contains("\"2.1.0\""));
     }
 

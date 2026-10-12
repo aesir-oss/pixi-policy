@@ -371,6 +371,113 @@ fn a_license_policy_fails_a_real_workspace_with_errors_and_review_warnings() {
     assert!(!text.contains("licenses.unknown"), "{text}");
 }
 
+/// A date `days` from today, as a policy writes it.
+fn days_from_today(days: i64) -> String {
+    use pixi_policy::waivers::Date;
+    Date::from_days(Date::today().days() + days).to_string()
+}
+
+#[test]
+fn waivers_let_findings_through_with_their_reason_and_report_expired_and_unused_ones() {
+    let dir = tempfile::tempdir().unwrap();
+    let policy_file = dir.path().join("pixi-policy.toml");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/02-flask/pixi.toml");
+    let waiver = |package: &str, expires: &str| {
+        format!(
+            "\n[[waivers]]\nrule = \"licenses.deny\"\npackage = \"{package}\"\nreason = \"LEGAL-1234\"\nexpires = {expires}\n"
+        )
+    };
+    let base = "[licenses]\ndeny = [\"GPL-3.0-only\"]\nunknown = \"allow\"\n";
+    let run = |format: &str| {
+        let output = policy()
+            .arg("--manifest-path")
+            .arg(&manifest)
+            .arg("--policy")
+            .arg(&policy_file)
+            .args(["--format", format])
+            .output()
+            .unwrap();
+        (output.status.code(), String::from_utf8(output.stdout).unwrap())
+    };
+
+    // Both denied packages waived until next month: the check passes and says why.
+    let soon = days_from_today(30);
+    std::fs::write(
+        &policy_file,
+        format!(
+            "{base}{}{}",
+            waiver("readline", &soon),
+            waiver("ld_impl_linux-64", &soon)
+        ),
+    )
+    .unwrap();
+    let (code, text) = run("text");
+    assert_eq!(code, Some(0), "{text}");
+    assert!(
+        text.contains("waived[licenses.deny] readline 8.3: ")
+            && text.contains(&format!("; waiver: LEGAL-1234, expires {soon}")),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("0 errors, 0 warnings, 6 waived in 206 packages across 4 environment-platform pairs\n"),
+        "{text}"
+    );
+    let (_, json) = run("json");
+    let doc: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(doc["waived"][0]["waiver"]["reason"], "LEGAL-1234");
+    let errors: Vec<String> = validator("schemas/pixi-policy-report.schema.json")
+        .iter_errors(&doc)
+        .map(|e| e.to_string())
+        .collect();
+    assert!(errors.is_empty(), "{errors:#?}");
+    let (_, sarif) = run("sarif");
+    let doc: serde_json::Value = serde_json::from_str(&sarif).unwrap();
+    let suppressed = doc["runs"][0]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r.get("suppressions").is_some())
+        .count();
+    assert_eq!(suppressed, 6);
+    assert_eq!(
+        doc["runs"][0]["results"][0]["suppressions"][0]["justification"],
+        "LEGAL-1234"
+    );
+
+    // One expired, one for a package that is not there: the expired one fails again, both waivers are reported.
+    std::fs::write(
+        &policy_file,
+        format!(
+            "{base}{}{}{}",
+            waiver("readline", &soon),
+            waiver("ld_impl_linux-64", "2020-01-01"),
+            waiver("not-here", &soon)
+        ),
+    )
+    .unwrap();
+    let (code, text) = run("text");
+    assert_eq!(code, Some(1), "{text}");
+    assert!(text.contains("error[licenses.deny] ld_impl_linux-64 "), "{text}");
+    assert!(text.contains("warning[waivers.expired] ld_impl_linux-64: waiver for licenses.deny on ld_impl_linux-64 expired on 2020-01-01"), "{text}");
+    assert!(
+        text.contains("warning[waivers.unused] not-here: waiver for licenses.deny on not-here matches no finding"),
+        "{text}"
+    );
+    assert!(text.contains("  --> pixi-policy.toml:"), "{text}");
+}
+
+#[test]
+fn a_waiver_without_expires_exits_2() {
+    let ws = workspace(Some(
+        "[[waivers]]\nrule = \"licenses.deny\"\npackage = \"x\"\nreason = \"y\"\n",
+    ));
+    policy()
+        .current_dir(ws.path())
+        .assert()
+        .code(2)
+        .stderr(contains("expires"));
+}
+
 #[test]
 fn help_names_the_pixi_command() {
     policy()

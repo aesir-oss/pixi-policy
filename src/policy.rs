@@ -6,6 +6,9 @@ use std::path::Path;
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use serde::Deserialize;
 use thiserror::Error;
+use toml::Spanned;
+
+use crate::waivers::Date;
 
 /// Why the policy could not be read.
 #[derive(Debug, Error, Diagnostic)]
@@ -138,6 +141,32 @@ pub struct Licenses {
     pub unknown: Unknown,
 }
 
+/// One `[[waivers]]` entry: an exception for one rule and one package, with a reason and an expiry date.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Waiver {
+    /// The rule it waives (`licenses.deny`).
+    pub rule: String,
+    pub package: String,
+    /// Only this version, environment or platform, when given.
+    pub version: Option<String>,
+    pub environment: Option<String>,
+    pub platform: Option<String>,
+    pub reason: String,
+    /// The last day it applies; required (#66).
+    pub expires: toml::value::Datetime,
+    /// Its line in the policy file, filled in by [`Policy::parse`].
+    #[serde(skip)]
+    pub line: Option<u32>,
+}
+
+impl Waiver {
+    /// The expiry as a date; [`Policy::parse`] has checked that it is one.
+    pub fn expires_on(&self) -> Date {
+        Date::from_toml(&self.expires).expect("Policy::parse rejects an expires that is not a date")
+    }
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -157,15 +186,42 @@ pub struct Policy {
     /// pixi.lock hygiene.
     #[serde(default)]
     pub lock: Option<Table>,
+    /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
+    /// off. Default 365 (decided on #66).
+    #[serde(default)]
+    pub max_waiver_days: Option<u32>,
     /// Exceptions with a reason and an expiry date.
     #[serde(default)]
-    pub waivers: Vec<Table>,
+    pub waivers: Vec<Spanned<Waiver>>,
 }
 
 impl Policy {
     /// Parse a policy's text; `path` names it in a diagnostic.
     pub fn parse(text: &str, path: &str) -> Result<Self, PolicyError> {
-        let policy: Self = Self::deserialize(text, path)?;
+        let mut policy: Self = Self::deserialize(text, path)?;
+        let invalid = |message: String| PolicyError::Invalid {
+            path: path.to_string(),
+            message,
+        };
+        let known: Vec<&'static str> = crate::check::rules().iter().map(|rule| rule.id()).collect();
+        for waiver in &mut policy.waivers {
+            let line = text[..waiver.span().start].matches('\n').count() + 1;
+            let waiver = waiver.get_mut();
+            waiver.line = u32::try_from(line).ok();
+            if !known.contains(&waiver.rule.as_str()) {
+                return Err(invalid(format!(
+                    "the waiver on line {line} names rule {:?}, which pixi-policy does not have (it has {})",
+                    waiver.rule,
+                    known.join(", ")
+                )));
+            }
+            if Date::from_toml(&waiver.expires).is_none() {
+                return Err(invalid(format!(
+                    "the waiver on line {line} expires {}, which is not a date: write it as YYYY-MM-DD",
+                    waiver.expires
+                )));
+            }
+        }
         if let Some(licenses) = &policy.licenses {
             crate::rules::licenses::Compiled::new(licenses).map_err(|message| PolicyError::Invalid {
                 path: path.to_string(),
@@ -216,14 +272,14 @@ mod tests {
     fn an_empty_policy_is_valid_and_each_family_is_a_table() {
         assert_eq!(Policy::parse("", "p.toml").unwrap(), Policy::default());
         let policy = Policy::parse(
-            "[sources]\nallowed-channels = [\"conda-forge\"]\nallow-git = false\n[[waivers]]\nrule = \"bans.deny\"\n",
+            "[sources]\nallowed-channels = [\"conda-forge\"]\nallow-git = false\n",
             "p.toml",
         )
         .unwrap();
         let sources = policy.sources.unwrap();
         assert_eq!(sources.allowed_channels, Some(vec!["conda-forge".to_string()]));
         assert_eq!((sources.allow_git, sources.allow_url), (Some(false), None));
-        assert_eq!(policy.waivers.len(), 1);
+        assert!(policy.waivers.is_empty());
     }
 
     #[test]

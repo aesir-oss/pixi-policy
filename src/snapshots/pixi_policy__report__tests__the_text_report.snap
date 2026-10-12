@@ -13,6 +13,6 @@ error[bans.deny] pycrypto2 2.6.1: is denied (unmaintained)
 warning[lock.fresh] the lockfile is older than the manifest
   --> pixi.toml:12: environment "default", linux-64
 
-waived[bans.deny] legacy 2.6.1: is denied (unmaintained) (pixi.lock: environment "default", linux-64)
+waived[bans.deny] legacy 2.6.1: is denied (unmaintained) (pixi.lock: environment "default", linux-64); waiver: vendored; LEGAL-1234, expires 2027-03-31
 
 2 errors, 1 warning, 1 waived in 40 packages across 2 environment-platform pairs

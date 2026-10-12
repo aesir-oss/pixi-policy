@@ -10,6 +10,7 @@ pub mod cli;
 pub mod policy;
 pub mod report;
 pub mod rules;
+pub mod waivers;
 pub mod workspace;
 
 /// Nothing failed the policy.
