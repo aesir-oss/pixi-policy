@@ -1,6 +1,6 @@
 [package]
 name = "pixi-policy"
-version = "0.1.1-rc.1"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 description = "Check what a pixi workspace's environments may contain against a written policy"
