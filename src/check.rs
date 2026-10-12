@@ -1,11 +1,11 @@
 //! Running the policy's rules over every environment and platform of the lockfile.
 //!
-//! A rule is a pure function of the policy and one environment's facts (`common::lockfile`), returning findings: the
+//! A rule is a pure function of the policy and one environment's facts (`crate::lockfile`), returning findings: the
 //! same answer on every machine. Rule IDs are `family.rule` (`bans.deny`, `sources.channels`).
 
 use std::fmt;
 
-use common::lockfile::{self, Facts, ReadError};
+use crate::lockfile::{self, Facts, ReadError};
 use miette::Diagnostic;
 use rattler_lock::LockFile;
 use thiserror::Error;
@@ -224,7 +224,7 @@ mod tests {
 
     fn fixture() -> LockFile {
         load_lockfile(
-            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../pixi-sbom/tests/fixtures/with-pypi/pixi.lock"),
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/with-pypi/pixi.lock"),
         )
         .unwrap()
     }

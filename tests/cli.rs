@@ -10,7 +10,7 @@ use predicates::str::contains;
 /// A workspace with a real lockfile and, when given, a policy.
 fn workspace(policy: Option<&str>) -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
-    let lock = Path::new(env!("CARGO_MANIFEST_DIR")).join("../pixi-sbom/tests/fixtures/with-pypi/pixi.lock");
+    let lock = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/with-pypi/pixi.lock");
     std::fs::copy(lock, dir.path().join("pixi.lock")).unwrap();
     std::fs::write(dir.path().join("pixi.toml"), "[workspace]\nname = \"w\"\n").unwrap();
     if let Some(policy) = policy {
@@ -188,7 +188,7 @@ fn a_damaged_lockfile_is_an_error() {
 /// Every example workspace the docs and pixi-sbom's tests use: an empty policy reads all of it and passes.
 #[test]
 fn every_example_workspace_is_checked() {
-    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi");
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/projects/pixi");
     let empty = tempfile::NamedTempFile::new().unwrap();
     let mut seen = 0;
     for entry in std::fs::read_dir(&examples).unwrap() {
@@ -244,7 +244,7 @@ fn json_and_sarif_match_their_schemas() {
     let ws = workspace(Some(""));
     for (format, schema) in [
         ("json", "schemas/pixi-policy-report.schema.json"),
-        ("sarif", "../pixi-sbom/tests/schemas/sarif-schema-2.1.0.json"),
+        ("sarif", "tests/schemas/sarif-schema-2.1.0.json"),
     ] {
         let output = policy()
             .current_dir(ws.path())
@@ -364,7 +364,7 @@ fn a_failing_sources_policy_exits_1_and_says_why() {
         .unwrap();
     assert_eq!(output.status.code(), Some(1));
     let doc: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let errors: Vec<String> = validator("../pixi-sbom/tests/schemas/sarif-schema-2.1.0.json")
+    let errors: Vec<String> = validator("tests/schemas/sarif-schema-2.1.0.json")
         .iter_errors(&doc)
         .map(|e| e.to_string())
         .collect();
@@ -385,7 +385,7 @@ fn a_ban_fails_a_real_workspace_and_names_the_replacement() {
         "[bans]\ndeny = [{ name = \"django\", version = \"<6\", reason = \"too old\", use-instead = \"django 6\" }]\n",
     )
     .unwrap();
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/01-django/pixi.toml");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/projects/pixi/01-django/pixi.toml");
     let output = policy()
         .arg("--manifest-path")
         .arg(&manifest)
@@ -421,7 +421,7 @@ fn a_license_policy_fails_a_real_workspace_with_errors_and_review_warnings() {
         "[licenses]\nreview = [\"LGPL-*\"]\ndeny = [\"GPL-3.0-only\"]\nunknown = \"allow\"\n",
     )
     .unwrap();
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/02-flask/pixi.toml");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/projects/pixi/02-flask/pixi.toml");
     let output = policy()
         .arg("--manifest-path")
         .arg(&manifest)
@@ -453,7 +453,7 @@ fn days_from_today(days: i64) -> String {
 fn waivers_let_findings_through_with_their_reason_and_report_expired_and_unused_ones() {
     let dir = tempfile::tempdir().unwrap();
     let policy_file = dir.path().join("pixi-policy.toml");
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi/02-flask/pixi.toml");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/projects/pixi/02-flask/pixi.toml");
     let waiver = |package: &str, expires: &str| {
         format!(
             "\n[[waivers]]\nrule = \"licenses.deny\"\npackage = \"{package}\"\nreason = \"LEGAL-1234\"\nexpires = {expires}\n"
@@ -626,7 +626,7 @@ fn an_unreadable_manifest_exits_2_only_when_the_manifest_rules_need_it() {
 /// #68's acceptance: on every example workspace, `init` writes a policy that `check` then passes.
 #[test]
 fn init_writes_a_policy_every_example_passes() {
-    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/projects/pixi");
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/projects/pixi");
     let out = tempfile::tempdir().unwrap();
     let mut seen = 0;
     for entry in std::fs::read_dir(&examples).unwrap() {

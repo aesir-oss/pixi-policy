@@ -7,8 +7,8 @@
 
 use std::str::FromStr;
 
-use common::lockfile::{Fact, Facts, Kind};
-use common::purl::normalize_pypi_name;
+use crate::lockfile::{Fact, Facts, Kind};
+use crate::purl::normalize_pypi_name;
 use pep440_rs::{Version as PypiVersion, VersionSpecifiers};
 use rattler_conda_types::{ParseStrictness, StringMatcher, Version as CondaVersion, VersionSpec};
 
@@ -203,7 +203,7 @@ mod tests {
     fn fact(name: &str, version: &str, kind: Kind, build: Option<&str>, purls: &[&str]) -> Fact {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources/pixi.lock");
         let lock = crate::check::load_lockfile(&path).unwrap();
-        let mut fact = common::lockfile::read(&lock, "default", Some("linux-64"))
+        let mut fact = crate::lockfile::read(&lock, "default", Some("linux-64"))
             .unwrap()
             .packages
             .remove(0);

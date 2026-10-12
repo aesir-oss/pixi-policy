@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use common::style::ColorChoice;
+use crate::style::ColorChoice;
 
 use crate::report::Format;
 

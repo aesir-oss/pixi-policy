@@ -535,7 +535,7 @@ mod tests {
 
     fn lockfile(name: &str) -> LockFile {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../pixi-sbom/tests/fixtures")
+            .join("tests/fixtures")
             .join(name)
             .join("pixi.lock");
         LockFile::from_path(&path).unwrap()

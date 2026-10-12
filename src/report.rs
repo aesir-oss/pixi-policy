@@ -5,7 +5,7 @@ use std::path::{Component, Path};
 
 use anstyle::{AnsiColor, Style};
 use clap::ValueEnum;
-use common::style::Palette;
+use crate::style::Palette;
 use serde_json::{Value, json};
 
 use crate::check::{File, Finding, Outcome, Rule, Severity, Waived};
@@ -351,7 +351,7 @@ mod tests {
         fn summary(&self) -> &'static str {
             "Packages the policy never allows"
         }
-        fn check(&self, _: &crate::policy::Policy, _: &common::lockfile::Facts) -> Vec<Finding> {
+        fn check(&self, _: &crate::policy::Policy, _: &crate::lockfile::Facts) -> Vec<Finding> {
             Vec::new()
         }
     }
@@ -504,7 +504,7 @@ mod tests {
             base: &base,
             rules: &rules,
         };
-        let validator = schema_validator("../pixi-sbom/tests/schemas/sarif-schema-2.1.0.json");
+        let validator = schema_validator("tests/schemas/sarif-schema-2.1.0.json");
         for outcome in [sample(), Outcome::default()] {
             assert_valid(&validator, &sarif(&outcome, &context));
         }

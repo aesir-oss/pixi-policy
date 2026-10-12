@@ -10,10 +10,16 @@ pub mod cli;
 pub mod explain;
 pub mod init;
 pub mod keys;
+pub mod license;
+pub mod license_policy;
+pub mod lockfile;
 pub mod manifest;
+pub mod pipe;
 pub mod policy;
+pub mod purl;
 pub mod report;
 pub mod rules;
+pub mod style;
 pub mod waivers;
 pub mod workspace;
 

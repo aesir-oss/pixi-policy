@@ -9,7 +9,7 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
-use common::lockfile;
+use crate::lockfile;
 use rattler_lock::LockFile;
 
 use crate::check::{File, Finding, Rule, Severity};

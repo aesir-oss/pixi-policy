@@ -7,7 +7,7 @@
 //! so a mirrored channel is recorded, and matched, as the channel it mirrors. A channel given by name matches its
 //! anaconda.org and prefix.dev URLs and nothing else (decided on #61): any other host must be listed by URL.
 
-use common::lockfile::{BuildSource, Fact, Facts, Kind};
+use crate::lockfile::{BuildSource, Fact, Facts, Kind};
 
 use crate::check::{File, Finding, Rule, Severity};
 use crate::policy::{Policy, Sources};
@@ -212,7 +212,7 @@ mod tests {
     fn facts() -> Facts {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources/pixi.lock");
         let lock = crate::check::load_lockfile(&path).unwrap();
-        common::lockfile::read(&lock, "default", Some("linux-64")).unwrap()
+        crate::lockfile::read(&lock, "default", Some("linux-64")).unwrap()
     }
 
     fn origin_of(facts: &Facts, name: &str) -> Origin {

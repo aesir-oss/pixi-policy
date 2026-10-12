@@ -2,20 +2,14 @@
 name = "pixi-policy"
 version = "0.1.0"
 edition = "2024"
-# pixi-sbom's: both build on the shared crate, so neither claims a newer toolchain.
 rust-version = "1.88"
 description = "Check what a pixi workspace's environments may contain against a written policy"
 license = "Apache-2.0"
-repository = "https://github.com/aesir-oss/pixi-ext-contrib"
-homepage = "https://aesir-oss.github.io/pixi-ext-contrib/"
+repository = "https://github.com/aesir-oss/pixi-policy"
+homepage = "https://aesir-oss.github.io/pixi-policy/"
 readme = "README.md"
-# Not on crates.io (#106): released as archives and wheels from this repository (#69).
+# Not on crates.io: released as archives and wheels from this repository.
 publish = false
-
-# Paths beyond the crate and the shared crate whose commits belong in this changelog (#51); its docs join when they
-# exist (#6).
-[package.metadata.changelog]
-include = []
 
 # The library is the binary's insides, exposed so the tests can reach them; not an API.
 [lib]
@@ -29,8 +23,9 @@ path = "src/main.rs"
 [dependencies]
 anstyle = "1.0.14"
 clap = { version = "4.6.7", features = ["derive", "string"] }
-common = { package = "pixi-ext-common", path = "../pixi-ext-common" }
+comfy-table = { version = "8", default-features = false, features = ["tty"] }
 miette = { version = "7.6.0", features = ["fancy"] }
+packageurl = "0.7.0"
 pep440_rs = "0.7.3"
 rattler_conda_types = { version = "0.53", default-features = false }
 rattler_lock = { version = "0.33.0", default-features = false }
@@ -39,6 +34,7 @@ serde_json = { version = "1.0.151", features = ["preserve_order"] }
 spdx = "0.13.5"
 thiserror = "2.0.20"
 toml = "1.1.6"
+tracing = "0.1.44"
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
@@ -47,3 +43,9 @@ jsonschema = { version = "0.56.0", default-features = false }
 predicates = "3.1.4"
 serde_json = "1.0.151"
 tempfile = "3.27.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

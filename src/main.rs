@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Parser;
-use common::style::Palette;
+use pixi_policy::style::Palette;
 use miette::{IntoDiagnostic, WrapErr};
 use pixi_policy::check::Outcome;
 use pixi_policy::cli::{Args, Command};
@@ -70,7 +70,7 @@ fn run(args: &Args) -> miette::Result<i32> {
                     .into_diagnostic()
                     .wrap_err_with(|| format!("cannot write the report to {}", path.display()))?,
                 None => {
-                    let mut out = common::pipe::stdout();
+                    let mut out = pixi_policy::pipe::stdout();
                     out.write_all(text.as_bytes())
                         .and_then(|()| out.flush())
                         .into_diagnostic()
@@ -92,7 +92,7 @@ fn run(args: &Args) -> miette::Result<i32> {
             let used = pixi_policy::init::in_use(&lock)?;
             let path = workspace.policy_path(args.policy.as_deref());
             pixi_policy::init::write(&path, &pixi_policy::init::propose(&used, &manifest))?;
-            let mut out = common::pipe::stdout();
+            let mut out = pixi_policy::pipe::stdout();
             writeln!(
                 out,
                 "wrote {}: {}, {}, {}; check it with `pixi policy`",
@@ -117,7 +117,7 @@ fn run(args: &Args) -> miette::Result<i32> {
                     )
                 })?,
             };
-            let mut out = common::pipe::stdout();
+            let mut out = pixi_policy::pipe::stdout();
             out.write_all(text.as_bytes())
                 .and_then(|()| out.flush())
                 .into_diagnostic()?;

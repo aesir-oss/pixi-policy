@@ -7,9 +7,9 @@ use std::fmt::Write;
 use std::io::Write as _;
 use std::path::Path;
 
-use common::license::{self, License};
-use common::license_policy::Lists;
-use common::lockfile::{self, Kind};
+use crate::license::{self, License};
+use crate::license_policy::Lists;
+use crate::lockfile::{self, Kind};
 use miette::Diagnostic;
 use rattler_lock::LockFile;
 use thiserror::Error;

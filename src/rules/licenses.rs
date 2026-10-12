@@ -1,14 +1,14 @@
 //! `licenses.*`: allow, review and deny lists of SPDX licenses (#63).
 //!
-//! The verdict is the shared crate's (`common::license_policy`, #59), the one pixi-sbom's license gate gives: `deny`
+//! The verdict is the shared crate's (`crate::license_policy`, #59), the one pixi-sbom's license gate gives: `deny`
 //! and `allow` go to it exactly as the gate's `--deny-license` and `--allow-license` do. `review` licenses count as
 //! allowed and are reported as warnings. Patterns with `*` are expanded against the SPDX license list into plain
 //! identifiers first, so the verdict never sees a pattern. Licenses come from pixi.lock only, which records them for
 //! conda packages and never for PyPI ones; reading license files is pixi-policy 0.2.0's business.
 
-use common::license::{self, License};
-use common::license_policy::{Lists, Reason};
-use common::lockfile::{Fact, Facts, Kind};
+use crate::license::{self, License};
+use crate::license_policy::{Lists, Reason};
+use crate::lockfile::{Fact, Facts, Kind};
 
 use crate::check::{File, Finding, Rule, Severity};
 use crate::policy::{Licenses, Policy, Unknown};
@@ -74,7 +74,7 @@ impl Compiled {
         if !allow.is_empty() {
             allow.extend(review.iter().cloned());
         }
-        let invalid = |err: common::license_policy::LicenseeError| {
+        let invalid = |err: crate::license_policy::LicenseeError| {
             format!("{:?} is not an SPDX license identifier ({})", err.text, err.reason)
         };
         Ok(Self {
@@ -232,7 +232,7 @@ mod tests {
     fn fact(name: &str, license: Option<&str>, kind: Kind) -> Fact {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources/pixi.lock");
         let lock = crate::check::load_lockfile(&path).unwrap();
-        let mut fact = common::lockfile::read(&lock, "default", Some("linux-64"))
+        let mut fact = crate::lockfile::read(&lock, "default", Some("linux-64"))
             .unwrap()
             .packages
             .remove(0);
@@ -259,7 +259,7 @@ mod tests {
     /// The shared verdict table (#59) through this rule: the verdict pixi-sbom's gate gives, case by case.
     #[test]
     fn the_shared_verdict_table_gives_the_same_verdicts_through_the_rule() {
-        for case in common::license_policy::cases::CASES {
+        for case in crate::license_policy::cases::CASES {
             let list = |items: &[&str]| items.iter().map(|i| format!("{i:?}")).collect::<Vec<_>>().join(", ");
             let policy = format!(
                 "[licenses]\nallow = [{}]\ndeny = [{}]\nunknown = \"allow\"\n",
