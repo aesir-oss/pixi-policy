@@ -920,7 +920,7 @@ needs nothing running beside it: it reads <code>pixi.toml</code>, <code>pixi.loc
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="nt">pass_filenames</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="nt">files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">^(pixi\.toml|pixi\.lock|pixi-policy\.toml)$</span>
 </code></pre></div>
-<p>A published hook is planned (<a href="https://github.com/aesir-oss/pixi-ext-contrib/issues/77">#77</a>).</p>
+<p>A published hook is planned (<a href="https://github.com/aesir-oss/pixi-policy/issues/5">#5</a>).</p>
 <h2 id="github-actions">GitHub Actions<a class="headerlink" href="#github-actions" title="Permanent link">&para;</a></h2>
 <p>Write a SARIF report and upload it, so findings appear on the pull request as code scanning annotations at the line
 in <code>pixi.toml</code>, <code>pixi.lock</code> or the policy. The check's exit code fails the job; <code>if: always()</code> uploads the report even
@@ -950,7 +950,7 @@ then.</p>
 </code></pre></div>
 <p>Make the job a required status check, or a failing policy is only advice. Code scanning is free on public
 repositories; private ones need GitHub code security. Without it, drop the upload and read the text report in the
-job log. A packaged GitHub Action is planned (<a href="https://github.com/aesir-oss/pixi-ext-contrib/issues/76">#76</a>).</p>
+job log. A packaged GitHub Action is planned (<a href="https://github.com/aesir-oss/pixi-policy/issues/4">#4</a>).</p>
 <h2 id="other-ci-systems">Other CI systems<a class="headerlink" href="#other-ci-systems" title="Permanent link">&para;</a></h2>
 <p>Use the exit code to pass or fail the job, and <code>--format json --output policy.json</code> for anything that reads the
 results: a dashboard, a comment bot, an artifact to keep. The <a href="../output/#json">JSON report</a> has a published schema.</p>
