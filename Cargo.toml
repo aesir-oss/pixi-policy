@@ -1,6 +1,6 @@
 [package]
 name = "pixi-policy"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 edition = "2024"
 # pixi-sbom's: both build on the shared crate, so neither claims a newer toolchain.
 rust-version = "1.88"
