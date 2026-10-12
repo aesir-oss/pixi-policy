@@ -179,6 +179,18 @@ pub struct ManifestRules {
     pub required_platforms: Option<Vec<String>>,
 }
 
+/// `[lock]`: pixi.lock hygiene. Every rule is on once the table exists, like `[manifest]` (#64, #65).
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct LockRules {
+    /// The workspace has a pixi.lock (default true).
+    pub present: Option<bool>,
+    /// Every environment is locked for every platform (default true).
+    pub complete: Option<bool>,
+    /// pixi.lock still satisfies the manifest, as `pixi list --locked` judges it (default true).
+    pub in_sync: Option<bool>,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -197,7 +209,7 @@ pub struct Policy {
     pub manifest: Option<ManifestRules>,
     /// pixi.lock hygiene.
     #[serde(default)]
-    pub lock: Option<Table>,
+    pub lock: Option<LockRules>,
     /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
     /// off. Default 365 (decided on #66).
     #[serde(default)]

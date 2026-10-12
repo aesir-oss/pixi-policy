@@ -48,6 +48,22 @@ pub struct Manifest {
     pub dependencies: Vec<Dependency>,
     /// The workspace's platforms and the line they are on.
     pub platforms: Option<(Vec<String>, u32)>,
+    /// The environments `[environments]` defines, with their features; `default` is implicit and not listed.
+    pub environments: Vec<(String, Vec<String>)>,
+    /// The platforms a feature narrows its environments to, when it sets any.
+    pub feature_platforms: Vec<(String, Vec<String>)>,
+}
+
+fn strings(value: &DeValue<'_>) -> Vec<String> {
+    value
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.get_ref().as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 const CONDA_TABLES: [&str; 4] = [
@@ -104,6 +120,11 @@ impl Manifest {
                 let Some(feature) = value.get_ref().as_table() else {
                     continue;
                 };
+                if let Some(platforms) = get(feature, "platforms") {
+                    manifest
+                        .feature_platforms
+                        .push((name.get_ref().to_string(), strings(platforms.get_ref())));
+                }
                 let prefix = format!("feature.{}.", name.get_ref());
                 manifest.collect(text, feature, &prefix);
                 if let Some(target) = table(feature, "target") {
@@ -115,6 +136,15 @@ impl Manifest {
                 }
             }
         }
+        if let Some(environments) = table(root, "environments") {
+            for (name, value) in environments.iter() {
+                let features = match value.get_ref() {
+                    DeValue::Table(t) => get(t, "features").map(|f| strings(f.get_ref())).unwrap_or_default(),
+                    other => strings(other),
+                };
+                manifest.environments.push((name.get_ref().to_string(), features));
+            }
+        }
         if let Some(package) = table(root, "package") {
             manifest.collect(text, package, "package.");
         }
@@ -122,17 +152,7 @@ impl Manifest {
         manifest.dependencies.sort_by_key(|dep| dep.line);
         let workspace = table(root, "workspace").or_else(|| table(root, "project"));
         if let Some(platforms) = workspace.and_then(|w| get(w, "platforms")) {
-            let names = platforms
-                .get_ref()
-                .as_array()
-                .map(|items| {
-                    items
-                        .iter()
-                        .filter_map(|item| item.get_ref().as_str().map(str::to_string))
-                        .collect()
-                })
-                .unwrap_or_default();
-            manifest.platforms = Some((names, line_of(text, platforms.span().start)));
+            manifest.platforms = Some((strings(platforms.get_ref()), line_of(text, platforms.span().start)));
         }
         Ok(manifest)
     }
@@ -147,6 +167,32 @@ impl Manifest {
         let text = std::fs::read_to_string(path).map_err(|err| error(err.to_string()))?;
         let pyproject = path.file_name().is_some_and(|name| name == "pyproject.toml");
         Self::parse(&text, pyproject).map_err(error)
+    }
+
+    /// Every environment the workspace defines, `default` first, with the platforms it is solved for: the workspace's,
+    /// narrowed by any of its features that set `platforms`.
+    pub fn environment_platforms(&self) -> Vec<(String, Vec<String>)> {
+        let workspace = self.platforms.as_ref().map(|(p, _)| p.clone()).unwrap_or_default();
+        let mut out = vec![("default".to_string(), workspace.clone())];
+        for (name, features) in &self.environments {
+            if name == "default" {
+                continue;
+            }
+            let platforms = workspace
+                .iter()
+                .filter(|platform| {
+                    features.iter().all(|feature| {
+                        self.feature_platforms
+                            .iter()
+                            .find(|(f, _)| f == feature)
+                            .is_none_or(|(_, allowed)| allowed.contains(platform))
+                    })
+                })
+                .cloned()
+                .collect();
+            out.push((name.clone(), platforms));
+        }
+        out
     }
 
     /// The dependencies of one table set (`""`, `target.linux-64.`, `feature.test.`, …).
@@ -235,6 +281,25 @@ hatchling = { version = "*" }
         assert_eq!(
             manifest.platforms,
             Some((vec!["linux-64".into(), "osx-arm64".into()], 4))
+        );
+    }
+
+    #[test]
+    fn environments_get_the_workspace_platforms_narrowed_by_their_features() {
+        let text = "[workspace]\nplatforms = [\"linux-64\", \"osx-arm64\", \"win-64\"]\n\n[feature.cuda]\nplatforms = [\"linux-64\"]\n\n[feature.test.dependencies]\npytest = \"*\"\n\n[environments]\ntest = [\"test\"]\ngpu = { features = [\"cuda\", \"test\"], solve-group = \"x\" }\n";
+        let manifest = Manifest::parse(text, false).unwrap();
+        let all = vec!["linux-64".to_string(), "osx-arm64".to_string(), "win-64".to_string()];
+        assert_eq!(
+            manifest.environment_platforms(),
+            [
+                ("default".to_string(), all.clone()),
+                ("gpu".to_string(), vec!["linux-64".to_string()]),
+                ("test".to_string(), all)
+            ]
+        );
+        assert_eq!(
+            Manifest::default().environment_platforms(),
+            [("default".to_string(), Vec::<String>::new())]
         );
     }
 

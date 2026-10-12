@@ -83,10 +83,11 @@ fn location(finding: &Finding) -> String {
         Some(line) => format!("{}:{line}", finding.file),
         None => finding.file.to_string(),
     };
-    if finding.environment.is_empty() {
-        return file;
+    match (finding.environment.is_empty(), finding.platform.is_empty()) {
+        (true, _) => file,
+        (false, true) => format!("{file}: environment {:?}", finding.environment),
+        (false, false) => format!("{file}: environment {:?}, {}", finding.environment, finding.platform),
     }
-    format!("{file}: environment {:?}, {}", finding.environment, finding.platform)
 }
 
 /// The report people read: findings grouped by severity (errors first), the waived ones, then a summary line.

@@ -4,7 +4,9 @@ use std::process::ExitCode;
 use clap::Parser;
 use common::style::Palette;
 use miette::{IntoDiagnostic, WrapErr};
+use pixi_policy::check::Outcome;
 use pixi_policy::cli::{Args, Command};
+use pixi_policy::manifest::Manifest;
 use pixi_policy::policy::Policy;
 use pixi_policy::report::{self, Context};
 use pixi_policy::workspace::Workspace;
@@ -30,12 +32,28 @@ fn run(args: &Args) -> miette::Result<i32> {
             let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
             let policy_path = workspace.policy_path(args.policy.as_deref());
             let policy = Policy::load(&policy_path)?;
-            let lock = check::load_lockfile(&workspace.lockfile)?;
+            let lock_rules_present = policy.lock.as_ref().is_some_and(|lock| lock.present != Some(false));
+            let lock = match workspace.has_lockfile() {
+                true => Some(check::load_lockfile(&workspace.lockfile)?),
+                false if lock_rules_present => None,
+                false => return Err(workspace.no_lockfile().into()),
+            };
             let rules = check::rules();
-            let mut outcome = check::run(&lock, &policy, &rules)?;
-            if policy.manifest.is_some() {
-                let manifest = pixi_policy::manifest::Manifest::load(&workspace.manifest)?;
+            let mut outcome = match &lock {
+                Some(lock) => check::run(lock, &policy, &rules)?,
+                None => Outcome::default(),
+            };
+            if policy.manifest.is_some() || policy.lock.is_some() {
+                let manifest = Manifest::load(&workspace.manifest)?;
                 check::run_manifest(&mut outcome, &manifest, &policy, &rules);
+                let lock_findings = pixi_policy::rules::lock::check(
+                    &policy,
+                    &workspace,
+                    &manifest,
+                    lock.as_ref(),
+                    &pixi_policy::rules::lock::run_pixi,
+                );
+                outcome.findings.extend(lock_findings);
             }
             pixi_policy::waivers::apply(&mut outcome, &policy, pixi_policy::waivers::Date::today());
             let context = Context {

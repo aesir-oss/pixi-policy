@@ -95,11 +95,83 @@ fn no_workspace_or_no_lockfile_is_an_error() {
         .code(2)
         .stderr(contains("pixi_policy::workspace::manifest"));
     std::fs::write(dir.path().join("pixi.toml"), "").unwrap();
+    std::fs::write(dir.path().join("pixi-policy.toml"), "").unwrap();
     policy()
         .current_dir(dir.path())
         .assert()
         .code(2)
         .stderr(contains("pixi_policy::workspace::no_lockfile").and(contains("pixi lock")));
+}
+
+/// A lock fixture (#65), and a policy beside it in a temporary directory.
+fn lock_fixture(name: &str, policy_text: &str) -> (std::path::PathBuf, tempfile::TempDir) {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("pixi-policy.toml"), policy_text).unwrap();
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/lock")
+        .join(name)
+        .join("pixi.toml");
+    (manifest, dir)
+}
+
+#[test]
+fn with_lock_rules_a_missing_lockfile_is_a_finding_not_an_input_error() {
+    let (manifest, dir) = lock_fixture("missing-lockfile", "[lock]\n");
+    let output = policy()
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--policy")
+        .arg(dir.path().join("pixi-policy.toml"))
+        .output()
+        .unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(
+        text.starts_with("error[lock.present] the workspace has no pixi.lock\n  --> pixi.lock\n"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("1 error, 0 warnings, 0 waived in 0 packages across 0 environment-platform pairs\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn lock_rules_judge_the_fixtures_as_pixi_does() {
+    for (name, expected_code, expected) in [
+        ("in-sync", 0, None),
+        (
+            "stale",
+            1,
+            Some("error[lock.in-sync] pixi.lock does not satisfy the manifest any more"),
+        ),
+        (
+            "missing-platform",
+            1,
+            Some(
+                "error[lock.complete] environment default is not locked for win-64\n  --> pixi.lock: environment \"default\", win-64\n",
+            ),
+        ),
+        (
+            "missing-environment",
+            1,
+            Some("error[lock.complete] environment docs is not in pixi.lock\n  --> pixi.lock: environment \"docs\"\n"),
+        ),
+    ] {
+        let (manifest, dir) = lock_fixture(name, "[lock]\n");
+        let output = policy()
+            .arg("--manifest-path")
+            .arg(&manifest)
+            .arg("--policy")
+            .arg(dir.path().join("pixi-policy.toml"))
+            .output()
+            .unwrap();
+        let text = String::from_utf8(output.stdout).unwrap();
+        assert_eq!(output.status.code(), Some(expected_code), "{name}: {text}");
+        if let Some(expected) = expected {
+            assert!(text.contains(expected), "{name}: {text}");
+        }
+    }
 }
 
 #[test]

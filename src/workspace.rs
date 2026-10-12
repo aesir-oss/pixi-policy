@@ -63,16 +63,23 @@ impl Workspace {
         };
         let root = manifest.parent().unwrap_or(Path::new(".")).to_path_buf();
         let lockfile = root.join("pixi.lock");
-        if !lockfile.is_file() {
-            return Err(WorkspaceError::NoLockfile {
-                path: lockfile.display().to_string(),
-            });
-        }
         Ok(Self {
             root,
             manifest,
             lockfile,
         })
+    }
+
+    /// Whether the workspace has a lockfile.
+    pub fn has_lockfile(&self) -> bool {
+        self.lockfile.is_file()
+    }
+
+    /// The error for a workspace without a lockfile, when the policy does not check for one itself (`lock.present`).
+    pub fn no_lockfile(&self) -> WorkspaceError {
+        WorkspaceError::NoLockfile {
+            path: self.lockfile.display().to_string(),
+        }
     }
 
     /// Where the policy is: `explicit`, or pixi-policy.toml beside pixi.toml.
@@ -154,9 +161,8 @@ mod tests {
             Err(WorkspaceError::Manifest { .. })
         ));
         std::fs::write(dir.path().join("pixi.toml"), "").unwrap();
-        assert!(matches!(
-            Workspace::find(None, dir.path()),
-            Err(WorkspaceError::NoLockfile { .. })
-        ));
+        let ws = Workspace::find(None, dir.path()).unwrap();
+        assert!(!ws.has_lockfile());
+        assert!(matches!(ws.no_lockfile(), WorkspaceError::NoLockfile { .. }));
     }
 }

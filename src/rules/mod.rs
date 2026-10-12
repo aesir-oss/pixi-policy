@@ -2,6 +2,7 @@
 
 pub mod bans;
 pub mod licenses;
+pub mod lock;
 pub mod manifest;
 pub mod sources;
 
@@ -13,5 +14,6 @@ pub fn all() -> Vec<Box<dyn Rule>> {
     rules.extend(bans::rules());
     rules.extend(licenses::rules());
     rules.extend(manifest::rules());
+    rules.extend(lock::rules());
     rules
 }
