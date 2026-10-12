@@ -1,0 +1,36 @@
+# Packaging for PyPI only: the release workflow builds the pixi-policy binary into platform wheels
+# with maturin (`bindings = "bin"`), so `uvx pixi-policy` and `pip install pixi-policy` work without
+# pixi. There is no Python code; the version comes from Cargo.toml. The pixi workspace is
+# pixi.toml.
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "pixi-policy"
+description = "Check what a pixi workspace's environments may contain against a written policy"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.8"
+dynamic = ["version"]
+keywords = ["policy", "pixi", "conda", "supply-chain", "license", "sarif"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Rust",
+  "Topic :: Security",
+  "Topic :: Software Development :: Build Tools",
+]
+
+[project.urls]
+Homepage = "https://github.com/aesir-oss/pixi-ext-contrib"
+Documentation = "https://aesir-oss.github.io/pixi-ext-contrib/latest/"
+Changelog = "https://github.com/aesir-oss/pixi-ext-contrib/blob/main/crates/pixi-policy/CHANGELOG.md"
+Issues = "https://github.com/aesir-oss/pixi-ext-contrib/issues"
+
+[tool.maturin]
+bindings = "bin"
