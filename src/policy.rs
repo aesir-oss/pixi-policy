@@ -167,6 +167,18 @@ impl Waiver {
     }
 }
 
+/// `[manifest]`: pixi.toml hygiene. `wildcard-spec` and `python-pinned` are on once the table exists (decided on #64).
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct ManifestRules {
+    /// No dependency given as `*` (default true).
+    pub wildcard_spec: Option<bool>,
+    /// Python pinned to one minor version or narrower (default true).
+    pub python_pinned: Option<bool>,
+    /// Platforms the workspace must list.
+    pub required_platforms: Option<Vec<String>>,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -182,7 +194,7 @@ pub struct Policy {
     pub licenses: Option<Licenses>,
     /// pixi.toml hygiene.
     #[serde(default)]
-    pub manifest: Option<Table>,
+    pub manifest: Option<ManifestRules>,
     /// pixi.lock hygiene.
     #[serde(default)]
     pub lock: Option<Table>,

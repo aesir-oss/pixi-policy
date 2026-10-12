@@ -7,6 +7,7 @@
 
 pub mod check;
 pub mod cli;
+pub mod manifest;
 pub mod policy;
 pub mod report;
 pub mod rules;

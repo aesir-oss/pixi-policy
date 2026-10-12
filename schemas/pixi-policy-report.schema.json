@@ -53,9 +53,9 @@
         "severity": { "enum": ["error", "warning"] },
         "package": { "type": ["string", "null"] },
         "version": { "type": ["string", "null"] },
-        "environment": { "type": "string", "description": "Empty for a finding about the policy file (a waiver)." },
+        "environment": { "type": "string", "description": "Empty for a finding about the manifest or the policy file rather than one environment." },
         "platform": { "type": "string" },
-        "file": { "enum": ["pixi.lock", "pixi.toml", "pixi-policy.toml"] },
+        "file": { "enum": ["pixi.lock", "pixi.toml", "pyproject.toml", "pixi-policy.toml"] },
         "line": { "type": ["integer", "null"], "minimum": 1 },
         "message": { "type": "string" },
         "help": { "type": ["string", "null"] }

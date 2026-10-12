@@ -2,6 +2,7 @@
 
 pub mod bans;
 pub mod licenses;
+pub mod manifest;
 pub mod sources;
 
 use crate::check::Rule;
@@ -11,5 +12,6 @@ pub fn all() -> Vec<Box<dyn Rule>> {
     let mut rules = sources::rules();
     rules.extend(bans::rules());
     rules.extend(licenses::rules());
+    rules.extend(manifest::rules());
     rules
 }

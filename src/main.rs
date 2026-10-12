@@ -33,6 +33,10 @@ fn run(args: &Args) -> miette::Result<i32> {
             let lock = check::load_lockfile(&workspace.lockfile)?;
             let rules = check::rules();
             let mut outcome = check::run(&lock, &policy, &rules)?;
+            if policy.manifest.is_some() {
+                let manifest = pixi_policy::manifest::Manifest::load(&workspace.manifest)?;
+                check::run_manifest(&mut outcome, &manifest, &policy, &rules);
+            }
             pixi_policy::waivers::apply(&mut outcome, &policy, pixi_policy::waivers::Date::today());
             let context = Context {
                 manifest: &workspace.manifest,

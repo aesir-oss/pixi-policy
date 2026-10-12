@@ -60,6 +60,8 @@ pub enum File {
     Manifest,
     /// The policy itself: a finding about a waiver.
     Policy,
+    /// A pyproject.toml that holds the workspace (`[tool.pixi]`).
+    Pyproject,
 }
 
 impl fmt::Display for File {
@@ -68,6 +70,7 @@ impl fmt::Display for File {
             File::Lockfile => "pixi.lock",
             File::Manifest => "pixi.toml",
             File::Policy => "pixi-policy.toml",
+            File::Pyproject => "pyproject.toml",
         })
     }
 }
@@ -106,7 +109,13 @@ pub trait Rule {
     /// What the rule checks, in one line (SARIF's rule description, the docs' rule list).
     fn summary(&self) -> &'static str;
     /// What this rule finds in one environment and platform's packages.
-    fn check(&self, policy: &Policy, facts: &Facts) -> Vec<Finding>;
+    fn check(&self, _policy: &Policy, _facts: &Facts) -> Vec<Finding> {
+        Vec::new()
+    }
+    /// What this rule finds in the workspace manifest, once per check (the `manifest.*` rules).
+    fn check_manifest(&self, _policy: &Policy, _manifest: &crate::manifest::Manifest) -> Vec<Finding> {
+        Vec::new()
+    }
 }
 
 /// Every rule pixi-policy has.
@@ -156,6 +165,18 @@ pub fn run(lock: &LockFile, policy: &Policy, rules: &[Box<dyn Rule>]) -> Result<
         ))
     });
     Ok(outcome)
+}
+
+/// Add what `rules` find in `manifest` to `outcome`.
+pub fn run_manifest(
+    outcome: &mut Outcome,
+    manifest: &crate::manifest::Manifest,
+    policy: &Policy,
+    rules: &[Box<dyn Rule>],
+) {
+    for rule in rules {
+        outcome.findings.extend(rule.check_manifest(policy, manifest));
+    }
 }
 
 /// Read the lockfile at `path`.

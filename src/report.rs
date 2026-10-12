@@ -237,7 +237,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
     let result = |finding: &Finding, waived: Option<&Waived>| {
         let file = match finding.file {
             File::Lockfile => context.lockfile,
-            File::Manifest => context.manifest,
+            File::Manifest | File::Pyproject => context.manifest,
             File::Policy => context.policy,
         };
         let mut physical = json!({ "artifactLocation": artifact_location(file, context.base) });

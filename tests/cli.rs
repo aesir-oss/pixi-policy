@@ -479,6 +479,57 @@ fn a_waiver_without_expires_exits_2() {
 }
 
 #[test]
+fn manifest_findings_point_at_the_manifest_line() {
+    let ws = workspace(Some("[manifest]\nrequired-platforms = [\"win-64\"]\n"));
+    let failing = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/manifest/fail/pixi.toml");
+    std::fs::copy(failing, ws.path().join("pixi.toml")).unwrap();
+    let output = policy().current_dir(ws.path()).output().unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(
+        text.contains("error[manifest.wildcard-spec] numpy: is given as \"*\" in [dependencies]\n  --> pixi.toml:8\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("error[manifest.python-pinned] python: ") && text.contains("  --> pixi.toml:7\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("error[manifest.required-platforms] platform win-64 is required"),
+        "{text}"
+    );
+
+    let output = policy()
+        .current_dir(ws.path())
+        .args(["--format", "sarif"])
+        .output()
+        .unwrap();
+    let doc: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let numpy = doc["runs"][0]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["ruleId"] == "manifest.wildcard-spec" && r["properties"]["package"] == "numpy")
+        .unwrap();
+    let physical = &numpy["locations"][0]["physicalLocation"];
+    assert_eq!(physical["artifactLocation"]["uri"], "pixi.toml");
+    assert_eq!(physical["region"]["startLine"], 8);
+}
+
+#[test]
+fn an_unreadable_manifest_exits_2_only_when_the_manifest_rules_need_it() {
+    let ws = workspace(Some(""));
+    std::fs::write(ws.path().join("pixi.toml"), "[workspace\n").unwrap();
+    policy().current_dir(ws.path()).assert().code(0);
+    std::fs::write(ws.path().join("pixi-policy.toml"), "[manifest]\n").unwrap();
+    policy()
+        .current_dir(ws.path())
+        .assert()
+        .code(2)
+        .stderr(contains("pixi_policy::manifest::read"));
+}
+
+#[test]
 fn help_names_the_pixi_command() {
     policy()
         .arg("--help")
