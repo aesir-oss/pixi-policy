@@ -1,0 +1,35 @@
+INHERIT: ../../mkdocs.base.yml
+site_name: pixi-policy
+site_description: Check what a pixi workspace's environments may contain against a written policy
+site_url: https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/
+edit_uri: edit/main/crates/pixi-policy/docs/
+
+docs_dir: docs
+
+nav:
+  - Overview: index.md
+  - License policy: licenses.md
+  - Contributing:
+      - Development: https://aesir-oss.github.io/pixi-ext-contrib/development/
+  - Security policy: https://aesir-oss.github.io/pixi-ext-contrib/security/
+  - Changelog: changelog.md
+
+hooks:
+  - ../../mkdocs_hooks.py
+
+theme:
+  custom_dir: ../../docs/overrides
+  favicon: https://aesir-oss.github.io/pixi-ext-contrib/assets/favicon.svg
+
+plugins:
+  - search
+  - mike:
+      alias_type: copy
+      canonical_version: latest
+
+extra:
+  repo_pages:
+    crates/pixi-policy/CHANGELOG.md: changelog.md
+  version:
+    provider: mike
+    default: latest

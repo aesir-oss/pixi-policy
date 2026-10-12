@@ -310,7 +310,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "name": rule_name(id),
                 "shortDescription": { "text": summary },
                 "help": { "text": crate::explain::details(id).unwrap_or(summary) },
-                "helpUri": "https://aesir-oss.github.io/pixi-ext-contrib/",
+                "helpUri": "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/",
             })
         })
         .collect();
@@ -322,7 +322,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "driver": {
                     "name": "pixi-policy",
                     "version": env!("CARGO_PKG_VERSION"),
-                    "informationUri": "https://aesir-oss.github.io/pixi-ext-contrib/",
+                    "informationUri": "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/",
                     "rules": rules,
                 }
             },
