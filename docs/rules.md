@@ -1,0 +1,282 @@
+<!-- Generated from the code by `pixi run policy-docs`; edit crates/pixi-policy/src/keys.rs or src/explain.rs instead. -->
+
+# Rules
+
+Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` prints. Each rule's keys are in the [policy file reference](reference.md).
+
+| Rule | Checks |
+|---|---|
+| [`sources.channels`](#sources-channels) | Conda packages come only from the channels the policy allows |
+| [`sources.indexes`](#sources-indexes) | PyPI packages come only from the indexes the policy allows |
+| [`sources.git`](#sources-git) | No package comes from a git repository unless the policy allows it |
+| [`sources.url`](#sources-url) | No package comes from a direct URL unless the policy allows it |
+| [`sources.path`](#sources-path) | No package comes from a local path unless the policy allows it |
+| [`bans.deny`](#bans-deny) | No package, or package version, the policy bans |
+| [`licenses.deny`](#licenses-deny) | No package needs a license the policy denies |
+| [`licenses.review`](#licenses-review) | Packages that need a license under review are reported for it |
+| [`licenses.not-allowed`](#licenses-not-allowed) | Every package can be used under the licenses the policy allows |
+| [`licenses.unknown`](#licenses-unknown) | Every package declares an SPDX license |
+| [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
+| [`manifest.python-pinned`](#manifest-python-pinned) | Python is constrained to one minor version or narrower |
+| [`manifest.required-platforms`](#manifest-required-platforms) | The workspace lists every platform the policy requires |
+| [`lock.present`](#lock-present) | The workspace has a pixi.lock |
+| [`lock.complete`](#lock-complete) | Every environment is locked for every platform it is solved for |
+| [`lock.in-sync`](#lock-in-sync) | pixi.lock still satisfies the manifest |
+| [`waivers.expired`](#waivers-expired) | A waiver has expired, and what it waived fails again |
+| [`waivers.unused`](#waivers-unused) | A waiver matches no finding |
+| [`waivers.too-long`](#waivers-too-long) | A waiver runs further out than max-waiver-days |
+
+## `sources.channels` {#sources-channels}
+
+Conda packages come only from the channels the policy allows.
+
+Key: [sources] allowed-channels, a list of channel names or URLs. A name ("conda-forge") matches its anaconda.org and prefix.dev URLs only; any other host is listed by URL. Mirrors are matched as the channel they mirror, since pixi.lock records that channel.
+
+```toml
+[sources]
+allowed-channels = ["conda-forge", "https://conda.example.com/prod"]
+```
+
+Keys: [`[sources] allowed-channels`](reference.md#sources).
+
+## `sources.indexes` {#sources-indexes}
+
+PyPI packages come only from the indexes the policy allows.
+
+Key: [sources] allowed-indexes, a list of PyPI index URLs (trailing slashes and host case do not matter). pixi.lock records a wheel's index; one from the default index is checked against it.
+
+```toml
+[sources]
+allowed-indexes = ["https://pypi.org/simple"]
+```
+
+Keys: [`[sources] allowed-indexes`](reference.md#sources).
+
+## `sources.git` {#sources-git}
+
+No package comes from a git repository unless the policy allows it.
+
+Key: [sources] allow-git (default: allowed). Set it to false to fail any package, conda (pixi-build) or PyPI, that comes from a git repository.
+
+```toml
+[sources]
+allow-git = false
+```
+
+Keys: [`[sources] allow-git`](reference.md#sources).
+
+## `sources.url` {#sources-url}
+
+No package comes from a direct URL unless the policy allows it.
+
+Key: [sources] allow-url (default: allowed). Set it to false to fail any package that comes from a direct URL: an archive, not a channel or an index.
+
+```toml
+[sources]
+allow-url = false
+```
+
+Keys: [`[sources] allow-url`](reference.md#sources).
+
+## `sources.path` {#sources-path}
+
+No package comes from a local path unless the policy allows it.
+
+Key: [sources] allow-path (default: allowed). Set it to false to fail any package that comes from a local path, including a workspace package pixi builds from source.
+
+```toml
+[sources]
+allow-path = false
+```
+
+Keys: [`[sources] allow-path`](reference.md#sources).
+
+## `bans.deny` {#bans-deny}
+
+No package, or package version, the policy bans.
+
+Key: [bans] deny, a list of bans: name, and optionally version (conda's rules for conda packages, PEP 440 for PyPI ones), build (a conda build-string pattern), kind ("conda" or "pypi"), reason and use-instead. A ban on a PyPI name also catches a conda package that provides it.
+
+```toml
+[bans]
+deny = [
+  { name = "pycrypto", reason = "unmaintained", use-instead = "pycryptodome" },
+  { name = "openssl", version = "<3", reason = "EOL" },
+]
+```
+
+Keys: [`[bans] deny`](reference.md#bans), [`[bans] deny: name`](reference.md#bans), [`[bans] deny: version`](reference.md#bans), [`[bans] deny: build`](reference.md#bans), [`[bans] deny: kind`](reference.md#bans), [`[bans] deny: reason`](reference.md#bans), [`[bans] deny: use-instead`](reference.md#bans).
+
+## `licenses.deny` {#licenses-deny}
+
+No package needs a license the policy denies.
+
+Key: [licenses] deny, SPDX identifiers or patterns ("GPL-3.0-*"). A package fails when its license cannot be satisfied without a denied license: MIT OR GPL-3.0-only passes, since MIT is an option. The verdict is the one pixi-sbom's --deny-license gives.
+
+```toml
+[licenses]
+deny = ["GPL-3.0-*", "AGPL-*"]
+```
+
+Keys: [`[licenses] deny`](reference.md#licenses).
+
+## `licenses.review` {#licenses-review}
+
+Packages that need a license under review are reported for it.
+
+Key: [licenses] review, SPDX identifiers or patterns. A package that needs one is reported as a warning; review licenses count as allowed for licenses.not-allowed.
+
+```toml
+[licenses]
+review = ["LGPL-*"]
+```
+
+Keys: [`[licenses] review`](reference.md#licenses).
+
+## `licenses.not-allowed` {#licenses-not-allowed}
+
+Every package can be used under the licenses the policy allows.
+
+Key: [licenses] allow. When given, a package fails unless its license can be satisfied with allow and review licenses alone. An -or-later requirement accepts later versions of the same license.
+
+```toml
+[licenses]
+allow = ["MIT", "BSD-3-Clause", "Apache-2.0"]
+```
+
+Keys: [`[licenses] allow`](reference.md#licenses), [`[licenses] review`](reference.md#licenses).
+
+## `licenses.unknown` {#licenses-unknown}
+
+Every package declares an SPDX license.
+
+Key: [licenses] unknown = "warn" (default), "error" or "allow": what a package with no license, or one that is not an SPDX expression, gets. pixi.lock records no PyPI licenses, so every PyPI package is unknown until pixi-policy reads license files.
+
+```toml
+[licenses]
+unknown = "error"
+```
+
+Keys: [`[licenses] unknown`](reference.md#licenses).
+
+## `manifest.wildcard-spec` {#manifest-wildcard-spec}
+
+No dependency is given as `*`.
+
+Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as "*" in any dependency table, at its line in the manifest.
+
+```toml
+[manifest]
+wildcard-spec = true
+```
+
+Keys: [`[manifest] wildcard-spec`](reference.md#manifest).
+
+## `manifest.python-pinned` {#manifest-python-pinned}
+
+Python is constrained to one minor version or narrower.
+
+Key: [manifest] python-pinned (on once [manifest] exists). Fails a python dependency whose spec allows more than one minor version (">=3.10"), or has none; "3.12.*" and ">=3.12,<3.13" pass.
+
+```toml
+[manifest]
+python-pinned = true
+```
+
+Keys: [`[manifest] python-pinned`](reference.md#manifest).
+
+## `manifest.required-platforms` {#manifest-required-platforms}
+
+The workspace lists every platform the policy requires.
+
+Key: [manifest] required-platforms, a list of platforms the workspace must list in [workspace] platforms.
+
+```toml
+[manifest]
+required-platforms = ["linux-64", "osx-arm64"]
+```
+
+Keys: [`[manifest] required-platforms`](reference.md#manifest).
+
+## `lock.present` {#lock-present}
+
+The workspace has a pixi.lock.
+
+Key: [lock] present (on once [lock] exists). Fails a workspace without a pixi.lock; without [lock], a missing lockfile is an input error (exit 2) instead.
+
+```toml
+[lock]
+present = true
+```
+
+Keys: [`[lock] present`](reference.md#lock).
+
+## `lock.complete` {#lock-complete}
+
+Every environment is locked for every platform it is solved for.
+
+Key: [lock] complete (on once [lock] exists). Fails an environment the manifest defines that pixi.lock does not lock, or does not lock for one of its platforms.
+
+```toml
+[lock]
+complete = true
+```
+
+Keys: [`[lock] complete`](reference.md#lock).
+
+## `lock.in-sync` {#lock-in-sync}
+
+pixi.lock still satisfies the manifest.
+
+Key: [lock] in-sync (on once [lock] exists). Asks pixi, offline, whether pixi.lock still satisfies the manifest (pixi list --locked); a warning when pixi cannot be run.
+
+```toml
+[lock]
+in-sync = true
+```
+
+Keys: [`[lock] in-sync`](reference.md#lock).
+
+## `waivers.expired` {#waivers-expired}
+
+A waiver has expired, and what it waived fails again.
+
+A [[waivers]] entry whose expires date has passed. What it waived fails again; renew it with a new date and a reason that still holds, or fix the finding.
+
+```toml
+[[waivers]]
+rule = "licenses.deny"
+package = "readline"
+reason = "dev only; LEGAL-1234"
+expires = 2027-03-31
+```
+
+Keys: [`[[waivers]] expires`](reference.md#waivers).
+
+## `waivers.unused` {#waivers-unused}
+
+A waiver matches no finding.
+
+A [[waivers]] entry that matches no finding: its rule, package, version, environment or platform is wrong, or the finding is gone. Remove it.
+
+```toml
+[[waivers]]
+rule = "bans.deny"
+package = "pycrypto"
+reason = "replaced in Q3"
+expires = 2027-01-31
+```
+
+Keys: [`[[waivers]] rule`](reference.md#waivers), [`[[waivers]] package`](reference.md#waivers), [`[[waivers]] version`](reference.md#waivers), [`[[waivers]] environment`](reference.md#waivers), [`[[waivers]] platform`](reference.md#waivers).
+
+## `waivers.too-long` {#waivers-too-long}
+
+A waiver runs further out than max-waiver-days.
+
+A [[waivers]] entry whose expires is more than max-waiver-days (default 365) away. The waiver still applies. Set max-waiver-days at the top of the policy; 0 turns the check off.
+
+```toml
+max-waiver-days = 180
+```
+
+Keys: [`max-waiver-days`](reference.md#top-level), [`[[waivers]] expires`](reference.md#waivers).

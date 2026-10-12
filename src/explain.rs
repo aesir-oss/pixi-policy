@@ -1,4 +1,5 @@
-//! `pixi policy explain`: what each rule checks, its keys and an example (#68). The same text is SARIF's rule help.
+//! `pixi policy explain`: what each rule checks, its keys and an example (#68), then each key's type, allowed values
+//! and default from the key reference (#70). The text before the keys is SARIF's rule help.
 
 use crate::check::rules;
 
@@ -127,10 +128,15 @@ pub fn details(id: &str) -> Option<&'static str> {
     DETAILS.iter().find(|(rule, _)| *rule == id).map(|(_, text)| *text)
 }
 
-/// The full explanation of `id`: the ID, its summary, then its keys and an example.
+/// The full explanation of `id`: the ID, its summary, what it checks with an example, then each of its keys with its
+/// type, allowed values and default (#70).
 pub fn text(id: &str) -> Option<String> {
     let (id, summary) = catalog().into_iter().find(|(rule, _)| *rule == id)?;
-    Some(format!("{id}: {summary}\n\n{}\n", details(id)?))
+    Some(format!(
+        "{id}: {summary}\n\n{}\n\n{}",
+        details(id)?,
+        crate::keys::explain(id)
+    ))
 }
 
 /// Every rule, one per line, with its summary.

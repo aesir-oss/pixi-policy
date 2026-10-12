@@ -31,7 +31,7 @@ LGPL identifier). An `-or-later` entry accepts later versions of the same licens
 | `--deny-license GPL-3.0-only` | `[licenses] deny = ["GPL-3.0-only"]` |
 | `--require-license` | `[licenses] unknown = "error"` |
 | no `--require-license` | `[licenses] unknown = "allow"` (the default, `"warn"`, reports them without failing) |
-| `--ignore-license PACKAGE:WHY` | a waiver with a reason and an expiry date (#66) |
+| `--ignore-license PACKAGE:WHY` | a [waiver](waivers.md) with a reason and an expiry date |
 | (no equivalent) | `[licenses] review = [...]`, reported as warnings |
 | exit code 3 on a violation | exit code 1 on an error finding |
 

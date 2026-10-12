@@ -8,7 +8,13 @@ docs_dir: docs
 
 nav:
   - Overview: index.md
+  - Getting started: getting-started.md
+  - In development and CI: ci.md
+  - Rules: rules.md
+  - Policy file reference: reference.md
   - License policy: licenses.md
+  - Waivers: waivers.md
+  - Output formats: output.md
   - Contributing:
       - Development: https://aesir-oss.github.io/pixi-ext-contrib/development/
   - Security policy: https://aesir-oss.github.io/pixi-ext-contrib/security/
@@ -30,6 +36,8 @@ plugins:
 extra:
   repo_pages:
     crates/pixi-policy/CHANGELOG.md: changelog.md
+    # The JSON report's schema, at the address its $id names.
+    crates/pixi-policy/schemas/pixi-policy-report.schema.json: schemas/pixi-policy-report.schema.json
   version:
     provider: mike
     default: latest

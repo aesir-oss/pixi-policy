@@ -9,6 +9,7 @@ pub mod check;
 pub mod cli;
 pub mod explain;
 pub mod init;
+pub mod keys;
 pub mod manifest;
 pub mod policy;
 pub mod report;

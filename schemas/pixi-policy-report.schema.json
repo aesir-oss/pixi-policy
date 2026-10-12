@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aesir-oss.github.io/pixi-ext-contrib/schemas/pixi-policy-report.schema.json",
+  "$id": "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/latest/schemas/pixi-policy-report.schema.json",
   "title": "pixi-policy report",
   "description": "What `pixi policy check --format json` writes. Version 1: fields may be added; a renamed or removed field raises the version.",
   "type": "object",
