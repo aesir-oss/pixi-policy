@@ -565,6 +565,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [policy]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sources" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -680,6 +691,33 @@
     
   
     Waivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing a policy
   
 
     
@@ -838,6 +876,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [policy]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sources" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -931,7 +980,7 @@
 <!-- Generated from the code by `pixi run policy-docs`; edit crates/pixi-policy/src/keys.rs or src/explain.rs instead. -->
 
 <h1 id="policy-file-reference">Policy file reference<a class="headerlink" href="#policy-file-reference" title="Permanent link">&para;</a></h1>
-<p>Every key <code>pixi-policy.toml</code> accepts. A key the table does not list is an error, so a misspelt key cannot quietly check nothing. <code>pixi policy explain &lt;RULE&gt;</code> prints the rows for one rule's keys.</p>
+<p>Every key <code>pixi-policy.toml</code> accepts. A key the table does not list is an error, so a misspelt key cannot quietly check nothing. <code>pixi policy explain &lt;RULE&gt;</code> prints the rows for one rule's keys. The When extended column says how a key combines when one policy extends another; see <a href="../extends/">Sharing a policy</a>.</p>
 <h2 id="top-level">Top-level keys<a class="headerlink" href="#top-level" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -941,6 +990,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -951,7 +1001,43 @@
 <td>0 or more: the furthest a waiver's expires may be from today, in days; 0 turns the check off</td>
 <td>365</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#waivers-too-long"><code>waivers.too-long</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="policy"><code>[policy]</code><a class="headerlink" href="#policy" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: the policy extends nothing, and nothing may loosen it.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[policy] extends</code></td>
+<td>list of strings</td>
+<td>paths of the policies this one builds on, relative to this file. They apply in order, then this file on top: it may tighten anything, and loosen only what they list in overridable</td>
+<td>[]: the policy stands alone</td>
+<td>no</td>
+<td>this file only</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>[policy] overridable</code></td>
+<td>list of strings</td>
+<td>IDs of keys a policy extending this one may loosen: the keys that may only narrow or be stricter ("licenses.allow", "sources.allow-git", "max-waiver-days")</td>
+<td>[]: nothing this policy sets may be loosened</td>
+<td>no</td>
+<td>this file only</td>
+<td>–</td>
 </tr>
 </tbody>
 </table>
@@ -965,6 +1051,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -975,6 +1062,7 @@
 <td>channel names or URLs. A name ("conda-forge") matches its anaconda.org and prefix.dev URLs; any other host is given by URL ("https://conda.example.com/prod"). Trailing slashes and host case do not matter</td>
 <td>not set: conda packages may come from any channel</td>
 <td>no</td>
+<td>may only narrow, unless overridable</td>
 <td><a href="../rules/#sources-channels"><code>sources.channels</code></a></td>
 </tr>
 <tr>
@@ -983,6 +1071,7 @@
 <td>PyPI index URLs ("https://pypi.org/simple"). Trailing slashes and host case do not matter</td>
 <td>not set: PyPI packages may come from any index</td>
 <td>no</td>
+<td>may only narrow, unless overridable</td>
 <td><a href="../rules/#sources-indexes"><code>sources.indexes</code></a></td>
 </tr>
 <tr>
@@ -991,6 +1080,7 @@
 <td>true, false</td>
 <td>true: packages may come from a git repository</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#sources-git"><code>sources.git</code></a></td>
 </tr>
 <tr>
@@ -999,6 +1089,7 @@
 <td>true, false</td>
 <td>true: packages may come from a direct URL</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#sources-url"><code>sources.url</code></a></td>
 </tr>
 <tr>
@@ -1007,6 +1098,7 @@
 <td>true, false</td>
 <td>true: packages may come from a local path</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#sources-path"><code>sources.path</code></a></td>
 </tr>
 </tbody>
@@ -1021,6 +1113,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -1031,6 +1124,7 @@
 <td>one table per ban, with the fields below</td>
 <td>[]: nothing is banned</td>
 <td>no</td>
+<td>adds up</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1039,6 +1133,7 @@
 <td>a package name. A PyPI name also catches a conda package that provides it</td>
 <td>none</td>
 <td>yes</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1047,6 +1142,7 @@
 <td>a version range: conda's syntax for conda packages, PEP 440 for PyPI ones ("&lt;3", "&gt;=1.0,&lt;1.1.1w")</td>
 <td>not set: every version is banned</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1055,6 +1151,7 @@
 <td>a conda build-string pattern, with * matching any run of characters ("*_cuda*"); conda packages only</td>
 <td>not set: every build is banned</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1063,6 +1160,7 @@
 <td>"conda", "pypi"</td>
 <td>not set: both kinds</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1071,6 +1169,7 @@
 <td>any text; printed with the finding</td>
 <td>none</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 <tr>
@@ -1079,6 +1178,7 @@
 <td>any text; printed as the finding's fix hint</td>
 <td>none</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#bans-deny"><code>bans.deny</code></a></td>
 </tr>
 </tbody>
@@ -1093,6 +1193,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -1103,6 +1204,7 @@
 <td>SPDX license identifiers, or patterns with * expanded against the SPDX license list ("LGPL-*"). An -or-later entry accepts later versions of the same license</td>
 <td>[]: any license that is not denied is acceptable</td>
 <td>no</td>
+<td>may only narrow, unless overridable</td>
 <td><a href="../rules/#licenses-not-allowed"><code>licenses.not-allowed</code></a></td>
 </tr>
 <tr>
@@ -1111,6 +1213,7 @@
 <td>SPDX license identifiers or patterns, as for allow</td>
 <td>[]</td>
 <td>no</td>
+<td>adds up</td>
 <td><a href="../rules/#licenses-review"><code>licenses.review</code></a>, <a href="../rules/#licenses-not-allowed"><code>licenses.not-allowed</code></a></td>
 </tr>
 <tr>
@@ -1119,6 +1222,7 @@
 <td>SPDX license identifiers or patterns, as for allow</td>
 <td>[]</td>
 <td>no</td>
+<td>adds up</td>
 <td><a href="../rules/#licenses-deny"><code>licenses.deny</code></a></td>
 </tr>
 <tr>
@@ -1127,6 +1231,7 @@
 <td>"warn", "error", "allow"</td>
 <td>"warn"</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#licenses-unknown"><code>licenses.unknown</code></a></td>
 </tr>
 </tbody>
@@ -1141,6 +1246,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -1151,6 +1257,7 @@
 <td>true, false</td>
 <td>true once the table exists; without the table the rule is off</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#manifest-wildcard-spec"><code>manifest.wildcard-spec</code></a></td>
 </tr>
 <tr>
@@ -1159,6 +1266,7 @@
 <td>true, false</td>
 <td>true once the table exists; without the table the rule is off</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#manifest-python-pinned"><code>manifest.python-pinned</code></a></td>
 </tr>
 <tr>
@@ -1167,6 +1275,7 @@
 <td>pixi platform names ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64", …)</td>
 <td>not set: no platform is required</td>
 <td>no</td>
+<td>adds up</td>
 <td><a href="../rules/#manifest-required-platforms"><code>manifest.required-platforms</code></a></td>
 </tr>
 </tbody>
@@ -1181,6 +1290,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -1191,6 +1301,7 @@
 <td>true, false</td>
 <td>true once the table exists; without the table the rule is off</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#lock-present"><code>lock.present</code></a></td>
 </tr>
 <tr>
@@ -1199,6 +1310,7 @@
 <td>true, false</td>
 <td>true once the table exists; without the table the rule is off</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#lock-complete"><code>lock.complete</code></a></td>
 </tr>
 <tr>
@@ -1207,6 +1319,7 @@
 <td>true, false</td>
 <td>true once the table exists; without the table the rule is off</td>
 <td>no</td>
+<td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#lock-in-sync"><code>lock.in-sync</code></a></td>
 </tr>
 </tbody>
@@ -1221,6 +1334,7 @@
 <th>Allowed values</th>
 <th>Default</th>
 <th>Required</th>
+<th>When extended</th>
 <th>Rules</th>
 </tr>
 </thead>
@@ -1231,6 +1345,7 @@
 <td>the ID of a policy rule, as <code>pixi policy explain</code> lists it ("licenses.deny"); waivers.* findings cannot be waived</td>
 <td>none</td>
 <td>yes</td>
+<td>–</td>
 <td><a href="../rules/#waivers-unused"><code>waivers.unused</code></a></td>
 </tr>
 <tr>
@@ -1239,6 +1354,7 @@
 <td>the package's name, as the finding names it (case does not matter). Findings that name no package, such as the lock rules', cannot be waived</td>
 <td>none</td>
 <td>yes</td>
+<td>–</td>
 <td><a href="../rules/#waivers-unused"><code>waivers.unused</code></a></td>
 </tr>
 <tr>
@@ -1247,6 +1363,7 @@
 <td>an exact version, as the finding names it</td>
 <td>not set: every version</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#waivers-unused"><code>waivers.unused</code></a></td>
 </tr>
 <tr>
@@ -1255,6 +1372,7 @@
 <td>an environment name from pixi.toml</td>
 <td>not set: every environment</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#waivers-unused"><code>waivers.unused</code></a></td>
 </tr>
 <tr>
@@ -1263,6 +1381,7 @@
 <td>a pixi platform name ("linux-64")</td>
 <td>not set: every platform</td>
 <td>no</td>
+<td>–</td>
 <td><a href="../rules/#waivers-unused"><code>waivers.unused</code></a></td>
 </tr>
 <tr>
@@ -1272,6 +1391,7 @@
 <td>none</td>
 <td>yes</td>
 <td>–</td>
+<td>–</td>
 </tr>
 <tr>
 <td><code>[[waivers]] expires</code></td>
@@ -1279,6 +1399,7 @@
 <td>a TOML date, YYYY-MM-DD, unquoted: the last day the waiver applies</td>
 <td>none</td>
 <td>yes</td>
+<td>–</td>
 <td><a href="../rules/#waivers-expired"><code>waivers.expired</code></a>, <a href="../rules/#waivers-too-long"><code>waivers.too-long</code></a></td>
 </tr>
 </tbody>

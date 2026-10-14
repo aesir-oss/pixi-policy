@@ -664,6 +664,33 @@
   
   
     <li class="md-nav__item">
+      <a href="extends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing a policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="output/" class="md-nav__link">
         
   
@@ -960,7 +987,7 @@ conda-forge package, for <code>pixi global install</code>, is planned
 </tr>
 <tr>
 <td>2</td>
-<td>The policy, the manifest or the lockfile could not be read</td>
+<td>The policy, the manifest or the lockfile could not be read, or the policy loosens a base it extends</td>
 </tr>
 </tbody>
 </table>
@@ -968,6 +995,7 @@ conda-forge package, for <code>pixi global install</code>, is planned
 <ul>
 <li><a href="getting-started/">Getting started</a>: from <code>pixi policy init</code> to a policy that fails the build</li>
 <li><a href="ci/">In development and CI</a>: a pixi task, a pre-commit hook and the GitHub Action</li>
+<li><a href="extends/">Sharing a policy</a>: one base policy for many workspaces, which each may tighten</li>
 <li><a href="output/">Output formats</a>: text, JSON and SARIF</li>
 </ul>
 
