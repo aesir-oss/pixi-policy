@@ -41,6 +41,12 @@ pub enum Command {
     Check,
     /// Write a starting pixi-policy.toml (or --policy FILE) that the workspace passes today; never overwrites.
     Init,
+    /// Print the policy; with --resolved, with every policy it extends merged in and where each value comes from.
+    Show {
+        /// Merge in what the policy extends, and say which file each value comes from.
+        #[arg(long)]
+        resolved: bool,
+    },
     /// Say what a rule checks, its keys and an example; without RULE, list every rule.
     Explain {
         /// A rule ID, such as licenses.deny.

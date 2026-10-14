@@ -16,6 +16,7 @@ nav:
   - Policy file reference: reference.md
   - License policy: licenses.md
   - Waivers: waivers.md
+  - Sharing a policy: extends.md
   - Output formats: output.md
   - Development: development.md
   - Security policy: security.md

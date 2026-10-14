@@ -46,10 +46,11 @@ conda-forge package, for `pixi global install`, is planned
 |---|---|
 | 0 | Nothing failed. Warnings may still be reported |
 | 1 | At least one finding is an error |
-| 2 | The policy, the manifest or the lockfile could not be read |
+| 2 | The policy, the manifest or the lockfile could not be read, or the policy loosens a base it extends |
 
 ## Next
 
 - [Getting started](getting-started.md): from `pixi policy init` to a policy that fails the build
 - [In development and CI](ci.md): a pixi task, a pre-commit hook and the GitHub Action
+- [Sharing a policy](extends.md): one base policy for many workspaces, which each may tighten
 - [Output formats](output.md): text, JSON and SARIF
