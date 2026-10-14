@@ -18,6 +18,11 @@ CI runs on them, and the fork keeps Actions off; sync with `git pull --ff-only u
 - gate the merge on the checks' result, counted after the watch ends: merge only when no check is non-passing. Never
   chain the merge after `gh pr checks --watch` in one command; in aesir-oss/pixi-ext-contrib that merged PR #107 with
   cargo-deny red.
+- merging a PR that touches `.github/workflows/` needs the `gh` token's `workflow` scope
+  (`gh auth refresh -s workflow`); without it the merge fails with "refusing to allow an OAuth App to create or update
+  workflow". Pushing over SSH does not need it, so the gap only shows at merge. Confirm the PR is `MERGED` before
+  deleting any branch: on 2026-10-13 cleanup chained after a failed merge deleted #33's head, closing the PR
+  (restored from the local sha and reopened)
 - the release Build matrix runs on `main` only, so a green PR can still turn `main` red: after every merge, watch
   `main`'s CI run to the end before starting the next issue
 - `pixi run ci` does not run cargo-deny; CI's `deny` job does. A change to `Cargo.toml` dependencies or `deny.toml`

@@ -1,0 +1,14 @@
+# Generated from pixi-policy's pre-commit-mirror/ on each release; edit it there, not here.
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pixi-policy-pre-commit"
+version = "@VERSION@"
+description = "pre-commit hook for pixi-policy"
+requires-python = ">=3.8"
+dependencies = ["pixi-policy==@VERSION@"]
+
+[tool.setuptools]
+py-modules = []
