@@ -10,8 +10,11 @@ fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// A file with `\n` line endings, as a Windows checkout's CRLF would break the multi-line matches.
 fn read(path: &str) -> String {
-    std::fs::read_to_string(crate_dir().join(path)).unwrap()
+    std::fs::read_to_string(crate_dir().join(path))
+        .unwrap()
+        .replace("\r\n", "\n")
 }
 
 /// The value of `key:` in the hook definition.
