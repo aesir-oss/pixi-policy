@@ -8,6 +8,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use toml::Spanned;
 
+use crate::keys::{KEYS, Key, Merge};
 use crate::waivers::Date;
 
 /// Why the policy could not be read.
@@ -41,6 +42,15 @@ pub enum PolicyError {
         help("fix the entry in the policy; see the docs for what each key takes")
     )]
     Invalid { path: String, message: String },
+
+    /// What a policy extends cannot be read or merged (#1).
+    #[error("{path} {message}")]
+    #[diagnostic(code(pixi_policy::policy::extends), help("{help}"))]
+    Extends {
+        path: String,
+        message: String,
+        help: String,
+    },
 }
 
 /// A policy file that is not valid TOML or has keys pixi-policy does not know, pointing at the spot.
@@ -191,10 +201,26 @@ pub struct LockRules {
     pub in_sync: Option<bool>,
 }
 
+/// `[policy]`: the policies this one builds on, and what a policy extending this one may loosen (#1). Read from the
+/// file it is in only.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct PolicyTable {
+    /// Paths of the base policies, relative to this file, applied in order before it.
+    #[serde(default)]
+    pub extends: Vec<String>,
+    /// IDs of keys a policy extending this one may loosen (`licenses.allow`).
+    #[serde(default)]
+    pub overridable: Vec<String>,
+}
+
 /// The policy, as `pixi-policy.toml` writes it.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Policy {
+    /// What this policy extends, and what may loosen it.
+    #[serde(default)]
+    pub policy: Option<PolicyTable>,
     /// Where packages may come from.
     #[serde(default)]
     pub sources: Option<Sources>,
@@ -227,6 +253,16 @@ impl Policy {
             path: path.to_string(),
             message,
         };
+        if let Some(table) = &policy.policy {
+            for id in &table.overridable {
+                overridable_key(id).map_err(|message| invalid(format!("[policy] overridable: {message}")))?;
+            }
+            if let Some(entry) = table.extends.iter().find(|entry| entry.trim().is_empty()) {
+                return Err(invalid(format!(
+                    "[policy] extends has an empty entry ({entry:?}): give a path"
+                )));
+            }
+        }
         let known: Vec<&'static str> = crate::check::rules().iter().map(|rule| rule.id()).collect();
         for waiver in &mut policy.waivers {
             let line = text[..waiver.span().start].matches('\n').count() + 1;
@@ -274,8 +310,13 @@ impl Policy {
         })
     }
 
-    /// Read the policy at `path`.
+    /// Read the policy at `path`, with every policy it extends merged in (#1).
     pub fn load(path: &Path) -> Result<Self, PolicyError> {
+        crate::extends::resolve(path).map(|resolved| resolved.policy)
+    }
+
+    /// Read the policy at `path` alone, ignoring what it extends; also its text.
+    pub fn load_file(path: &Path) -> Result<(Self, String), PolicyError> {
         let shown = path.display().to_string();
         if !path.is_file() {
             return Err(PolicyError::Missing { path: shown });
@@ -284,7 +325,40 @@ impl Policy {
             path: shown.clone(),
             source,
         })?;
-        Self::parse(&text, &shown)
+        Ok((Self::parse(&text, &shown)?, text))
+    }
+
+    /// The paths this policy extends.
+    pub fn extends(&self) -> &[String] {
+        self.policy.as_ref().map_or(&[], |table| &table.extends)
+    }
+
+    /// The IDs of the keys a policy extending this one may loosen.
+    pub fn overridable(&self) -> &[String] {
+        self.policy.as_ref().map_or(&[], |table| &table.overridable)
+    }
+}
+
+/// The key `id` names, when a policy may list it in `[policy] overridable`: one that may only narrow or be stricter.
+pub fn overridable_key(id: &str) -> Result<&'static Key, String> {
+    let key = KEYS.iter().find(|key| key.id() == id && !key.is_container());
+    match key.map(|key| (key, key.merge)) {
+        Some((key, Merge::Narrows | Merge::Stricter)) => Ok(key),
+        Some((_, Merge::Grows)) => Err(format!(
+            "{id:?} only adds up and is never loosened: lift one of its entries for a package with a [[waivers]] entry"
+        )),
+        Some(_) => Err(format!("{id:?} is not a key a policy can loosen")),
+        None => {
+            let ids: Vec<String> = KEYS
+                .iter()
+                .filter(|key| matches!(key.merge, Merge::Narrows | Merge::Stricter))
+                .map(Key::id)
+                .collect();
+            Err(format!(
+                "{id:?} is not a policy key (the keys that can be loosened are {})",
+                ids.join(", ")
+            ))
+        }
     }
 }
 

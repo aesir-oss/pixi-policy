@@ -14,6 +14,7 @@ const GENERATED: &str = "<!-- Generated from the code by `pixi run policy-docs`;
 /// The reference's sections: an anchor, a heading, and the table each one's keys come from.
 const SECTIONS: &[(&str, &str, &str, Option<&str>)] = &[
     ("top-level", "Top-level keys", "", None),
+    ("policy", "`[policy]`", "policy", Some("policy")),
     ("sources", "`[sources]`", "sources", Some("sources")),
     ("bans", "`[bans]`", "bans", Some("bans")),
     ("licenses", "`[licenses]`", "licenses", Some("licenses")),
@@ -51,7 +52,8 @@ fn reference() -> String {
     let mut out = format!(
         "{GENERATED}\n\n# Policy file reference\n\nEvery key `pixi-policy.toml` accepts. A key the table does not list \
          is an error, so a misspelt key cannot quietly check nothing. `pixi policy explain <RULE>` prints the rows for \
-         one rule's keys.\n"
+         one rule's keys. The When extended column says how a key combines when one policy extends another; see \
+         [Sharing a policy](extends.md).\n"
     );
     for (anchor, heading, table, container) in SECTIONS {
         out.push_str(&format!("\n## {heading} {{#{anchor}}}\n\n"));
@@ -72,7 +74,9 @@ fn reference() -> String {
                 !key.is_container() && (key.table == *table || (*table == "bans" && key.table == "bans.deny"))
             })
             .collect();
-        out.push_str("| Key | Type | Allowed values | Default | Required | Rules |\n|---|---|---|---|---|---|\n");
+        out.push_str(
+            "| Key | Type | Allowed values | Default | Required | When extended | Rules |\n|---|---|---|---|---|---|---|\n",
+        );
         for key in rows {
             let rules: Vec<String> = key
                 .rules
@@ -80,12 +84,13 @@ fn reference() -> String {
                 .map(|rule| format!("[`{rule}`](rules.md#{})", rule_anchor(rule)))
                 .collect();
             out.push_str(&format!(
-                "| `{}` | {} | {} | {} | {} | {} |\n",
+                "| `{}` | {} | {} | {} | {} | {} | {} |\n",
                 key.path(),
                 key.kind,
                 cell(key.values),
                 cell(key.default),
                 if key.required { "yes" } else { "no" },
+                key.merge.describe(),
                 if rules.is_empty() {
                     "–".to_string()
                 } else {

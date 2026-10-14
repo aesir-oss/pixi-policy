@@ -90,6 +90,18 @@ pub fn channel_allowed(channel: &str, allowed: &[String]) -> bool {
     })
 }
 
+/// Whether every channel the `allowed-channels` entry `entry` names is also allowed by `allowed`: a name stands for its
+/// anaconda.org and prefix.dev URLs.
+pub fn channel_covered(entry: &str, allowed: &[String]) -> bool {
+    if entry.contains("://") {
+        return channel_allowed(entry, allowed);
+    }
+    let name = entry.trim().trim_matches('/');
+    NAMED_CHANNEL_HOSTS
+        .iter()
+        .all(|host| channel_allowed(&format!("{host}/{name}"), allowed))
+}
+
 /// Whether `index` is one of `allowed`.
 pub fn index_allowed(index: &str, allowed: &[String]) -> bool {
     let index = normalize(index);

@@ -16,9 +16,51 @@ pub struct Key {
     pub rules: &'static [&'static str],
     /// A TOML value for the key, which the tests parse to show the parser accepts it.
     pub example: &'static str,
+    /// How the key combines when one policy extends another (#1).
+    pub merge: Merge,
+}
+
+/// How a key combines when one policy extends another (#1). Tightening always merges in; loosening a value is allowed
+/// only when every file that set it lists the key in `[policy] overridable`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Merge {
+    /// A table: there when any file in the chain has it.
+    Table,
+    /// A list of what is denied or required: every file's entries add up, and none can be taken away. A waiver lifts
+    /// one for a package.
+    Grows,
+    /// A list of what is allowed: the extending file's list replaces its base's, and may only drop entries.
+    Narrows,
+    /// A value: the extending file's wins, and may only be stricter.
+    Stricter,
+    /// A field of a `[bans] deny` or `[[waivers]]` entry: it goes with its entry.
+    Entry,
+    /// Read from the file it is in only: `[policy]` and `[[waivers]]`.
+    Local,
+}
+
+impl Merge {
+    /// The reference's word for it.
+    pub fn describe(self) -> &'static str {
+        match self {
+            Self::Table | Self::Entry => "–",
+            Self::Grows => "adds up",
+            Self::Narrows => "may only narrow, unless overridable",
+            Self::Stricter => "may only be stricter, unless overridable",
+            Self::Local => "this file only",
+        }
+    }
 }
 
 impl Key {
+    /// The key's ID in `[policy] overridable`: `licenses.allow`, `max-waiver-days`.
+    pub fn id(&self) -> String {
+        match self.table {
+            "" => self.name.to_string(),
+            table => format!("{table}.{}", self.name),
+        }
+    }
+
     /// Whether the row is a table or list of tables that holds other keys (`[sources]`, `[[waivers]]`), not a key.
     pub fn is_container(&self) -> bool {
         self.table.is_empty() && (TABLES.contains(&self.name) || self.name == "waivers")
@@ -39,7 +81,7 @@ impl Key {
 }
 
 /// The rule-family tables.
-const TABLES: &[&str] = &["sources", "bans", "licenses", "manifest", "lock"];
+pub const TABLES: &[&str] = &["policy", "sources", "bans", "licenses", "manifest", "lock"];
 
 const SOURCES: &[&str] = &[
     "sources.channels",
@@ -68,6 +110,41 @@ const WHEN_TABLE_EXISTS: &str = "true once the table exists; without the table t
 pub const KEYS: &[Key] = &[
     Key {
         table: "",
+        name: "policy",
+        kind: "table",
+        values: "the keys below",
+        default: "absent: the policy extends nothing, and nothing may loosen it",
+        required: false,
+        rules: &[],
+        example: "{}",
+        merge: Merge::Table,
+    },
+    Key {
+        table: "policy",
+        name: "extends",
+        kind: "list of strings",
+        values: "paths of the policies this one builds on, relative to this file. They apply in order, then this file \
+                 on top: it may tighten anything, and loosen only what they list in overridable",
+        default: "[]: the policy stands alone",
+        required: false,
+        rules: &[],
+        example: "[\"../policies/base.toml\"]",
+        merge: Merge::Local,
+    },
+    Key {
+        table: "policy",
+        name: "overridable",
+        kind: "list of strings",
+        values: "IDs of keys a policy extending this one may loosen: the keys that may only narrow or be stricter \
+                 (\"licenses.allow\", \"sources.allow-git\", \"max-waiver-days\")",
+        default: "[]: nothing this policy sets may be loosened",
+        required: false,
+        rules: &[],
+        example: "[\"licenses.allow\"]",
+        merge: Merge::Local,
+    },
+    Key {
+        table: "",
         name: "sources",
         kind: "table",
         values: "the keys below",
@@ -75,6 +152,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: SOURCES,
         example: "{}",
+        merge: Merge::Table,
     },
     Key {
         table: "sources",
@@ -87,6 +165,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["sources.channels"],
         example: "[\"conda-forge\"]",
+        merge: Merge::Narrows,
     },
     Key {
         table: "sources",
@@ -97,6 +176,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["sources.indexes"],
         example: "[\"https://pypi.org/simple\"]",
+        merge: Merge::Narrows,
     },
     Key {
         table: "sources",
@@ -107,6 +187,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["sources.git"],
         example: "false",
+        merge: Merge::Stricter,
     },
     Key {
         table: "sources",
@@ -117,6 +198,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["sources.url"],
         example: "false",
+        merge: Merge::Stricter,
     },
     Key {
         table: "sources",
@@ -127,6 +209,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["sources.path"],
         example: "false",
+        merge: Merge::Stricter,
     },
     Key {
         table: "",
@@ -137,6 +220,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "{}",
+        merge: Merge::Table,
     },
     Key {
         table: "bans",
@@ -147,6 +231,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "[]",
+        merge: Merge::Grows,
     },
     Key {
         table: "bans.deny",
@@ -157,6 +242,7 @@ pub const KEYS: &[Key] = &[
         required: true,
         rules: &["bans.deny"],
         example: "\"pycrypto\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "bans.deny",
@@ -167,6 +253,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "\"<3\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "bans.deny",
@@ -177,6 +264,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "\"*_cuda*\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "bans.deny",
@@ -187,6 +275,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "\"conda\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "bans.deny",
@@ -197,6 +286,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "\"unmaintained\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "bans.deny",
@@ -207,6 +297,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["bans.deny"],
         example: "\"pycryptodome\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "",
@@ -217,6 +308,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: LICENSES,
         example: "{}",
+        merge: Merge::Table,
     },
     Key {
         table: "licenses",
@@ -228,6 +320,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["licenses.not-allowed"],
         example: "[\"MIT\", \"Apache-2.0\"]",
+        merge: Merge::Narrows,
     },
     Key {
         table: "licenses",
@@ -238,6 +331,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["licenses.review", "licenses.not-allowed"],
         example: "[\"LGPL-*\"]",
+        merge: Merge::Grows,
     },
     Key {
         table: "licenses",
@@ -248,6 +342,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["licenses.deny"],
         example: "[\"GPL-3.0-*\", \"AGPL-*\"]",
+        merge: Merge::Grows,
     },
     Key {
         table: "licenses",
@@ -258,6 +353,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["licenses.unknown"],
         example: "\"error\"",
+        merge: Merge::Stricter,
     },
     Key {
         table: "",
@@ -268,6 +364,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: MANIFEST,
         example: "{}",
+        merge: Merge::Table,
     },
     Key {
         table: "manifest",
@@ -278,6 +375,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["manifest.wildcard-spec"],
         example: "true",
+        merge: Merge::Stricter,
     },
     Key {
         table: "manifest",
@@ -288,6 +386,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["manifest.python-pinned"],
         example: "true",
+        merge: Merge::Stricter,
     },
     Key {
         table: "manifest",
@@ -298,6 +397,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["manifest.required-platforms"],
         example: "[\"linux-64\", \"osx-arm64\"]",
+        merge: Merge::Grows,
     },
     Key {
         table: "",
@@ -308,6 +408,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: LOCK,
         example: "{}",
+        merge: Merge::Table,
     },
     Key {
         table: "lock",
@@ -318,6 +419,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["lock.present"],
         example: "true",
+        merge: Merge::Stricter,
     },
     Key {
         table: "lock",
@@ -328,6 +430,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["lock.complete"],
         example: "true",
+        merge: Merge::Stricter,
     },
     Key {
         table: "lock",
@@ -338,6 +441,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["lock.in-sync"],
         example: "true",
+        merge: Merge::Stricter,
     },
     Key {
         table: "",
@@ -348,6 +452,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["waivers.too-long"],
         example: "180",
+        merge: Merge::Stricter,
     },
     Key {
         table: "",
@@ -358,6 +463,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["waivers.expired", "waivers.unused", "waivers.too-long"],
         example: "[]",
+        merge: Merge::Local,
     },
     Key {
         table: "waivers",
@@ -369,6 +475,7 @@ pub const KEYS: &[Key] = &[
         required: true,
         rules: WAIVER_MATCH,
         example: "\"licenses.deny\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -380,6 +487,7 @@ pub const KEYS: &[Key] = &[
         required: true,
         rules: WAIVER_MATCH,
         example: "\"readline\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -390,6 +498,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: WAIVER_MATCH,
         example: "\"8.2\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -400,6 +509,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: WAIVER_MATCH,
         example: "\"default\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -410,6 +520,7 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: WAIVER_MATCH,
         example: "\"linux-64\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -420,6 +531,7 @@ pub const KEYS: &[Key] = &[
         required: true,
         rules: &[],
         example: "\"dev only; LEGAL-1234\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "waivers",
@@ -430,6 +542,7 @@ pub const KEYS: &[Key] = &[
         required: true,
         rules: &["waivers.expired", "waivers.too-long"],
         example: "2027-03-31",
+        merge: Merge::Entry,
     },
 ];
 
@@ -493,7 +606,8 @@ mod tests {
             table => format!("[{table}]\nnope = 1\n"),
         };
         let err = Policy::parse(&text, "p.toml").unwrap_err().to_string();
-        // serde says "expected one of `a`, `b`" for several fields and "expected `a`" for one.
+        // serde says "expected one of `a`, `b`, `c`" for several fields, "expected `a` or `b`" for two and
+        // "expected `a`" for one.
         let expected = err
             .split("expected one of ")
             .nth(1)
@@ -501,6 +615,7 @@ mod tests {
             .unwrap_or_else(|| panic!("{table}: {err}"));
         expected
             .split(", ")
+            .flat_map(|field| field.split(" or "))
             .map(|field| field.trim().trim_matches('`').to_string())
             .collect()
     }
@@ -517,6 +632,7 @@ mod tests {
     fn every_key_the_parser_accepts_is_listed() {
         for table in [
             "",
+            "policy",
             "sources",
             "bans",
             "bans.deny",

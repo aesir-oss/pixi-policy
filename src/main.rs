@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -32,7 +33,7 @@ fn run(args: &Args) -> miette::Result<i32> {
                 .wrap_err("cannot read the working directory")?;
             let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
             let policy_path = workspace.policy_path(args.policy.as_deref());
-            let policy = Policy::load(&policy_path)?;
+            let policy = Policy::load(&as_given(&policy_path, &cwd))?;
             let lock_rules_present = policy.lock.as_ref().is_some_and(|lock| lock.present != Some(false));
             let lock = match workspace.has_lockfile() {
                 true => Some(check::load_lockfile(&workspace.lockfile)?),
@@ -105,6 +106,22 @@ fn run(args: &Args) -> miette::Result<i32> {
             .into_diagnostic()?;
             Ok(EXIT_OK)
         }
+        Command::Show { resolved } => {
+            let cwd = std::env::current_dir()
+                .into_diagnostic()
+                .wrap_err("cannot read the working directory")?;
+            let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
+            let path = workspace.policy_path(args.policy.as_deref());
+            let text = match resolved {
+                true => pixi_policy::extends::render(&pixi_policy::extends::resolve(&as_given(&path, &cwd))?),
+                false => Policy::load_file(&as_given(&path, &cwd))?.1,
+            };
+            let mut out = pixi_policy::pipe::stdout();
+            out.write_all(text.as_bytes())
+                .and_then(|()| out.flush())
+                .into_diagnostic()?;
+            Ok(EXIT_OK)
+        }
         Command::Explain { rule } => {
             let text = match rule {
                 None => pixi_policy::explain::list(),
@@ -123,5 +140,14 @@ fn run(args: &Args) -> miette::Result<i32> {
                 .into_diagnostic()?;
             Ok(EXIT_OK)
         }
+    }
+}
+
+/// The policy's path relative to the working directory when it is inside it, so messages and `show --resolved` name
+/// each file the way the user would type it.
+fn as_given(path: &Path, cwd: &Path) -> PathBuf {
+    match report::relative(path, cwd) {
+        (inside, true) => PathBuf::from(inside),
+        _ => path.to_path_buf(),
     }
 }

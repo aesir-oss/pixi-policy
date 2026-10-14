@@ -149,7 +149,7 @@ pub fn text(outcome: &Outcome, palette: Palette, policy: &str) -> String {
 }
 
 /// `path` relative to `base` with `/` separators when it is inside it, and whether it is.
-fn relative(path: &Path, base: &Path) -> (String, bool) {
+pub fn relative(path: &Path, base: &Path) -> (String, bool) {
     match path.strip_prefix(base) {
         Ok(inside) => {
             let parts: Vec<String> = inside
