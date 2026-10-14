@@ -54,9 +54,19 @@ A published hook is planned ([#5](https://github.com/aesir-oss/pixi-policy/issue
 
 ## GitHub Actions
 
-Write a SARIF report and upload it, so findings appear on the pull request as code scanning annotations at the line
-in `pixi.toml`, `pixi.lock` or the policy. The check's exit code fails the job; `if: always()` uploads the report even
-then.
+The [GitHub Action](github-action.md) is one step: it installs the release binary, runs the check, fails the job on an
+error finding and can upload the findings to code scanning.
+
+```yaml
+- uses: actions/checkout@v4
+- uses: aesir-oss/pixi-policy-action@v0
+  with:
+    upload-sarif: "true"
+```
+
+The same by hand, with the version the workspace pins: write a SARIF report and upload it, so findings appear on the
+pull request as code scanning annotations at the line in `pixi.toml`, `pixi.lock` or the policy. The check's exit code
+fails the job; `if: always()` uploads the report even then.
 
 ```yaml
 # .github/workflows/policy.yml
@@ -85,7 +95,7 @@ jobs:
 
 Make the job a required status check, or a failing policy is only advice. Code scanning is free on public
 repositories; private ones need GitHub code security. Without it, drop the upload and read the text report in the
-job log. A packaged GitHub Action is planned ([#4](https://github.com/aesir-oss/pixi-policy/issues/4)).
+job log.
 
 ## Other CI systems
 

@@ -51,5 +51,5 @@ conda-forge package, for `pixi global install`, is planned
 ## Next
 
 - [Getting started](getting-started.md): from `pixi policy init` to a policy that fails the build
-- [In development and CI](ci.md): a pixi task, a pre-commit hook and a GitHub Actions step
+- [In development and CI](ci.md): a pixi task, a pre-commit hook and the GitHub Action
 - [Output formats](output.md): text, JSON and SARIF

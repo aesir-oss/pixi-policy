@@ -1,0 +1,204 @@
+name: pixi-policy
+# The Marketplace caps the description at 125 characters.
+description: >-
+  Check a pixi workspace's pixi.toml and pixi.lock against pixi-policy.toml, with SARIF for code scanning
+author: Kevin Mills
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  version:
+    description: >-
+      pixi-policy version to run (e.g. 0.2.0). Defaults to the version the action was referenced
+      at: `@v0.2.0` runs 0.2.0, `@v0` the newest 0.x.y release, a branch the latest release.
+    required: false
+    default: ""
+  manifest-path:
+    description: >-
+      The workspace's pixi.toml. Defaults to the nearest one at or above the working directory.
+    required: false
+    default: ""
+  policy:
+    description: The policy to check against. Defaults to pixi-policy.toml beside pixi.toml.
+    required: false
+    default: ""
+  fail-on-findings:
+    description: >-
+      Fail the step when a finding is an error (exit code 1). With `false` the step passes with a
+      warning and the `failed` output says what happened. A policy, manifest or lockfile that
+      cannot be read always fails the step.
+    required: false
+    default: "true"
+  summary:
+    description: Write the text report to the job summary.
+    required: false
+    default: "true"
+  upload-sarif:
+    description: >-
+      Also write the report as SARIF and upload it to GitHub code scanning, so findings appear on
+      the pull request at the line in pixi.toml, pixi.lock or the policy (needs
+      `security-events: write`).
+    required: false
+    default: "false"
+  sarif-category:
+    description: Code scanning category for the SARIF upload.
+    required: false
+    default: pixi-policy
+  json-output:
+    description: Also write the JSON report to this path.
+    required: false
+    default: ""
+  extra-args:
+    description: Additional command-line arguments, whitespace separated.
+    required: false
+    default: ""
+
+outputs:
+  version:
+    description: The pixi-policy version that ran.
+    value: ${{ steps.resolve.outputs.version }}
+  failed:
+    description: "`true` when at least one finding is an error."
+    value: ${{ steps.check.outputs.failed }}
+  sarif:
+    description: Path of the SARIF report, when upload-sarif is set.
+    value: ${{ steps.reports.outputs.sarif }}
+  json:
+    description: Path of the JSON report, when json-output is set.
+    value: ${{ steps.reports.outputs.json }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve version and platform
+      id: resolve
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        version=$(bash "$GITHUB_ACTION_PATH/action-version.sh")
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64) platform=linux-64; ext=tar.gz ;;
+          Linux-ARM64) platform=linux-aarch64; ext=tar.gz ;;
+          macOS-X64) platform=osx-64; ext=tar.gz ;;
+          macOS-ARM64) platform=osx-arm64; ext=tar.gz ;;
+          Windows-X64) platform=win-64; ext=zip ;;
+          *) echo "::error::unsupported runner ${RUNNER_OS}-${RUNNER_ARCH}"; exit 1 ;;
+        esac
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "platform=$platform" >> "$GITHUB_OUTPUT"
+        echo "ext=$ext" >> "$GITHUB_OUTPUT"
+        echo "Installing pixi-policy $version for $platform"
+
+    - name: Download and verify the release binary
+      shell: bash
+      env:
+        VERSION: ${{ steps.resolve.outputs.version }}
+        PLATFORM: ${{ steps.resolve.outputs.platform }}
+        EXT: ${{ steps.resolve.outputs.ext }}
+      run: |
+        set -euo pipefail
+        name="pixi-policy-v${VERSION}-${PLATFORM}"
+        base="https://github.com/aesir-oss/pixi-policy/releases/download/v${VERSION}"
+        dir="${RUNNER_TEMP}/pixi-policy-install/${name}"
+        # The action may run several times in one job; reuse an install of the same version.
+        if ls "$dir/bin"/pixi-policy* >/dev/null 2>&1; then
+          echo "$dir/bin" >> "$GITHUB_PATH"
+          "$dir/bin"/pixi-policy* --version
+          exit 0
+        fi
+        rm -rf "$dir" && mkdir -p "$dir" && cd "$dir"
+        curl -sSfL -o "$name.$EXT" "$base/$name.$EXT"
+        curl -sSfL -o "$name.$EXT.sha256" "$base/$name.$EXT.sha256"
+        # The checksum file names the archive bare (GNU and BSD spellings); check it here.
+        expected=$(cut -d' ' -f1 "$name.$EXT.sha256")
+        if command -v sha256sum >/dev/null; then actual=$(sha256sum "$name.$EXT" | cut -d' ' -f1); else actual=$(shasum -a 256 "$name.$EXT" | cut -d' ' -f1); fi
+        [ "$expected" = "$actual" ] || { echo "::error::checksum mismatch for $name.$EXT"; exit 1; }
+        if [ "$EXT" = zip ]; then unzip -q -o "$name.zip"; else tar xzf "$name.tar.gz"; fi
+        mkdir -p "$dir/bin"
+        mv "$name"/pixi-policy* "$dir/bin/"
+        chmod +x "$dir/bin"/pixi-policy* || true
+        echo "$dir/bin" >> "$GITHUB_PATH"
+        "$dir/bin"/pixi-policy* --version
+
+    - name: Check the policy
+      id: check
+      shell: bash
+      env:
+        IN_MANIFEST_PATH: ${{ inputs.manifest-path }}
+        IN_POLICY: ${{ inputs.policy }}
+        IN_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        IN_SUMMARY: ${{ inputs.summary }}
+        IN_EXTRA_ARGS: ${{ inputs.extra-args }}
+      run: |
+        set -uo pipefail
+        # Flags shared by the check and the SARIF and JSON reports, kept for the next step.
+        args=()
+        [ -n "$IN_MANIFEST_PATH" ] && args+=(--manifest-path "$IN_MANIFEST_PATH")
+        [ -n "$IN_POLICY" ] && args+=(--policy "$IN_POLICY")
+        for a in $IN_EXTRA_ARGS; do args+=("$a"); done
+        # ${arr[@]+"${arr[@]}"} keeps an empty array from tripping `set -u` on older bash.
+        printf '%s\n' ${args[@]+"${args[@]}"} > "$RUNNER_TEMP/pixi-policy-args"
+        report="$RUNNER_TEMP/pixi-policy.txt"
+        echo "pixi-policy check ${args[*]}"
+        # GitHub runs bash steps with -e; capture the status instead of dying on exit code 1.
+        code=0
+        pixi-policy check ${args[@]+"${args[@]}"} --format text --output "$report" || code=$?
+        [ -f "$report" ] && cat "$report"
+        if [ "$code" -ne 0 ] && [ "$code" -ne 1 ]; then
+          echo "::error::pixi-policy could not run the check (exit code $code; see the log above)"
+          exit "$code"
+        fi
+        if [ "$IN_SUMMARY" = "true" ]; then
+          { echo "## pixi-policy"; echo; echo '```text'; cat "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [ "$code" -eq 1 ]; then
+          echo "failed=true" >> "$GITHUB_OUTPUT"
+          if [ "$IN_FAIL_ON_FINDINGS" = "true" ]; then
+            echo "::error::the workspace fails its policy (see the log above)"
+            exit 1
+          fi
+          echo "::warning::the workspace fails its policy (see the log above)"
+          exit 0
+        fi
+        echo "failed=false" >> "$GITHUB_OUTPUT"
+
+    - name: Write the SARIF and JSON reports
+      id: reports
+      # After a verdict, even a failing one; not when the check could not run.
+      if: ${{ steps.check.outputs.failed != '' && (inputs.upload-sarif == 'true' || inputs.json-output != '') && !cancelled() }}
+      shell: bash
+      env:
+        IN_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        IN_JSON_OUTPUT: ${{ inputs.json-output }}
+      run: |
+        set -uo pipefail
+        args=()
+        while IFS= read -r line; do [ -n "$line" ] && args+=("$line"); done < "$RUNNER_TEMP/pixi-policy-args"
+        # Same verdict as the check above; only a run that cannot read its inputs is an error here.
+        report() {
+          local code=0
+          echo "pixi-policy check ${args[*]} --format $1 --output $2"
+          pixi-policy check ${args[@]+"${args[@]}"} --format "$1" --output "$2" || code=$?
+          [ "$code" -le 1 ] || exit "$code"
+        }
+        if [ "$IN_UPLOAD_SARIF" = "true" ]; then
+          path="$RUNNER_TEMP/pixi-policy.sarif"
+          report sarif "$path"
+          echo "sarif=$path" >> "$GITHUB_OUTPUT"
+        fi
+        if [ -n "$IN_JSON_OUTPUT" ]; then
+          report json "$IN_JSON_OUTPUT"
+          echo "json=$IN_JSON_OUTPUT" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Upload the SARIF to code scanning
+      if: ${{ steps.reports.outputs.sarif != '' && !cancelled() }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.reports.outputs.sarif }}
+        category: ${{ inputs.sarif-category }}

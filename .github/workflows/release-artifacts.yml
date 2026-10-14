@@ -422,6 +422,79 @@ jobs:
             for wheel in wheels/*.whl; do echo "- \`$(basename "$wheel")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # The action is published from its own repository, aesir-oss/pixi-policy-action, so it can be listed on the
+  # Marketplace and `uses: aesir-oss/pixi-policy-action@v0` downloads a few files instead of this whole repository.
+  # Its source is actions/pixi-policy here, tested by CI on every pull request; each release copies it over, tags it
+  # vX.Y.Z and, for the newest final release of its major, moves vX. Runs after the GitHub Release exists, so the
+  # binaries a new tag resolves to are already published.
+  action-repo:
+    name: Update the action repository
+    needs: [tag, publish]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.tag.outputs.tag }}
+      PRERELEASE: ${{ needs.tag.outputs.prerelease }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pixi-policy-action
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.tag }}
+          path: source
+      - name: Copy, commit and tag
+        id: copy
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository_owner }}/pixi-policy-action
+        run: |
+          set -euo pipefail
+          # git clone, not actions/checkout: it also works on the repository's first release, while it is empty.
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" action
+          cd action
+          git checkout -B main
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp ../source/actions/pixi-policy/action.yml ../source/actions/pixi-policy/action-version.sh \
+            ../source/actions/pixi-policy/README.md ../source/LICENSE .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::notice::the action repository already has ${TAG}"
+          else
+            git commit -m "chore: pixi-policy ${TAG}"
+          fi
+          if git rev-parse -q --verify "refs/tags/${TAG}" > /dev/null; then
+            echo "::notice::the action repository is already tagged ${TAG}"
+          else
+            git tag "${TAG}"
+          fi
+          git push origin HEAD:refs/heads/main "refs/tags/${TAG}"
+          # vX follows the newest final release of its major, and never moves backwards.
+          moved="no"
+          if [ "$PRERELEASE" != "true" ]; then
+            major="${TAG%%.*}"
+            newest=$(git tag -l "${major}.*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+            if [ "$newest" = "$TAG" ]; then
+              git -c tag.gpgsign=false tag -f "$major" "${TAG}^{commit}"
+              git push --force origin "refs/tags/${major}"
+              moved="${major} -> ${TAG}"
+            else
+              echo "::notice::${TAG} is not the newest ${major} release (${newest}); ${major} stays put"
+            fi
+          fi
+          {
+            echo "### Action repository"
+            echo
+            echo "\`${REPO}\` is at \`${TAG}\`; floating tag: ${moved}."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "moved=${moved}" >> "$GITHUB_OUTPUT"
+
   # Trusted publishing: no token, PyPI checks this workflow's OIDC identity against the
   # publisher registered for the project (repository aesir-oss/pixi-policy, workflow
   # release-artifacts.yml, and the environment named here), on PyPI and TestPyPI alike. A release candidate goes to
