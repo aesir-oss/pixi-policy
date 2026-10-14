@@ -1,0 +1,19 @@
+# pixi-policy-pre-commit
+
+A [pre-commit](https://pre-commit.com) hook for [pixi-policy](https://github.com/aesir-oss/pixi-policy). Generated from
+pixi-policy's `pre-commit-mirror/` on each release; issues and changes go to that repository. Each tag here installs
+the pixi-policy wheel of the same version from PyPI, so nothing is compiled.
+
+```yaml
+repos:
+  - repo: https://github.com/aesir-oss/pixi-policy-pre-commit
+    rev: v@VERSION@
+    hooks:
+      - id: pixi-policy
+```
+
+The hook runs when `pixi.toml`, `pixi.lock`, `pyproject.toml` or `pixi-policy.toml` changes, and checks the workspace
+the way `pixi policy` does from the repository root: the nearest `pixi.toml` and the `pixi-policy.toml` beside it. A
+commit with an error finding is stopped. `args:` passes any other flag (`--manifest-path app/pixi.toml` for a
+workspace below the root, `--policy policies/strict.toml`). See the
+[pre-commit section of the docs](https://aesir-oss.github.io/pixi-policy/latest/ci/#a-pre-commit-hook).

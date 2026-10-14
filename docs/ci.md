@@ -35,7 +35,24 @@ lint = { features = ["lint"], solve-group = "default" }
 
 ## A pre-commit hook
 
-Run the check when the files it reads change:
+The published hook runs the check whenever `pixi.toml`, `pixi.lock`, `pyproject.toml` or `pixi-policy.toml` changes,
+and stops a commit with an error finding:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/aesir-oss/pixi-policy-pre-commit
+    rev: v0.2.0
+    hooks:
+      - id: pixi-policy
+```
+
+Each tag of `aesir-oss/pixi-policy-pre-commit` installs the pixi-policy wheel of the same version from PyPI, so nothing
+is compiled; `pre-commit autoupdate` moves `rev` to the newest release. The hook checks the workspace the way
+`pixi policy` does from the repository root. `args:` passes any other flag: `args: [--manifest-path, app/pixi.toml]`
+for a workspace below the root.
+
+To run the version the workspace pins instead (the [pixi task](#a-pixi-task) above), a local hook:
 
 ```yaml
 # .pre-commit-config.yaml
@@ -47,10 +64,8 @@ repos:
         entry: pixi run policy
         language: system
         pass_filenames: false
-        files: ^(pixi\.toml|pixi\.lock|pixi-policy\.toml)$
+        files: (^|/)(pixi\.toml|pixi\.lock|pyproject\.toml|pixi-policy\.toml)$
 ```
-
-A published hook is planned ([#5](https://github.com/aesir-oss/pixi-policy/issues/5)).
 
 ## GitHub Actions
 

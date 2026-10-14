@@ -209,11 +209,36 @@ jobs:
         shell: bash
         run: test "${{ steps.pass.outputs.failed }}" = false
 
+  # The pre-commit hook from pre-commit-mirror/, rendered for the newest pixi-policy wheel on PyPI: a commit the
+  # policy allows passes and one that adds a banned package is stopped. The hook installs the wheel, so nothing is
+  # compiled.
+  pre-commit-hook:
+    name: pre-commit hook (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: lint
+          cache: true
+          activate-environment: lint
+      - name: Try the hook
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(curl -fsS https://pypi.org/pypi/pixi-policy/json | python -c 'import json, sys; print(json.load(sys.stdin)["info"]["version"])')
+          echo "pixi-policy ${version}"
+          pre-commit-mirror/try.sh "$version" "$RUNNER_TEMP/hook"
+
   # The one check the branch ruleset requires and the Release workflow reads: every job that ran passed.
   result:
     name: CI result
     if: ${{ always() }}
-    needs: [lint, test, coverage, deny, msrv, build, docs, action]
+    needs: [lint, test, coverage, deny, msrv, build, docs, action, pre-commit-hook]
     runs-on: ubuntu-latest
     steps:
       - name: Every job that ran passed

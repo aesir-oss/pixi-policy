@@ -1,0 +1,10 @@
+# pixi-policy's hook for pre-commit. The binary comes from the pixi-policy wheel on PyPI, pinned by this repository's
+# tag, so nothing is compiled.
+- id: pixi-policy
+  name: pixi-policy
+  description: Check pixi.toml and pixi.lock against pixi-policy.toml whenever one of them changes.
+  entry: pixi-policy
+  language: python
+  files: (^|/)(pixi\.toml|pixi\.lock|pyproject\.toml|pixi-policy\.toml)$
+  pass_filenames: false
+  require_serial: true

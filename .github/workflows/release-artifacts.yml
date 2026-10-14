@@ -495,6 +495,63 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "moved=${moved}" >> "$GITHUB_OUTPUT"
 
+  # The pre-commit hook lives in a mirror repository, aesir-oss/pixi-policy-pre-commit, the way ruff's does:
+  # pre-commit installs a `language: python` hook by `pip install .` of the hook repository, which here would compile
+  # pixi-policy from Rust. The mirror holds only the hook and a pyproject.toml pinning the wheel of the same version,
+  # rendered from pre-commit-mirror/ and tagged once that wheel is on PyPI, so final releases only: a release
+  # candidate's wheel is on TestPyPI, where pip does not look.
+  pre-commit-mirror:
+    name: Update the pre-commit mirror
+    needs: [tag, pypi]
+    if: needs.tag.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.tag.outputs.tag }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pixi-policy-pre-commit
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.tag }}
+          path: source
+      - name: Render, commit and tag
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository_owner }}/pixi-policy-pre-commit
+        run: |
+          set -euo pipefail
+          # git clone, not actions/checkout: it also works on the repository's first release, while it is empty.
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" mirror
+          cd mirror
+          git checkout -B main
+          ../source/pre-commit-mirror/render.sh "${TAG#v}" .
+          cp ../source/LICENSE .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::notice::the mirror already has ${TAG}"
+          else
+            git commit -m "chore: pixi-policy ${TAG}"
+          fi
+          if git rev-parse -q --verify "refs/tags/${TAG}" > /dev/null; then
+            echo "::notice::the mirror is already tagged ${TAG}"
+          else
+            git tag "${TAG}"
+          fi
+          git push origin HEAD:refs/heads/main "refs/tags/${TAG}"
+          {
+            echo "### pre-commit mirror"
+            echo
+            echo "\`${REPO}\` is at \`${TAG}\`: \`rev: ${TAG}\` installs the wheel of the same version."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Trusted publishing: no token, PyPI checks this workflow's OIDC identity against the
   # publisher registered for the project (repository aesir-oss/pixi-policy, workflow
   # release-artifacts.yml, and the environment named here), on PyPI and TestPyPI alike. A release candidate goes to
