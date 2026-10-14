@@ -94,6 +94,10 @@ fn covers(waiver: &Waiver, finding: &Finding) -> bool {
         && same(&waiver.version, finding.version.as_deref())
         && same(&waiver.environment, Some(&finding.environment))
         && same(&waiver.platform, Some(&finding.platform))
+        && waiver
+            .advisory
+            .as_deref()
+            .is_none_or(|wanted| finding.advisory.iter().any(|name| name.eq_ignore_ascii_case(wanted)))
 }
 
 fn about(waiver: &Waiver, rule: &'static str, message: String, help: &str) -> Finding {
@@ -108,6 +112,7 @@ fn about(waiver: &Waiver, rule: &'static str, message: String, help: &str) -> Fi
         line: waiver.line,
         message,
         help: Some(help.into()),
+        advisory: Vec::new(),
     }
 }
 
@@ -191,6 +196,7 @@ mod tests {
             line: None,
             message: "denied".into(),
             help: None,
+            advisory: Vec::new(),
         }
     }
 
@@ -281,6 +287,24 @@ mod tests {
         assert_eq!(outcome.findings.len(), 1);
         let other_rule = applied(WAIVER, vec![finding("bans.deny", "readline", "default")], "2026-10-11");
         assert!(other_rule.waived.is_empty());
+    }
+
+    #[test]
+    fn an_advisory_waiver_matches_the_id_or_any_alias() {
+        let waiver = "[[waivers]]\nrule = \"advisories.vulnerable\"\npackage = \"urllib3\"\nadvisory = \"cve-2023-43804\"\n\
+                      reason = \"r\"\nexpires = 2027-03-31\n";
+        let advisory = |names: &[&str]| Finding {
+            advisory: names.iter().map(|n| n.to_string()).collect(),
+            ..finding("advisories.vulnerable", "urllib3", "default")
+        };
+        let outcome = applied(
+            waiver,
+            vec![advisory(&["GHSA-v845", "CVE-2023-43804"]), advisory(&["GHSA-other"])],
+            "2026-10-11",
+        );
+        assert_eq!(outcome.waived.len(), 1);
+        assert_eq!(outcome.waived[0].finding.advisory[0], "GHSA-v845");
+        assert_eq!(outcome.findings.len(), 1);
     }
 
     #[test]

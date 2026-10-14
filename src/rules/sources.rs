@@ -211,6 +211,7 @@ impl Rule for SourceRule {
                     line: None,
                     message,
                     help: Some(help),
+                    advisory: Vec::new(),
                 })
             })
             .collect()

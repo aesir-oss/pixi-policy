@@ -190,6 +190,7 @@ impl Rule for Deny {
                 line: None,
                 message,
                 help: Some(help),
+                advisory: Vec::new(),
             });
         }
         findings

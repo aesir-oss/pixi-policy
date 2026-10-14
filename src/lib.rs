@@ -5,8 +5,10 @@
 
 #![cfg_attr(not(test), forbid(unsafe_code))]
 
+pub mod advisories;
 pub mod check;
 pub mod cli;
+pub mod cvss;
 pub mod explain;
 pub mod extends;
 pub mod fetch;

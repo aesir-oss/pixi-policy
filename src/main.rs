@@ -40,11 +40,20 @@ fn run(args: &Args) -> miette::Result<i32> {
                 false if lock_rules_present => None,
                 false => return Err(workspace.no_lockfile().into()),
             };
-            let rules = check::rules();
+            let advisories = lock
+                .as_ref()
+                .and_then(|lock| pixi_policy::rules::advisories::gather_from_env(lock, &policy));
+            let (data, unavailable) = match advisories {
+                Some(Ok(data)) => (Some(std::sync::Arc::new(data)), None),
+                Some(Err(message)) => (None, Some(pixi_policy::rules::advisories::unavailable(&message))),
+                None => (None, None),
+            };
+            let rules = pixi_policy::rules::with_advisories(data);
             let mut outcome = match &lock {
                 Some(lock) => check::run(lock, &policy, &rules)?,
                 None => Outcome::default(),
             };
+            outcome.findings.extend(unavailable);
             if policy.manifest.is_some() || policy.lock.is_some() {
                 let manifest = Manifest::load(&workspace.manifest)?;
                 check::run_manifest(&mut outcome, &manifest, &policy, &rules);

@@ -82,7 +82,15 @@ impl Key {
 }
 
 /// The rule-family tables.
-pub const TABLES: &[&str] = &["policy", "sources", "bans", "licenses", "manifest", "lock"];
+pub const TABLES: &[&str] = &[
+    "policy",
+    "sources",
+    "bans",
+    "licenses",
+    "advisories",
+    "manifest",
+    "lock",
+];
 
 const SOURCES: &[&str] = &[
     "sources.channels",
@@ -97,6 +105,7 @@ const LICENSES: &[&str] = &[
     "licenses.not-allowed",
     "licenses.unknown",
 ];
+const ADVISORIES: &[&str] = &["advisories.vulnerable", "advisories.unknown", "advisories.unavailable"];
 const MANIFEST: &[&str] = &[
     "manifest.wildcard-spec",
     "manifest.python-pinned",
@@ -382,6 +391,75 @@ pub const KEYS: &[Key] = &[
     },
     Key {
         table: "",
+        name: "advisories",
+        kind: "table",
+        values: "the keys below",
+        default: "absent: no advisory rule runs, and nothing is fetched",
+        required: false,
+        rules: ADVISORIES,
+        example: "{}",
+        merge: Merge::Table,
+    },
+    Key {
+        table: "advisories",
+        name: "fail-on",
+        kind: "string",
+        values: "\"low\", \"medium\", \"high\", \"critical\": an advisory at or above it fails",
+        default: "\"high\" once the table exists",
+        required: false,
+        rules: &["advisories.vulnerable"],
+        example: "\"medium\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "advisories",
+        name: "known-exploited",
+        kind: "string",
+        values: "\"error\", \"warn\", \"allow\": what an advisory in CISA's Known Exploited Vulnerabilities catalog \
+                 gets, whatever its severity",
+        default: "\"error\" once the table exists",
+        required: false,
+        rules: &["advisories.vulnerable"],
+        example: "\"error\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "advisories",
+        name: "epss",
+        kind: "float",
+        values: "a probability from 0 to 1: an advisory whose EPSS score (FIRST's estimate that it is exploited in \
+                 the next 30 days) is at or above it fails",
+        default: "not set: EPSS scores are not asked for",
+        required: false,
+        rules: &["advisories.vulnerable"],
+        example: "0.1",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "advisories",
+        name: "unknown",
+        kind: "string",
+        values: "\"warn\", \"error\", \"allow\": what an advisory with no severity gets",
+        default: "\"warn\"",
+        required: false,
+        rules: &["advisories.unknown"],
+        example: "\"error\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "advisories",
+        name: "pypi-mapping",
+        kind: "string",
+        values: "\"prefix\": a conda package is looked up by the PyPI purls pixi.lock states for it or, when it states \
+                 none, by conda-forge's conda-to-PyPI mapping; \"lock\": by pixi.lock's purls only",
+        default: "\"prefix\"",
+        required: false,
+        rules: &["advisories.vulnerable", "advisories.unknown"],
+        example: "\"lock\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "",
         name: "manifest",
         kind: "table",
         values: "the keys below",
@@ -549,6 +627,18 @@ pub const KEYS: &[Key] = &[
     },
     Key {
         table: "waivers",
+        name: "advisory",
+        kind: "string",
+        values: "an advisory's id or any of its aliases (\"GHSA-…\", \"PYSEC-…\", \"CVE-…\"), as the finding lists \
+                 them; advisories.* waivers only",
+        default: "not set: every advisory on the package",
+        required: false,
+        rules: WAIVER_MATCH,
+        example: "\"CVE-2023-43804\"",
+        merge: Merge::Entry,
+    },
+    Key {
+        table: "waivers",
         name: "reason",
         kind: "string",
         values: "any text: why the exception is acceptable, and until when",
@@ -604,7 +694,12 @@ mod tests {
     /// A policy with `key` set to its example, wrapped in whatever table it belongs to.
     fn policy_with(key: &Key) -> String {
         let ban = "name = \"x\"";
-        let waiver = "rule = \"bans.deny\"\npackage = \"x\"\nreason = \"r\"\nexpires = 2027-01-01";
+        let rule = if key.name == "advisory" {
+            "advisories.vulnerable"
+        } else {
+            "bans.deny"
+        };
+        let waiver = format!("rule = \"{rule}\"\npackage = \"x\"\nreason = \"r\"\nexpires = 2027-01-01");
         match key.table {
             "" if key.name == "waivers" => format!("waivers = {}\n", key.example),
             "" => format!("{} = {}\n", key.name, key.example),
@@ -670,6 +765,7 @@ mod tests {
             "bans",
             "bans.deny",
             "licenses",
+            "advisories",
             "manifest",
             "lock",
             "waivers",

@@ -182,7 +182,7 @@ fn artifact_location(path: &Path, base: &Path) -> Value {
 }
 
 fn finding_json(finding: &Finding) -> Value {
-    json!({
+    let mut entry = json!({
         "rule": finding.rule,
         "severity": finding.severity.to_string(),
         "package": finding.package,
@@ -193,7 +193,11 @@ fn finding_json(finding: &Finding) -> Value {
         "line": finding.line,
         "message": finding.message,
         "help": finding.help,
-    })
+    });
+    if !finding.advisory.is_empty() {
+        entry["advisory"] = json!(finding.advisory);
+    }
+    entry
 }
 
 /// The JSON report (schema: `crates/pixi-policy/schemas/pixi-policy-report.schema.json`).
@@ -393,6 +397,7 @@ mod tests {
             line,
             message: "is denied (unmaintained)".into(),
             help: Some("use pycryptodome instead".into()),
+            advisory: Vec::new(),
         }
     }
 
@@ -405,6 +410,7 @@ mod tests {
                     package: None,
                     version: None,
                     help: None,
+                    advisory: Vec::new(),
                     message: "the lockfile is older than the manifest".into(),
                     ..finding("lock.fresh", Severity::Warning, "", File::Manifest, Some(12))
                 },
@@ -460,6 +466,7 @@ mod tests {
             environment: String::new(),
             platform: String::new(),
             help: None,
+            advisory: Vec::new(),
             message: "waiver for licenses.deny on readline matches no finding".into(),
             ..finding("waivers.unused", Severity::Warning, "readline", File::Policy, Some(11))
         };

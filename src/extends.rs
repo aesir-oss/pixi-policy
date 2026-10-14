@@ -337,7 +337,10 @@ fn implicit(id: &str) -> Option<toml::Value> {
         "manifest.wildcard-spec" | "manifest.python-pinned" | "lock.present" | "lock.complete" | "lock.in-sync" => {
             Some(toml::Value::Boolean(true))
         }
-        "licenses.unknown" => Some(toml::Value::String("warn".into())),
+        "licenses.unknown" | "advisories.unknown" => Some(toml::Value::String("warn".into())),
+        "advisories.fail-on" => Some(toml::Value::String("high".into())),
+        "advisories.known-exploited" => Some(toml::Value::String("error".into())),
+        "advisories.pypi-mapping" => Some(toml::Value::String("prefix".into())),
         _ => None,
     }
 }
@@ -396,7 +399,23 @@ fn looser(id: &str, new: &toml::Value, old: &toml::Value) -> Option<String> {
                 extra(&license_covered)
             }
         }
-        "licenses.unknown" => {
+        "advisories.fail-on" => {
+            let rank = |value: &toml::Value| match value.as_str() {
+                Some("low") => 1,
+                Some("medium") => 2,
+                Some("high") => 3,
+                _ => 4,
+            };
+            (rank(new) > rank(old)).then(|| format!("to {new} (it was {old})"))
+        }
+        "advisories.epss" => {
+            let score = |value: &toml::Value| value.as_float().unwrap_or(1.0);
+            (score(new) > score(old)).then(|| format!("to {new} (it was {old})"))
+        }
+        "advisories.pypi-mapping" => {
+            (new.as_str() == Some("lock") && old.as_str() == Some("prefix")).then(|| format!("to {new} (it was {old})"))
+        }
+        "licenses.unknown" | "advisories.unknown" | "advisories.known-exploited" => {
             let rank = |value: &toml::Value| match value.as_str() {
                 Some("allow") => 0,
                 Some("error") => 2,
@@ -615,6 +634,46 @@ mod tests {
         assert_eq!(origin.loosens.len(), 1, "{origin:?}");
         // Still not the keys it did not list.
         assert!(child("[sources]\nallowed-channels = [\"pytorch\"]\n").is_err());
+    }
+
+    #[test]
+    fn advisory_thresholds_may_only_tighten() {
+        let dir = tempfile::tempdir().unwrap();
+        files(dir.path(), &[("base.toml", "[advisories]\nepss = 0.2\n")]);
+        let child = |body: &str| {
+            std::fs::write(
+                dir.path().join("p.toml"),
+                format!("[policy]\nextends = [\"base.toml\"]\n{body}"),
+            )
+            .unwrap();
+            resolve_in(dir.path(), "p.toml")
+        };
+        let tight =
+            child("[advisories]\nfail-on = \"medium\"\nepss = 0.1\nknown-exploited = \"error\"\nunknown = \"error\"\n")
+                .unwrap();
+        let advisories = tight.policy.advisories.unwrap();
+        assert_eq!(advisories.epss, Some(0.1));
+        assert_eq!(advisories.fail_on, Some(crate::advisories::Level::Medium));
+        // The base's table alone set the defaults: high, error, warn and prefix.
+        for (body, wanted) in [
+            (
+                "[advisories]\nfail-on = \"critical\"\n",
+                "to \"critical\" (it was \"high\")",
+            ),
+            ("[advisories]\nepss = 0.5\n", "to 0.5 (it was 0.2)"),
+            (
+                "[advisories]\nknown-exploited = \"warn\"\n",
+                "to \"warn\" (it was \"error\")",
+            ),
+            ("[advisories]\nunknown = \"allow\"\n", "to \"allow\" (it was \"warn\")"),
+            (
+                "[advisories]\npypi-mapping = \"lock\"\n",
+                "to \"lock\" (it was \"prefix\")",
+            ),
+        ] {
+            let err = child(body).unwrap_err().to_string();
+            assert!(err.contains(wanted), "{body}: {err}");
+        }
     }
 
     #[test]

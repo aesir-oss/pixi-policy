@@ -120,31 +120,51 @@ pub fn fetch(remote: &Remote, settings: &Settings) -> Result<String, String> {
 }
 
 fn download(url: &str) -> Result<Vec<u8>, String> {
+    get(url, MAX_BYTES)
+}
+
+fn agent() -> ureq::Agent {
     let tls = ureq::tls::TlsConfig::builder()
         .root_certs(ureq::tls::RootCerts::PlatformVerifier)
         .build();
-    let agent: ureq::Agent = ureq::Agent::config_builder()
+    ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(30)))
         .user_agent(concat!("pixi-policy/", env!("CARGO_PKG_VERSION")))
         .tls_config(tls)
         .build()
-        .into();
-    let response = agent.get(url).call().map_err(|err| err.to_string())?;
+        .into()
+}
+
+/// GET `url`, at most `max` bytes of it.
+pub fn get(url: &str, max: u64) -> Result<Vec<u8>, String> {
+    let response = agent().get(url).call().map_err(|err| err.to_string())?;
+    read_body(response.into_body(), max)
+}
+
+/// POST the JSON `body` to `url`, at most `max` bytes of the answer.
+pub fn post_json(url: &str, body: &str, max: u64) -> Result<Vec<u8>, String> {
+    let response = agent()
+        .post(url)
+        .header("Content-Type", "application/json")
+        .send(body)
+        .map_err(|err| err.to_string())?;
+    read_body(response.into_body(), max)
+}
+
+fn read_body(body: ureq::Body, max: u64) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
-    response
-        .into_body()
-        .into_reader()
-        .take(MAX_BYTES + 1)
+    body.into_reader()
+        .take(max + 1)
         .read_to_end(&mut bytes)
         .map_err(|err| err.to_string())?;
-    if bytes.len() as u64 > MAX_BYTES {
-        return Err(format!("it is larger than {MAX_BYTES} bytes"));
+    if bytes.len() as u64 > max {
+        return Err(format!("it is larger than {max} bytes"));
     }
     Ok(bytes)
 }
 
 /// Write `bytes` to `path` through a temporary file, so a reader never sees half of it.
-fn store(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub fn store(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let dir = path.parent().expect("a cache file is in a directory");
     std::fs::create_dir_all(dir)?;
     let partial = dir.join(format!(
