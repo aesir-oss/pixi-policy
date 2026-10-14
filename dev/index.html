@@ -637,6 +637,33 @@
   
   
     <li class="md-nav__item">
+      <a href="advisories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known vulnerabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="waivers/" class="md-nav__link">
         
   
@@ -896,8 +923,10 @@ CI can stop the merge.</p>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pixi<span class="w"> </span>policy<span class="w">          </span><span class="c1"># check it (the same as `pixi policy check`)</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pixi<span class="w"> </span>policy<span class="w"> </span>explain<span class="w">  </span><span class="c1"># every rule; `pixi policy explain &lt;RULE&gt;` for one, with its keys</span>
 </code></pre></div>
-<p>pixi-policy reads three files and nothing else: it needs no server, no database and no network, and every check runs
-offline. It is a single binary that pixi runs as <code>pixi policy</code>.</p>
+<p>pixi-policy reads three files and needs no server and no database. It uses the network only for a shared policy
+<a href="extends/#extending-a-url">extended by URL</a> and for <a href="advisories/">known vulnerabilities</a>, and caches both, so a
+check runs offline once they are cached; a policy with neither never uses it. It is a single binary that pixi runs as
+<code>pixi policy</code>.</p>
 <h2 id="what-it-checks">What it checks<a class="headerlink" href="#what-it-checks" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -922,6 +951,11 @@ offline. It is a single binary that pixi runs as <code>pixi policy</code>.</p>
 <td><a href="licenses/">Licenses</a></td>
 <td><code>licenses.deny</code>, <code>licenses.review</code>, <code>licenses.not-allowed</code>, <code>licenses.unknown</code></td>
 <td>every package can be used under the licenses the policy allows</td>
+</tr>
+<tr>
+<td><a href="advisories/">Advisories</a></td>
+<td><code>advisories.vulnerable</code>, <code>advisories.unknown</code>, <code>advisories.unavailable</code></td>
+<td>no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited</td>
 </tr>
 <tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>

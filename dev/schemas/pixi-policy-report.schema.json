@@ -58,7 +58,8 @@
         "file": { "enum": ["pixi.lock", "pixi.toml", "pyproject.toml", "pixi-policy.toml"] },
         "line": { "type": ["integer", "null"], "minimum": 1 },
         "message": { "type": "string" },
-        "help": { "type": ["string", "null"] }
+        "help": { "type": ["string", "null"] },
+        "advisory": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "An advisories.* finding's advisory: its id, then its aliases. Absent for every other rule." }
       }
     },
     "finding": {

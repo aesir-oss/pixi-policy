@@ -637,6 +637,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#advisories-vulnerable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.vulnerable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advisories-unknown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.unknown
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advisories-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest-wildcard-spec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -785,6 +818,33 @@
     
   
     License policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advisories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known vulnerabilities
   
 
     
@@ -1096,6 +1156,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#advisories-vulnerable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.vulnerable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advisories-unknown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.unknown
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advisories-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        advisories.unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest-wildcard-spec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1272,6 +1365,18 @@
 <td>Every package declares an SPDX license</td>
 </tr>
 <tr>
+<td><a href="#advisories-vulnerable"><code>advisories.vulnerable</code></a></td>
+<td>A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold</td>
+</tr>
+<tr>
+<td><a href="#advisories-unknown"><code>advisories.unknown</code></a></td>
+<td>A package has a known vulnerability whose severity no advisory gives</td>
+</tr>
+<tr>
+<td><a href="#advisories-unavailable"><code>advisories.unavailable</code></a></td>
+<td>The advisory data cannot be read, so no package could be checked</td>
+</tr>
+<tr>
 <td><a href="#manifest-wildcard-spec"><code>manifest.wildcard-spec</code></a></td>
 <td>No dependency is given as <code>\*</code></td>
 </tr>
@@ -1382,72 +1487,94 @@
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"error"</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#licenses"><code>[licenses] unknown</code></a>.</p>
+<h2 id="advisories-vulnerable"><code>advisories.vulnerable</code><a class="headerlink" href="#advisories-vulnerable" title="Permanent link">&para;</a></h2>
+<p>A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold.</p>
+<p>Keys: [advisories] fail-on (default "high"), known-exploited (default "error") and epss (not set by default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities catalog, or with an EPSS score at or above epss. Advisories are OSV's, as pixi-sbom --vulns reads them; a conda package is looked up by its PyPI identity (pypi-mapping). The help names the version that fixes it. Waive one advisory with a waiver's advisory key.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">[advisories]</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">fail-on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"high"</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">known-exploited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"error"</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">epss</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1</span>
+</code></pre></div>
+<p>Keys: <a href="../reference/#advisories"><code>[advisories] fail-on</code></a>, <a href="../reference/#advisories"><code>[advisories] known-exploited</code></a>, <a href="../reference/#advisories"><code>[advisories] epss</code></a>, <a href="../reference/#advisories"><code>[advisories] pypi-mapping</code></a>.</p>
+<h2 id="advisories-unknown"><code>advisories.unknown</code><a class="headerlink" href="#advisories-unknown" title="Permanent link">&para;</a></h2>
+<p>A package has a known vulnerability whose severity no advisory gives.</p>
+<p>Key: [advisories] unknown = "warn" (default), "error" or "allow": what an advisory gets when no record of it gives a severity or a CVSS v3 vector, unless known-exploited or epss already fail it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[advisories]</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"error"</span>
+</code></pre></div>
+<p>Keys: <a href="../reference/#advisories"><code>[advisories] unknown</code></a>, <a href="../reference/#advisories"><code>[advisories] pypi-mapping</code></a>.</p>
+<h2 id="advisories-unavailable"><code>advisories.unavailable</code><a class="headerlink" href="#advisories-unavailable" title="Permanent link">&para;</a></h2>
+<p>The advisory data cannot be read, so no package could be checked.</p>
+<p>Key: [advisories]. The advisory data could not be read: OSV, CISA's catalog, FIRST's EPSS API or the conda-forge mapping did not answer and nothing was cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass a workspace it could not look at. PIXI_POLICY_OSV_URL, PIXI_POLICY_KEV_URL, PIXI_POLICY_EPSS_URL and PIXI_POLICY_MAPPING_URL point at mirrors.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">[advisories]</span>
+</code></pre></div>
+<p>Keys: .</p>
 <h2 id="manifest-wildcard-spec"><code>manifest.wildcard-spec</code><a class="headerlink" href="#manifest-wildcard-spec" title="Permanent link">&para;</a></h2>
 <p>No dependency is given as <code>*</code>.</p>
 <p>Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as "*" in any dependency table, at its line in the manifest.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">wildcard-spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">wildcard-spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] wildcard-spec</code></a>.</p>
 <h2 id="manifest-python-pinned"><code>manifest.python-pinned</code><a class="headerlink" href="#manifest-python-pinned" title="Permanent link">&para;</a></h2>
 <p>Python is constrained to one minor version or narrower.</p>
 <p>Key: [manifest] python-pinned (on once [manifest] exists). Fails a python dependency whose spec allows more than one minor version ("&gt;=3.10"), or has none; "3.12.*" and "&gt;=3.12,&lt;3.13" pass.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">python-pinned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">python-pinned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] python-pinned</code></a>.</p>
 <h2 id="manifest-required-platforms"><code>manifest.required-platforms</code><a class="headerlink" href="#manifest-required-platforms" title="Permanent link">&para;</a></h2>
 <p>The workspace lists every platform the policy requires.</p>
 <p>Key: [manifest] required-platforms, a list of platforms the workspace must list in [workspace] platforms.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">]</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] required-platforms</code></a>.</p>
 <h2 id="lock-present"><code>lock.present</code><a class="headerlink" href="#lock-present" title="Permanent link">&para;</a></h2>
 <p>The workspace has a pixi.lock.</p>
 <p>Key: [lock] present (on once [lock] exists). Fails a workspace without a pixi.lock; without [lock], a missing lockfile is an input error (exit 2) instead.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">present</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">present</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] present</code></a>.</p>
 <h2 id="lock-complete"><code>lock.complete</code><a class="headerlink" href="#lock-complete" title="Permanent link">&para;</a></h2>
 <p>Every environment is locked for every platform it is solved for.</p>
 <p>Key: [lock] complete (on once [lock] exists). Fails an environment the manifest defines that pixi.lock does not lock, or does not lock for one of its platforms.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">complete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">complete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] complete</code></a>.</p>
 <h2 id="lock-in-sync"><code>lock.in-sync</code><a class="headerlink" href="#lock-in-sync" title="Permanent link">&para;</a></h2>
 <p>pixi.lock still satisfies the manifest.</p>
 <p>Key: [lock] in-sync (on once [lock] exists). Asks pixi, offline, whether pixi.lock still satisfies the manifest (pixi list --locked); a warning when pixi cannot be run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">in-sync</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">in-sync</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] in-sync</code></a>.</p>
 <h2 id="waivers-expired"><code>waivers.expired</code><a class="headerlink" href="#waivers-expired" title="Permanent link">&para;</a></h2>
 <p>A waiver has expired, and what it waived fails again.</p>
 <p>A [[waivers]] entry whose expires date has passed. What it waived fails again; renew it with a new date and a reason that still holds, or fix the finding.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">[[waivers]]</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"licenses.deny"</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"readline"</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"dev only; LEGAL-1234"</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-03-31</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">[[waivers]]</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"licenses.deny"</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"readline"</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"dev only; LEGAL-1234"</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-03-31</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#waivers"><code>[[waivers]] expires</code></a>.</p>
 <h2 id="waivers-unused"><code>waivers.unused</code><a class="headerlink" href="#waivers-unused" title="Permanent link">&para;</a></h2>
 <p>A waiver matches no finding.</p>
 <p>A [[waivers]] entry that matches no finding: its rule, package, version, environment or platform is wrong, or the finding is gone. Remove it.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[[waivers]]</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bans.deny"</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"pycrypto"</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"replaced in Q3"</span>
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-01-31</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">[[waivers]]</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bans.deny"</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"pycrypto"</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"replaced in Q3"</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-01-31</span>
 </code></pre></div>
-<p>Keys: <a href="../reference/#waivers"><code>[[waivers]] rule</code></a>, <a href="../reference/#waivers"><code>[[waivers]] package</code></a>, <a href="../reference/#waivers"><code>[[waivers]] version</code></a>, <a href="../reference/#waivers"><code>[[waivers]] environment</code></a>, <a href="../reference/#waivers"><code>[[waivers]] platform</code></a>.</p>
+<p>Keys: <a href="../reference/#waivers"><code>[[waivers]] rule</code></a>, <a href="../reference/#waivers"><code>[[waivers]] package</code></a>, <a href="../reference/#waivers"><code>[[waivers]] version</code></a>, <a href="../reference/#waivers"><code>[[waivers]] environment</code></a>, <a href="../reference/#waivers"><code>[[waivers]] platform</code></a>, <a href="../reference/#waivers"><code>[[waivers]] advisory</code></a>.</p>
 <h2 id="waivers-too-long"><code>waivers.too-long</code><a class="headerlink" href="#waivers-too-long" title="Permanent link">&para;</a></h2>
 <p>A waiver runs further out than max-waiver-days.</p>
 <p>A [[waivers]] entry whose expires is more than max-waiver-days (default 365) away. The waiver still applies. Set max-waiver-days at the top of the policy; 0 turns the check off.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">max-waiver-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">180</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">max-waiver-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">180</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#top-level"><code>max-waiver-days</code></a>, <a href="../reference/#waivers"><code>[[waivers]] expires</code></a>.</p>
 
