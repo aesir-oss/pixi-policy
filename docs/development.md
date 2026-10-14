@@ -36,6 +36,8 @@ pixi run ci     # the full gate: pre-commit, release build, check, clippy, cover
 | `src/report.rs`, `src/style.rs`, `src/pipe.rs` | text, JSON and SARIF reports; terminal colour; output a reader may close early |
 | `src/explain.rs`, `src/waivers.rs`, `src/init.rs` | `explain`, waivers that expire, `init` |
 | `schemas/` | the JSON report's schema, published with the docs |
+| `actions/pixi-policy/` | the GitHub Action, copied to `aesir-oss/pixi-policy-action` on each release |
+| `pre-commit-mirror/` | the pre-commit hook, rendered into `aesir-oss/pixi-policy-pre-commit` on each final |
 | `tests/` | end-to-end tests of the binary, with fixtures and schemas |
 | `examples/projects/pixi/` | 19 real pixi workspaces the tests and the field test run against |
 | `docs/`, `mkdocs.yml` | this site |
@@ -64,3 +66,17 @@ provenance, publishes the GitHub release, and uploads the wheels: to TestPyPI fo
 - Never edit `CHANGELOG.md`'s existing sections. Each release adds its own on top; those up to 0.1.0 were written in
   aesir-oss/pixi-ext-contrib and link there.
 - Every release candidate goes through a field test of the published files before a final is cut.
+
+The same run fills two generated repositories with the release App, which must be installed on both:
+
+- `aesir-oss/pixi-policy-action` gets `actions/pixi-policy/` on every release, tagged `vX.Y.Z`. A final also moves
+  `vX` when it is the newest release of its major, and gets a GitHub release, marked Latest when `vX` moved: the
+  Marketplace lists the action from releases, not tags.
+- `aesir-oss/pixi-policy-pre-commit` gets the hook rendered for the version, tagged `vX.Y.Z`, on finals only and after
+  the PyPI upload, since the hook installs the wheel from PyPI.
+
+The Marketplace listing itself is a manual step, once: GitHub has no API for it. On the first final's release in
+`aesir-oss/pixi-policy-action`, choose **Edit**, tick **Publish this Action to the GitHub Marketplace** (an
+aesir-oss owner may first have to accept the Marketplace Developer Agreement), pick the categories **Security** and
+**Continuous integration**, and update the release. The listing is
+[marketplace/actions/pixi-policy](https://github.com/marketplace/actions/pixi-policy).
