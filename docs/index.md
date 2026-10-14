@@ -12,9 +12,9 @@ pixi policy explain  # every rule; `pixi policy explain <RULE>` for one, with it
 ```
 
 pixi-policy reads three files and needs no server and no database. It uses the network only for a shared policy
-[extended by URL](extends.md#extending-a-url) and for [known vulnerabilities](advisories.md), and caches both, so a
-check runs offline once they are cached; a policy with neither never uses it. It is a single binary that pixi runs as
-`pixi policy`.
+[extended by URL](extends.md#extending-a-url), [known vulnerabilities](advisories.md) and [freshness](freshness.md),
+and caches all three, so a check runs offline once they are cached; a policy with none of them never uses it. It is a
+single binary that pixi runs as `pixi policy`.
 
 ## What it checks
 
@@ -24,6 +24,7 @@ check runs offline once they are cached; a policy with neither never uses it. It
 | [Bans](rules.md#bans-deny) | `bans.deny` | no banned package, version range or build is in any environment |
 | [Licenses](licenses.md) | `licenses.deny`, `licenses.review`, `licenses.not-allowed`, `licenses.unknown` | every package can be used under the licenses the policy allows |
 | [Advisories](advisories.md) | `advisories.vulnerable`, `advisories.unknown`, `advisories.unavailable` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited |
+| [Freshness](freshness.md) | `freshness.build-age`, `freshness.majors-behind`, `freshness.archived`, `freshness.unknown`, `freshness.unavailable` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
 | [Manifest](rules.md#manifest-wildcard-spec) | `manifest.wildcard-spec`, `manifest.python-pinned`, `manifest.required-platforms` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
 | [Lock](rules.md#lock-present) | `lock.present`, `lock.complete`, `lock.in-sync` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | [Waivers](waivers.md) | `waivers.expired`, `waivers.unused`, `waivers.too-long` | every exception has a reason and an end date, and still matches something |

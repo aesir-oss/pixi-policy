@@ -2,6 +2,7 @@
 
 pub mod advisories;
 pub mod bans;
+pub mod freshness;
 pub mod licenses;
 pub mod lock;
 pub mod manifest;
@@ -13,15 +14,19 @@ use crate::check::Rule;
 
 /// Every rule, family by family.
 pub fn all() -> Vec<Box<dyn Rule>> {
-    with_advisories(None)
+    with_data(None, None)
 }
 
-/// Every rule, the `advisories.*` ones judging `data`.
-pub fn with_advisories(data: Option<Arc<crate::advisories::Data>>) -> Vec<Box<dyn Rule>> {
+/// Every rule, the `advisories.*` and `freshness.*` ones judging the data looked up for them.
+pub fn with_data(
+    advisories: Option<Arc<crate::advisories::Data>>,
+    freshness: Option<Arc<freshness::Data>>,
+) -> Vec<Box<dyn Rule>> {
     let mut rules = sources::rules();
     rules.extend(bans::rules());
     rules.extend(licenses::rules());
-    rules.extend(advisories::rules(data));
+    rules.extend(advisories::rules(advisories));
+    rules.extend(freshness::rules(freshness));
     rules.extend(manifest::rules());
     rules.extend(lock::rules());
     rules

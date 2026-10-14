@@ -141,6 +141,15 @@ pub fn get(url: &str, max: u64) -> Result<Vec<u8>, String> {
     read_body(response.into_body(), max)
 }
 
+/// GET `url` like [`get`], with `None` when the server has no such file (404).
+pub fn get_if_served(url: &str, max: u64) -> Result<Option<Vec<u8>>, String> {
+    match agent().get(url).call() {
+        Ok(response) => read_body(response.into_body(), max).map(Some),
+        Err(ureq::Error::StatusCode(404)) => Ok(None),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
 /// POST the JSON `body` to `url`, at most `max` bytes of the answer.
 pub fn post_json(url: &str, body: &str, max: u64) -> Result<Vec<u8>, String> {
     let response = agent()

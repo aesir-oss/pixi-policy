@@ -218,6 +218,31 @@ impl Advisories {
     }
 }
 
+/// `[freshness]`: how old and how far behind a conda package may be, and whether its conda-forge feedstock may be
+/// archived (#2). `archived` is on once the table exists; the limits are off until set.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Freshness {
+    /// A build older than this many days fails.
+    pub max_build_age_days: Option<u32>,
+    /// A package more than this many major versions behind its channel's newest release fails.
+    pub max_majors_behind: Option<u32>,
+    /// A conda-forge package whose feedstock is archived fails (default true).
+    pub archived: Option<bool>,
+    /// What a package the data says nothing about gets (default warn).
+    pub unknown: Option<Unknown>,
+}
+
+impl Freshness {
+    pub fn archived(&self) -> bool {
+        self.archived.unwrap_or(true)
+    }
+
+    pub fn unknown(&self) -> Unknown {
+        self.unknown.unwrap_or_default()
+    }
+}
+
 /// One `[[waivers]]` entry: an exception for one rule and one package, with a reason and an expiry date.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -380,6 +405,9 @@ pub struct Policy {
     /// Known vulnerabilities.
     #[serde(default)]
     pub advisories: Option<Advisories>,
+    /// How old and how far behind packages may be.
+    #[serde(default)]
+    pub freshness: Option<Freshness>,
     /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
     /// off. Default 365 (decided on #66).
     #[serde(default)]

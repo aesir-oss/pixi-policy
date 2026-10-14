@@ -137,6 +137,8 @@ pub struct Fact {
     pub license_family: Option<String>,
     pub build: Option<String>,
     pub build_number: Option<u64>,
+    /// When a conda package was built, in seconds since 1970, as its record states it.
+    pub timestamp: Option<i64>,
     pub size: Option<u64>,
     pub noarch: bool,
     /// The channel's name (`conda-forge`) and base URL.
@@ -332,6 +334,7 @@ fn conda_fact(conda: &CondaPackageData) -> Result<Fact, ReadError> {
         license_family,
         build,
         build_number,
+        timestamp: record.and_then(|r| r.timestamp.as_ref()).map(|t| t.timestamp()),
         size,
         noarch,
         channel,
@@ -433,6 +436,7 @@ fn pypi_fact(pypi: &PypiPackageData) -> Result<Fact, ReadError> {
         license_family: None,
         build: None,
         build_number: None,
+        timestamp: None,
         size: None,
         noarch: false,
         channel: None,
