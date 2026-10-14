@@ -66,8 +66,11 @@ fn loosening_what_the_base_does_not_allow_exits_2() {
     .unwrap();
     let (code, out, err) = run(ws.path(), &["show", "--resolved"]);
     assert_eq!(code, Some(0), "{out}{err}");
+    let base = format!("policies{}base.toml", std::path::MAIN_SEPARATOR);
     assert!(
-        out.contains("allow = [\"MIT\"]  # pixi-policy.toml, loosens policies/base.toml (overridable there)\n"),
+        out.contains(&format!(
+            "allow = [\"MIT\"]  # pixi-policy.toml, loosens {base} (overridable there)\n"
+        )),
         "{out}"
     );
 }
