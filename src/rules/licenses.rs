@@ -219,6 +219,7 @@ impl Rule for LicenseRule {
                     line: None,
                     message,
                     help: Some(help),
+                    advisory: Vec::new(),
                 })
             })
             .collect()

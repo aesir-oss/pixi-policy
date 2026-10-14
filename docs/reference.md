@@ -58,6 +58,18 @@ A table. When it is left out: no license rule runs.
 | `[licenses] deny` | list of strings | SPDX license identifiers or patterns, as for allow | [] | no | adds up | [`licenses.deny`](rules.md#licenses-deny) |
 | `[licenses] unknown` | string | "warn", "error", "allow" | "warn" | no | may only be stricter, unless overridable | [`licenses.unknown`](rules.md#licenses-unknown) |
 
+## `[advisories]` {#advisories}
+
+A table. When it is left out: no advisory rule runs, and nothing is fetched.
+
+| Key | Type | Allowed values | Default | Required | When extended | Rules |
+|---|---|---|---|---|---|---|
+| `[advisories] fail-on` | string | "low", "medium", "high", "critical": an advisory at or above it fails | "high" once the table exists | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable) |
+| `[advisories] known-exploited` | string | "error", "warn", "allow": what an advisory in CISA's Known Exploited Vulnerabilities catalog gets, whatever its severity | "error" once the table exists | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable) |
+| `[advisories] epss` | float | a probability from 0 to 1: an advisory whose EPSS score (FIRST's estimate that it is exploited in the next 30 days) is at or above it fails | not set: EPSS scores are not asked for | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable) |
+| `[advisories] unknown` | string | "warn", "error", "allow": what an advisory with no severity gets | "warn" | no | may only be stricter, unless overridable | [`advisories.unknown`](rules.md#advisories-unknown) |
+| `[advisories] pypi-mapping` | string | "prefix": a conda package is looked up by the PyPI purls pixi.lock states for it or, when it states none, by conda-forge's conda-to-PyPI mapping; "lock": by pixi.lock's purls only | "prefix" | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable), [`advisories.unknown`](rules.md#advisories-unknown) |
+
 ## `[manifest]` {#manifest}
 
 A table. When it is left out: no manifest rule runs.
@@ -89,5 +101,6 @@ A list of tables. When it is left out: no exceptions.
 | `[[waivers]] version` | string | an exact version, as the finding names it | not set: every version | no | – | [`waivers.unused`](rules.md#waivers-unused) |
 | `[[waivers]] environment` | string | an environment name from pixi.toml | not set: every environment | no | – | [`waivers.unused`](rules.md#waivers-unused) |
 | `[[waivers]] platform` | string | a pixi platform name ("linux-64") | not set: every platform | no | – | [`waivers.unused`](rules.md#waivers-unused) |
+| `[[waivers]] advisory` | string | an advisory's id or any of its aliases ("GHSA-…", "PYSEC-…", "CVE-…"), as the finding lists them; advisories.\* waivers only | not set: every advisory on the package | no | – | [`waivers.unused`](rules.md#waivers-unused) |
 | `[[waivers]] reason` | string | any text: why the exception is acceptable, and until when | none | yes | – | – |
 | `[[waivers]] expires` | date | a TOML date, YYYY-MM-DD, unquoted: the last day the waiver applies | none | yes | – | [`waivers.expired`](rules.md#waivers-expired), [`waivers.too-long`](rules.md#waivers-too-long) |

@@ -87,6 +87,7 @@ fn finding(
         line: None,
         message,
         help: Some(help.into()),
+        advisory: Vec::new(),
     }
 }
 

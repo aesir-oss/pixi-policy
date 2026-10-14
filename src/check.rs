@@ -91,6 +91,8 @@ pub struct Finding {
     pub message: String,
     /// What to do about it.
     pub help: Option<String>,
+    /// The advisory an `advisories.*` finding is about: its id, then its aliases; empty for every other rule.
+    pub advisory: Vec<String>,
 }
 
 /// A finding a waiver let through, and the waiver's reason and expiry.
@@ -217,6 +219,7 @@ mod tests {
                     line: None,
                     message: "found".into(),
                     help: None,
+                    advisory: Vec::new(),
                 })
                 .collect()
         }

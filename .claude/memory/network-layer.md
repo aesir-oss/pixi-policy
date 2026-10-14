@@ -1,6 +1,6 @@
 ---
 name: network-layer
-description: "pixi-policy's only network use: extends URLs (#1) via ureq on rustls/ring with the platform verifier, cached; what to watch in the next rc"
+description: "pixi-policy's network use: extends URLs (#1) and advisories (#3) via ureq on rustls/ring with the platform verifier, cached; what to watch in the next rc"
 metadata:
   type: project
 ---
@@ -10,6 +10,12 @@ Added 2026-10-14 for #1's URL half (maintainer approved the two runtime dependen
 store, proxies from `ALL_PROXY`/`HTTPS_PROXY`/`HTTP_PROXY` and `NO_PROXY`), and `sha2` 0.11, the version rattler already
 pulls in, so there is no second copy. `src/fetch.rs` holds the fetch and the cache; `PIXI_POLICY_CACHE_DIR` and
 `PIXI_POLICY_OFFLINE` steer it, and tests pass a `Settings` value rather than set env vars (process-global, racy).
+
+#3 (advisories) added `src/advisories.rs` on the same agent (`fetch::get`, `fetch::post_json`): OSV, CISA KEV, FIRST
+EPSS and the conda-forge mapping, ported from pixi-sbom's osv/kev/epss/mapping/cvss modules (copies; nothing keeps
+them in step). It caches under `<cache>/advisories/` and fails closed (`advisories.unavailable`) when it has no data.
+Its `Client` trait lets unit tests answer for the network; `tests/advisories.rs` runs offline on the recorded cache in
+`tests/fixtures/advisories/` (its README says how to re-record it).
 
 **Why:** pixi-sbom kept the "shared network stack" at the split, so this crate had none until #1.
 

@@ -11,8 +11,10 @@ pixi policy          # check it (the same as `pixi policy check`)
 pixi policy explain  # every rule; `pixi policy explain <RULE>` for one, with its keys
 ```
 
-pixi-policy reads three files and nothing else: it needs no server, no database and no network, and every check runs
-offline. It is a single binary that pixi runs as `pixi policy`.
+pixi-policy reads three files and needs no server and no database. It uses the network only for a shared policy
+[extended by URL](extends.md#extending-a-url) and for [known vulnerabilities](advisories.md), and caches both, so a
+check runs offline once they are cached; a policy with neither never uses it. It is a single binary that pixi runs as
+`pixi policy`.
 
 ## What it checks
 
@@ -21,6 +23,7 @@ offline. It is a single binary that pixi runs as `pixi policy`.
 | [Sources](rules.md#sources-channels) | `sources.channels`, `sources.indexes`, `sources.git`, `sources.url`, `sources.path` | conda packages come only from allowed channels, PyPI packages only from allowed indexes, and nothing from git, a direct URL or a local path unless allowed |
 | [Bans](rules.md#bans-deny) | `bans.deny` | no banned package, version range or build is in any environment |
 | [Licenses](licenses.md) | `licenses.deny`, `licenses.review`, `licenses.not-allowed`, `licenses.unknown` | every package can be used under the licenses the policy allows |
+| [Advisories](advisories.md) | `advisories.vulnerable`, `advisories.unknown`, `advisories.unavailable` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited |
 | [Manifest](rules.md#manifest-wildcard-spec) | `manifest.wildcard-spec`, `manifest.python-pinned`, `manifest.required-platforms` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
 | [Lock](rules.md#lock-present) | `lock.present`, `lock.complete`, `lock.in-sync` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | [Waivers](waivers.md) | `waivers.expired`, `waivers.unused`, `waivers.too-long` | every exception has a reason and an end date, and still matches something |

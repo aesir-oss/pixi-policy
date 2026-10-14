@@ -16,6 +16,9 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`licenses.review`](#licenses-review) | Packages that need a license under review are reported for it |
 | [`licenses.not-allowed`](#licenses-not-allowed) | Every package can be used under the licenses the policy allows |
 | [`licenses.unknown`](#licenses-unknown) | Every package declares an SPDX license |
+| [`advisories.vulnerable`](#advisories-vulnerable) | A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold |
+| [`advisories.unknown`](#advisories-unknown) | A package has a known vulnerability whose severity no advisory gives |
+| [`advisories.unavailable`](#advisories-unavailable) | The advisory data cannot be read, so no package could be checked |
 | [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
 | [`manifest.python-pinned`](#manifest-python-pinned) | Python is constrained to one minor version or narrower |
 | [`manifest.required-platforms`](#manifest-required-platforms) | The workspace lists every platform the policy requires |
@@ -159,6 +162,46 @@ unknown = "error"
 
 Keys: [`[licenses] unknown`](reference.md#licenses).
 
+## `advisories.vulnerable` {#advisories-vulnerable}
+
+A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold.
+
+Keys: [advisories] fail-on (default "high"), known-exploited (default "error") and epss (not set by default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities catalog, or with an EPSS score at or above epss. Advisories are OSV's, as pixi-sbom --vulns reads them; a conda package is looked up by its PyPI identity (pypi-mapping). The help names the version that fixes it. Waive one advisory with a waiver's advisory key.
+
+```toml
+[advisories]
+fail-on = "high"
+known-exploited = "error"
+epss = 0.1
+```
+
+Keys: [`[advisories] fail-on`](reference.md#advisories), [`[advisories] known-exploited`](reference.md#advisories), [`[advisories] epss`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories).
+
+## `advisories.unknown` {#advisories-unknown}
+
+A package has a known vulnerability whose severity no advisory gives.
+
+Key: [advisories] unknown = "warn" (default), "error" or "allow": what an advisory gets when no record of it gives a severity or a CVSS v3 vector, unless known-exploited or epss already fail it.
+
+```toml
+[advisories]
+unknown = "error"
+```
+
+Keys: [`[advisories] unknown`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories).
+
+## `advisories.unavailable` {#advisories-unavailable}
+
+The advisory data cannot be read, so no package could be checked.
+
+Key: [advisories]. The advisory data could not be read: OSV, CISA's catalog, FIRST's EPSS API or the conda-forge mapping did not answer and nothing was cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass a workspace it could not look at. PIXI_POLICY_OSV_URL, PIXI_POLICY_KEV_URL, PIXI_POLICY_EPSS_URL and PIXI_POLICY_MAPPING_URL point at mirrors.
+
+```toml
+[advisories]
+```
+
+Keys: .
+
 ## `manifest.wildcard-spec` {#manifest-wildcard-spec}
 
 No dependency is given as `*`.
@@ -267,7 +310,7 @@ reason = "replaced in Q3"
 expires = 2027-01-31
 ```
 
-Keys: [`[[waivers]] rule`](reference.md#waivers), [`[[waivers]] package`](reference.md#waivers), [`[[waivers]] version`](reference.md#waivers), [`[[waivers]] environment`](reference.md#waivers), [`[[waivers]] platform`](reference.md#waivers).
+Keys: [`[[waivers]] rule`](reference.md#waivers), [`[[waivers]] package`](reference.md#waivers), [`[[waivers]] version`](reference.md#waivers), [`[[waivers]] environment`](reference.md#waivers), [`[[waivers]] platform`](reference.md#waivers), [`[[waivers]] advisory`](reference.md#waivers).
 
 ## `waivers.too-long` {#waivers-too-long}
 

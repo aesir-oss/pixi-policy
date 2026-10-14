@@ -89,6 +89,7 @@ impl ManifestRule {
             line: Some(line),
             message,
             help: Some(help.into()),
+            advisory: Vec::new(),
         }
     }
 

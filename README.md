@@ -14,7 +14,8 @@ pixi policy          # check it (the same as `pixi policy check`)
 pixi policy explain  # every rule; `pixi policy explain <RULE>` for one, with its keys and defaults
 ```
 
-It reads three files and nothing else: no server, no database, no network. Every check runs offline.
+It reads three files and needs no server and no database. The network is used only for a shared policy extended by
+URL and for known vulnerabilities (`[advisories]`), both cached, so a check runs offline once they are cached.
 
 ## What it checks
 
@@ -23,6 +24,7 @@ It reads three files and nothing else: no server, no database, no network. Every
 | `sources` | conda packages come only from allowed channels, PyPI packages only from allowed indexes, and nothing from git, a direct URL or a local path unless allowed |
 | `bans` | no banned package, version range or build is in any environment |
 | `licenses` | every package can be used under the licenses the policy allows (SPDX allow, review and deny lists) |
+| `advisories` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited (OSV, CISA KEV, EPSS) |
 | `manifest` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
 | `lock` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | `waivers` | every exception has a reason and an end date, and still matches something |

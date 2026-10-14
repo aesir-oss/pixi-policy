@@ -151,6 +151,73 @@ pub struct Licenses {
     pub unknown: Unknown,
 }
 
+/// What a known exploited advisory gets.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Action {
+    /// An error (the default: a KEV entry is a must-fix whatever its CVSS score).
+    #[default]
+    Error,
+    Warn,
+    Allow,
+}
+
+/// Which PyPI identities a conda package is looked up by (#3).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PypiMapping {
+    /// The lockfile's PyPI purls, and conda-forge's mapping for a package the lockfile states none for.
+    #[default]
+    Prefix,
+    /// The lockfile's PyPI purls only.
+    Lock,
+}
+
+/// `[advisories]`: known vulnerabilities, from OSV with CISA's KEV catalog and FIRST's EPSS scores (#3). Every key
+/// has a default once the table exists, so `[advisories]` alone fails on high and critical advisories and known
+/// exploited ones.
+#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Advisories {
+    /// An advisory at or above this level fails (default high).
+    pub fail_on: Option<crate::advisories::Level>,
+    pub known_exploited: Option<Action>,
+    /// An advisory whose EPSS score is at or above this probability fails; not set, EPSS is not asked.
+    pub epss: Option<f64>,
+    /// What an advisory with no severity gets (default warn).
+    pub unknown: Option<Unknown>,
+    pub pypi_mapping: Option<PypiMapping>,
+}
+
+impl Advisories {
+    pub fn fail_on(&self) -> crate::advisories::Level {
+        self.fail_on.unwrap_or(crate::advisories::Level::High)
+    }
+
+    pub fn known_exploited(&self) -> Action {
+        self.known_exploited.unwrap_or_default()
+    }
+
+    pub fn unknown(&self) -> Unknown {
+        self.unknown.unwrap_or_default()
+    }
+
+    pub fn pypi_mapping(&self) -> PypiMapping {
+        self.pypi_mapping.unwrap_or_default()
+    }
+
+    fn check(&self) -> Result<(), String> {
+        use crate::advisories::Level;
+        if matches!(self.fail_on, Some(Level::Unknown | Level::None)) {
+            return Err("fail-on takes \"low\", \"medium\", \"high\" or \"critical\"".into());
+        }
+        if self.epss.is_some_and(|epss| !(0.0..=1.0).contains(&epss)) {
+            return Err("epss is a probability, from 0 to 1".into());
+        }
+        Ok(())
+    }
+}
+
 /// One `[[waivers]]` entry: an exception for one rule and one package, with a reason and an expiry date.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -162,6 +229,8 @@ pub struct Waiver {
     pub version: Option<String>,
     pub environment: Option<String>,
     pub platform: Option<String>,
+    /// Only this advisory, by its id or any alias (#3); `advisories.*` rules only.
+    pub advisory: Option<String>,
     pub reason: String,
     /// The last day it applies; required (#66).
     pub expires: toml::value::Datetime,
@@ -308,6 +377,9 @@ pub struct Policy {
     /// pixi.lock hygiene.
     #[serde(default)]
     pub lock: Option<LockRules>,
+    /// Known vulnerabilities.
+    #[serde(default)]
+    pub advisories: Option<Advisories>,
     /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
     /// off. Default 365 (decided on #66).
     #[serde(default)]
@@ -347,6 +419,11 @@ impl Policy {
                     known.join(", ")
                 )));
             }
+            if waiver.advisory.is_some() && !waiver.rule.starts_with("advisories.") {
+                return Err(invalid(format!(
+                    "the waiver on line {line} names an advisory, which only an advisories.* rule's waiver can"
+                )));
+            }
             if Date::from_toml(&waiver.expires).is_none() {
                 return Err(invalid(format!(
                     "the waiver on line {line} expires {}, which is not a date: write it as YYYY-MM-DD",
@@ -359,6 +436,11 @@ impl Policy {
                 path: path.to_string(),
                 message: format!("[licenses]: {message}"),
             })?;
+        }
+        if let Some(advisories) = &policy.advisories {
+            advisories
+                .check()
+                .map_err(|message| invalid(format!("[advisories]: {message}")))?;
         }
         if let Some(bans) = &policy.bans {
             for ban in &bans.deny {
@@ -467,6 +549,28 @@ mod tests {
     fn a_misspelt_sources_key_is_an_error() {
         let err = Policy::parse("[sources]\nallowed-channel = []\n", "p.toml").unwrap_err();
         assert!(err.to_string().contains("allowed-channel"), "{err}");
+    }
+
+    #[test]
+    fn advisories_take_a_level_a_probability_and_waivers_an_advisory() {
+        let advisories = Policy::parse("[advisories]\n", "p.toml").unwrap().advisories.unwrap();
+        assert_eq!(advisories.fail_on(), crate::advisories::Level::High);
+        assert_eq!(advisories.known_exploited(), Action::Error);
+        assert_eq!(
+            (advisories.unknown(), advisories.pypi_mapping()),
+            (Unknown::Warn, PypiMapping::Prefix)
+        );
+        for (bad, wanted) in [
+            ("[advisories]\nfail-on = \"none\"\n", "fail-on takes"),
+            ("[advisories]\nepss = 1.5\n", "a probability"),
+            (
+                "[[waivers]]\nrule = \"bans.deny\"\npackage = \"x\"\nadvisory = \"CVE-1\"\nreason = \"r\"\nexpires = 2027-01-01\n",
+                "only an advisories.* rule's waiver",
+            ),
+        ] {
+            let err = Policy::parse(bad, "p.toml").unwrap_err().to_string();
+            assert!(err.contains(wanted), "{bad}: {err}");
+        }
     }
 
     #[test]
