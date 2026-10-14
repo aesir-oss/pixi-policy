@@ -74,6 +74,7 @@ impl Key {
             ("", "waivers") => "[[waivers]]".to_string(),
             ("", name) => name.to_string(),
             ("bans.deny", name) => format!("[bans] deny: {name}"),
+            ("policy.extends", name) => format!("[policy] extends: {name}"),
             ("waivers", name) => format!("[[waivers]] {name}"),
             (table, name) => format!("[{table}] {name}"),
         }
@@ -122,14 +123,38 @@ pub const KEYS: &[Key] = &[
     Key {
         table: "policy",
         name: "extends",
-        kind: "list of strings",
-        values: "paths of the policies this one builds on, relative to this file. They apply in order, then this file \
-                 on top: it may tighten anything, and loosen only what they list in overridable",
+        kind: "list of strings or tables",
+        values: "the policies this one builds on: a path relative to this file, an https URL pinned to a tag or \
+                 commit (\"https://github.com/acme/policies/raw/v3/base.toml\"), or a table with url and sha256. \
+                 They apply in order, then this file on top: it may tighten anything, and loosen only what they list in \
+                 overridable",
         default: "[]: the policy stands alone",
         required: false,
         rules: &[],
         example: "[\"../policies/base.toml\"]",
         merge: Merge::Local,
+    },
+    Key {
+        table: "policy.extends",
+        name: "url",
+        kind: "string",
+        values: "the policy's URL, http or https; fetched once and cached",
+        default: "none",
+        required: true,
+        rules: &[],
+        example: "\"https://intranet.example.com/policies/base.toml\"",
+        merge: Merge::Entry,
+    },
+    Key {
+        table: "policy.extends",
+        name: "sha256",
+        kind: "string",
+        values: "the sha256 of the policy's content, 64 lower-case hex digits; a policy with another is refused",
+        default: "none",
+        required: true,
+        rules: &[],
+        example: "\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"",
+        merge: Merge::Entry,
     },
     Key {
         table: "policy",
@@ -585,6 +610,14 @@ mod tests {
             "" => format!("{} = {}\n", key.name, key.example),
             "bans.deny" if key.name == "name" => format!("[[bans.deny]]\nname = {}\n", key.example),
             "bans.deny" => format!("[[bans.deny]]\n{ban}\n{} = {}\n", key.name, key.example),
+            "policy.extends" => {
+                let entry = KEYS
+                    .iter()
+                    .filter(|other| other.table == "policy.extends" && other.name != key.name)
+                    .map(|other| format!("{} = {}\n", other.name, other.example))
+                    .collect::<String>();
+                format!("[[policy.extends]]\n{entry}{} = {}\n", key.name, key.example)
+            }
             "waivers" => {
                 let base: String = waiver
                     .lines()

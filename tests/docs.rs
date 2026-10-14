@@ -41,6 +41,7 @@ fn section_of(key: &Key) -> &'static str {
         "" if key.name == "waivers" => "waivers",
         "" => "top-level",
         "bans.deny" => "bans",
+        "policy.extends" => "policy",
         table => SECTIONS
             .iter()
             .find(|(_, _, t, _)| *t == table)
@@ -71,7 +72,10 @@ fn reference() -> String {
         let rows: Vec<&Key> = KEYS
             .iter()
             .filter(|key| {
-                !key.is_container() && (key.table == *table || (*table == "bans" && key.table == "bans.deny"))
+                !key.is_container()
+                    && (key.table == *table
+                        || (*table == "bans" && key.table == "bans.deny")
+                        || (*table == "policy" && key.table == "policy.extends"))
             })
             .collect();
         out.push_str(
