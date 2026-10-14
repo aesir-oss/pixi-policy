@@ -141,11 +141,79 @@ jobs:
       - name: Build the site strictly
         run: pixi run -e docs docs-build
 
+  # The GitHub Action from its source directory, with the newest released binary. All five release platforms,
+  # because what this exercises is the action's own `RUNNER_OS-RUNNER_ARCH` mapping to a release archive; it
+  # downloads a binary rather than compiling, so each leg is quick.
+  action:
+    name: Action (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-64 }
+          - { os: ubuntu-24.04-arm, target: linux-aarch64 }
+          - { os: macos-15-intel, target: osx-64 }
+          - { os: macos-latest, target: osx-arm64 }
+          - { os: windows-latest, target: win-64 }
+    env:
+      MANIFEST: examples/projects/pixi/01-django/pixi.toml
+    steps:
+      - uses: actions/checkout@v4
+      # A policy that fails: django below 6 is banned, and 01-django locks 5.x.
+      - name: Write the failing policy
+        shell: bash
+        run: |
+          printf '[bans]\ndeny = [{ name = "django", version = "<6", reason = "too old" }]\n' > "$RUNNER_TEMP/fail.toml"
+      - name: A failing policy, reported but not failing the step
+        id: fail
+        uses: ./actions/pixi-policy
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          policy: ${{ runner.temp }}/fail.toml
+          fail-on-findings: "false"
+          json-output: ${{ runner.temp }}/fail.json
+      - name: The failing policy's outputs
+        shell: bash
+        env:
+          FAILED: ${{ steps.fail.outputs.failed }}
+          JSON: ${{ steps.fail.outputs.json }}
+          VERSION: ${{ steps.fail.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "pixi-policy ${VERSION}"
+          test "$FAILED" = true
+          grep -q '"bans.deny"' "$JSON"
+      - name: A failing policy fails the step
+        id: gate
+        continue-on-error: true
+        uses: ./actions/pixi-policy
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          policy: ${{ runner.temp }}/fail.toml
+          summary: "false"
+      - name: The gate failed
+        shell: bash
+        run: test "${{ steps.gate.outcome }}" = failure
+      # The policy `init` proposes is one the workspace passes today.
+      - name: Write a passing policy with init
+        shell: bash
+        run: pixi-policy init --manifest-path "$MANIFEST" --policy "$RUNNER_TEMP/pass.toml"
+      - name: A passing policy
+        id: pass
+        uses: ./actions/pixi-policy
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          policy: ${{ runner.temp }}/pass.toml
+      - name: The passing policy's outputs
+        shell: bash
+        run: test "${{ steps.pass.outputs.failed }}" = false
+
   # The one check the branch ruleset requires and the Release workflow reads: every job that ran passed.
   result:
     name: CI result
     if: ${{ always() }}
-    needs: [lint, test, coverage, deny, msrv, build, docs]
+    needs: [lint, test, coverage, deny, msrv, build, docs, action]
     runs-on: ubuntu-latest
     steps:
       - name: Every job that ran passed

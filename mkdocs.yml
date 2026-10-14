@@ -11,6 +11,7 @@ nav:
   - Overview: index.md
   - Getting started: getting-started.md
   - In development and CI: ci.md
+  - GitHub Action: github-action.md
   - Rules: rules.md
   - Policy file reference: reference.md
   - License policy: licenses.md
