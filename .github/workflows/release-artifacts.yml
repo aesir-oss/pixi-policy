@@ -494,6 +494,44 @@ jobs:
             echo "\`${REPO}\` is at \`${TAG}\`; floating tag: ${moved}."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "moved=${moved}" >> "$GITHUB_OUTPUT"
+      # The Marketplace lists the action from its repository's releases, not its tags (#15). Finals only: it ignores
+      # pre-releases. Latest only when vX moved, so a fix on an older line never takes it. Ticking "Publish this Action
+      # to the GitHub Marketplace" has no API and was done by hand on the first one.
+      - name: Release the action
+        if: needs.tag.outputs.prerelease != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository_owner }}/pixi-policy-action
+          SOURCE: ${{ github.repository }}
+          MOVED: ${{ steps.copy.outputs.moved }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+            echo "::notice::${REPO} already has a ${TAG} release"
+            exit 0
+          fi
+          version="${TAG#v}"
+          major="${TAG%%.*}"
+          docs="https://aesir-oss.github.io/pixi-policy/latest"
+          latest="--latest=false"
+          [ "$MOVED" != "no" ] && latest="--latest"
+          cat > notes.md <<EOF
+          The GitHub Action for [pixi-policy](https://github.com/${SOURCE}) ${version}: checks a pixi workspace's \`pixi.toml\` and \`pixi.lock\` against \`pixi-policy.toml\`, fails the job on an error finding and can upload the findings to code scanning. It needs no pixi setup.
+
+          \`\`\`yaml
+          - uses: ${REPO}@${major}
+          \`\`\`
+
+          \`@${major}\` always runs the newest ${major#v}.x release; pin \`@${TAG}\` for this one.
+
+          - What ${version} changes: [CHANGELOG](https://github.com/${SOURCE}/blob/${TAG}/CHANGELOG.md)
+          - pixi-policy release: [${TAG}](https://github.com/${SOURCE}/releases/tag/${TAG})
+          - Documentation: [the GitHub Action](${docs}/github-action/)
+
+          This repository is generated from [\`actions/pixi-policy/\`](https://github.com/${SOURCE}/tree/main/actions/pixi-policy) in ${SOURCE} on every release: open issues and pull requests there.
+          EOF
+          gh release create "$TAG" --repo "$REPO" --verify-tag --title "$TAG" --notes-file notes.md "$latest"
+          echo "Released \`${REPO}\` ${TAG} (${latest#--})." >> "$GITHUB_STEP_SUMMARY"
 
   # The pre-commit hook lives in a mirror repository, aesir-oss/pixi-policy-pre-commit, the way ruff's does:
   # pre-commit installs a `language: python` hook by `pip install .` of the hook repository, which here would compile

@@ -8,8 +8,11 @@ fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// A file with `\n` line endings, as a Windows checkout's CRLF would break the multi-line matches.
 fn read(path: &str) -> String {
-    std::fs::read_to_string(crate_dir().join(path)).unwrap()
+    std::fs::read_to_string(crate_dir().join(path))
+        .unwrap()
+        .replace("\r\n", "\n")
 }
 
 /// The keys of a top-level `action.yml` mapping (`inputs:` or `outputs:`), in order.
@@ -203,5 +206,127 @@ mod version {
             "{action}"
         );
         assert!(Path::new(&crate_dir().join("actions/pixi-policy/action-version.sh")).is_file());
+    }
+}
+
+/// The `run:` script of the release workflow step named `step`, without its YAML indentation.
+fn step_script(step: &str) -> String {
+    let workflow = read(".github/workflows/release-artifacts.yml");
+    let mut lines = workflow
+        .lines()
+        .skip_while(|line| line.trim() != format!("- name: {step}"))
+        .skip(1);
+    lines.by_ref().find(|line| line.trim() == "run: |");
+    lines
+        .take_while(|line| line.is_empty() || line.starts_with("          "))
+        .map(|line| line.get(10..).unwrap_or(""))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn the_action_release_is_for_finals_only() {
+    // The Marketplace ignores pre-releases, so a release candidate stays a tag (#15).
+    let workflow = read(".github/workflows/release-artifacts.yml");
+    let step = workflow
+        .split("- name: Release the action\n")
+        .nth(1)
+        .expect("release-artifacts.yml has no `Release the action` step");
+    let condition = step.lines().next().unwrap().trim();
+    assert_eq!(condition, "if: needs.tag.outputs.prerelease != 'true'");
+    assert!(step.contains("MOVED: ${{ steps.copy.outputs.moved }}"), "{step}");
+}
+
+#[cfg(unix)]
+mod release {
+    use std::process::{Command, Output};
+
+    use super::*;
+
+    /// Runs the `Release the action` step with a `gh` that logs its arguments and says whether the release exists.
+    fn run(tag: &str, moved: &str, exists: bool) -> (Output, String, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("bin");
+        std::fs::create_dir(&bin).unwrap();
+        let log = dir.path().join("gh.log");
+        std::fs::write(
+            bin.join("gh"),
+            format!(
+                "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> '{log}'\n\
+                 if [ \"$1 $2\" = 'release view' ]; then exit {view}; fi\n\
+                 if [ \"$1 $2\" = 'release create' ]; then cp notes.md '{log}.notes'; fi\n",
+                log = log.display(),
+                view = if exists { 0 } else { 1 },
+            ),
+        )
+        .unwrap();
+        Command::new("chmod").arg("+x").arg(bin.join("gh")).status().unwrap();
+        let summary = dir.path().join("summary.md");
+        let output = Command::new("bash")
+            .arg("-c")
+            .arg(step_script("Release the action"))
+            .current_dir(dir.path())
+            .env("PATH", format!("{}:{}", bin.display(), std::env::var("PATH").unwrap()))
+            .env("TAG", tag)
+            .env("MOVED", moved)
+            .env("REPO", "aesir-oss/pixi-policy-action")
+            .env("SOURCE", "aesir-oss/pixi-policy")
+            .env("GITHUB_STEP_SUMMARY", &summary)
+            .output()
+            .unwrap();
+        let calls = std::fs::read_to_string(&log).unwrap_or_default();
+        let notes = std::fs::read_to_string(format!("{}.notes", log.display())).unwrap_or_default();
+        (output, calls, notes)
+    }
+
+    #[test]
+    fn a_final_that_moved_the_major_tag_is_latest() {
+        let (output, calls, notes) = run("v0.2.0", "v0 -> v0.2.0", false);
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        let create = calls
+            .lines()
+            .find(|call| call.starts_with("release create"))
+            .expect(&calls);
+        assert!(
+            create.starts_with("release create v0.2.0 --repo aesir-oss/pixi-policy-action --verify-tag"),
+            "{create}"
+        );
+        assert!(create.ends_with(" --latest"), "{create}");
+        assert!(notes.contains("- uses: aesir-oss/pixi-policy-action@v0\n"), "{notes}");
+        assert!(
+            notes.contains("`@v0` always runs the newest 0.x release; pin `@v0.2.0` for this one."),
+            "{notes}"
+        );
+        assert!(
+            notes.contains("https://github.com/aesir-oss/pixi-policy/releases/tag/v0.2.0"),
+            "{notes}"
+        );
+        assert!(
+            notes.contains("https://aesir-oss.github.io/pixi-policy/latest/github-action/"),
+            "{notes}"
+        );
+        assert!(notes.contains("open issues and pull requests there"), "{notes}");
+    }
+
+    #[test]
+    fn a_fix_on_an_older_line_is_not_latest() {
+        let (output, calls, _) = run("v0.1.2", "no", false);
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        let create = calls
+            .lines()
+            .find(|call| call.starts_with("release create"))
+            .expect(&calls);
+        assert!(create.ends_with(" --latest=false"), "{create}");
+    }
+
+    #[test]
+    fn an_existing_release_is_left_alone() {
+        // A re-run of the job finds the release it already made.
+        let (output, calls, _) = run("v0.2.0", "v0 -> v0.2.0", true);
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        assert_eq!(
+            calls.lines().collect::<Vec<_>>(),
+            ["release view v0.2.0 --repo aesir-oss/pixi-policy-action"]
+        );
     }
 }
