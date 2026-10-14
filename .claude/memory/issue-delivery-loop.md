@@ -8,7 +8,9 @@ metadata:
 The "standard guardrail" / "harness" (branch, CI, PR, monitor to green, merge, sync main, clean branches, then the
 next queued issue) is defined in global CLAUDE.md §6 "Issue delivery loop". Follow that.
 
-aesir-oss/pixi-policy specifics on top of it (branches live in the repository; there is no fork):
+aesir-oss/pixi-policy specifics on top of it (the working clone is the fork millsks/aesir-pixi-policy: `origin` is the
+fork, `upstream` is aesir-oss/pixi-policy; branches are pushed to the fork and PRs opened against upstream, whose
+CI runs on them, and the fork keeps Actions off; sync with `git pull --ff-only upstream main`):
 
 - merge with `gh pr merge <n> --repo aesir-oss/pixi-policy --squash --admin --delete-branch` (squash is the
   convention; `--admin` because `main`'s ruleset wants an approving review)
