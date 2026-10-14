@@ -8,6 +8,7 @@ Every key `pixi-policy.toml` accepts. A key the table does not list is an error,
 
 | Key | Type | Allowed values | Default | Required | When extended | Rules |
 |---|---|---|---|---|---|---|
+| `freshness` | table | the keys below | absent: no freshness rule runs, and nothing is fetched | no | – | [`freshness.build-age`](rules.md#freshness-build-age), [`freshness.majors-behind`](rules.md#freshness-majors-behind), [`freshness.archived`](rules.md#freshness-archived), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
 | `max-waiver-days` | integer | 0 or more: the furthest a waiver's expires may be from today, in days; 0 turns the check off | 365 | no | may only be stricter, unless overridable | [`waivers.too-long`](rules.md#waivers-too-long) |
 
 ## `[policy]` {#policy}
@@ -69,6 +70,17 @@ A table. When it is left out: no advisory rule runs, and nothing is fetched.
 | `[advisories] epss` | float | a probability from 0 to 1: an advisory whose EPSS score (FIRST's estimate that it is exploited in the next 30 days) is at or above it fails | not set: EPSS scores are not asked for | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable) |
 | `[advisories] unknown` | string | "warn", "error", "allow": what an advisory with no severity gets | "warn" | no | may only be stricter, unless overridable | [`advisories.unknown`](rules.md#advisories-unknown) |
 | `[advisories] pypi-mapping` | string | "prefix": a conda package is looked up by the PyPI purls pixi.lock states for it or, when it states none, by conda-forge's conda-to-PyPI mapping; "lock": by pixi.lock's purls only | "prefix" | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable), [`advisories.unknown`](rules.md#advisories-unknown) |
+
+## `[freshness]` {#freshness}
+
+A table. When it is left out: no freshness rule runs, and nothing is fetched.
+
+| Key | Type | Allowed values | Default | Required | When extended | Rules |
+|---|---|---|---|---|---|---|
+| `[freshness] max-build-age-days` | integer | 0 or more: a conda package built more days ago than this fails, by the build time pixi.lock records | not set: build age is not checked | no | may only be stricter, unless overridable | [`freshness.build-age`](rules.md#freshness-build-age), [`freshness.unknown`](rules.md#freshness-unknown) |
+| `[freshness] max-majors-behind` | integer | 0 or more: a conda package whose major version is more than this far behind the newest release in its channel's repodata fails | not set: versions are not compared, and no repodata is fetched | no | may only be stricter, unless overridable | [`freshness.majors-behind`](rules.md#freshness-majors-behind), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
+| `[freshness] archived` | boolean | true, false: a conda-forge package whose feedstock conda-forge has archived fails | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`freshness.archived`](rules.md#freshness-archived), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
+| `[freshness] unknown` | string | "warn", "error", "allow": what a package gets when the data says nothing about it | "warn" | no | may only be stricter, unless overridable | [`freshness.unknown`](rules.md#freshness-unknown) |
 
 ## `[manifest]` {#manifest}
 

@@ -16,6 +16,7 @@ nav:
   - Policy file reference: reference.md
   - License policy: licenses.md
   - Known vulnerabilities: advisories.md
+  - Freshness: freshness.md
   - Waivers: waivers.md
   - Sharing a policy: extends.md
   - Output formats: output.md

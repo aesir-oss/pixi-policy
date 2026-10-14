@@ -19,6 +19,7 @@ const SECTIONS: &[(&str, &str, &str, Option<&str>)] = &[
     ("bans", "`[bans]`", "bans", Some("bans")),
     ("licenses", "`[licenses]`", "licenses", Some("licenses")),
     ("advisories", "`[advisories]`", "advisories", Some("advisories")),
+    ("freshness", "`[freshness]`", "freshness", Some("freshness")),
     ("manifest", "`[manifest]`", "manifest", Some("manifest")),
     ("lock", "`[lock]`", "lock", Some("lock")),
     ("waivers", "`[[waivers]]`", "waivers", Some("waivers")),

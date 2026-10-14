@@ -334,10 +334,13 @@ fn home<'a>(table: &'a mut toml::Table, key: &Key) -> &'a mut toml::Table {
 /// The value a key has when its file writes the table but not the key, if that default turns its rule on.
 fn implicit(id: &str) -> Option<toml::Value> {
     match id {
-        "manifest.wildcard-spec" | "manifest.python-pinned" | "lock.present" | "lock.complete" | "lock.in-sync" => {
-            Some(toml::Value::Boolean(true))
-        }
-        "licenses.unknown" | "advisories.unknown" => Some(toml::Value::String("warn".into())),
+        "manifest.wildcard-spec"
+        | "manifest.python-pinned"
+        | "lock.present"
+        | "lock.complete"
+        | "lock.in-sync"
+        | "freshness.archived" => Some(toml::Value::Boolean(true)),
+        "licenses.unknown" | "advisories.unknown" | "freshness.unknown" => Some(toml::Value::String("warn".into())),
         "advisories.fail-on" => Some(toml::Value::String("high".into())),
         "advisories.known-exploited" => Some(toml::Value::String("error".into())),
         "advisories.pypi-mapping" => Some(toml::Value::String("prefix".into())),
@@ -415,7 +418,11 @@ fn looser(id: &str, new: &toml::Value, old: &toml::Value) -> Option<String> {
         "advisories.pypi-mapping" => {
             (new.as_str() == Some("lock") && old.as_str() == Some("prefix")).then(|| format!("to {new} (it was {old})"))
         }
-        "licenses.unknown" | "advisories.unknown" | "advisories.known-exploited" => {
+        "freshness.max-build-age-days" | "freshness.max-majors-behind" => {
+            let limit = |value: &toml::Value| value.as_integer().unwrap_or(i64::MAX);
+            (limit(new) > limit(old)).then(|| format!("to {new} (it was {old})"))
+        }
+        "licenses.unknown" | "advisories.unknown" | "advisories.known-exploited" | "freshness.unknown" => {
             let rank = |value: &toml::Value| match value.as_str() {
                 Some("allow") => 0,
                 Some("error") => 2,
@@ -670,6 +677,37 @@ mod tests {
                 "[advisories]\npypi-mapping = \"lock\"\n",
                 "to \"lock\" (it was \"prefix\")",
             ),
+        ] {
+            let err = child(body).unwrap_err().to_string();
+            assert!(err.contains(wanted), "{body}: {err}");
+        }
+    }
+
+    #[test]
+    fn freshness_limits_may_only_tighten() {
+        let dir = tempfile::tempdir().unwrap();
+        files(
+            dir.path(),
+            &[(
+                "base.toml",
+                "[freshness]\nmax-build-age-days = 730\nmax-majors-behind = 2\n",
+            )],
+        );
+        let child = |body: &str| {
+            std::fs::write(
+                dir.path().join("p.toml"),
+                format!("[policy]\nextends = [\"base.toml\"]\n{body}"),
+            )
+            .unwrap();
+            resolve_in(dir.path(), "p.toml")
+        };
+        let tight = child("[freshness]\nmax-build-age-days = 365\nmax-majors-behind = 1\n").unwrap();
+        assert_eq!(tight.policy.freshness.unwrap().max_build_age_days, Some(365));
+        for (body, wanted) in [
+            ("[freshness]\nmax-build-age-days = 1000\n", "to 1000 (it was 730)"),
+            ("[freshness]\nmax-majors-behind = 3\n", "to 3 (it was 2)"),
+            ("[freshness]\narchived = false\n", "to false (it was true)"),
+            ("[freshness]\nunknown = \"allow\"\n", "to \"allow\" (it was \"warn\")"),
         ] {
             let err = child(body).unwrap_err().to_string();
             assert!(err.contains(wanted), "{body}: {err}");

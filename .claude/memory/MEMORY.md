@@ -9,4 +9,4 @@ Project memory for aesir-oss/pixi-policy. Committed and public: nothing private 
 - [Dev environment](dev-environment.md) — the Stop hook, pre-commit through pixi, miette wrapping, trying a local build via PATH
 - [Release binaries](release-binaries.md) — archives carry the manylinux wheel's binary (glibc 2.17); nothing on crates.io
 - [Action and hooks repos](action-and-hooks-repos.md) — aesir-oss/pixi-policy-action and -pre-commit, filled by release jobs; Marketplace listing is manual once
-- [Network layer](network-layer.md) — ureq on rustls/ring + platform verifier, sha2 0.11, the extends and advisories caches; watch the wheel builds in the next rc
+- [Network layer](network-layer.md) — ureq on rustls/ring + platform verifier, sha2 0.11, the extends, advisories and freshness caches; watch the wheel builds in the next rc

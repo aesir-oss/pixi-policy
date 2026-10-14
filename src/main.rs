@@ -48,12 +48,23 @@ fn run(args: &Args) -> miette::Result<i32> {
                 Some(Err(message)) => (None, Some(pixi_policy::rules::advisories::unavailable(&message))),
                 None => (None, None),
             };
-            let rules = pixi_policy::rules::with_advisories(data);
+            let freshness = lock
+                .as_ref()
+                .and_then(|lock| pixi_policy::rules::freshness::gather_from_env(lock, &policy));
+            let (freshness, stale) = match freshness {
+                Some((data, error)) => (
+                    Some(std::sync::Arc::new(data)),
+                    error.map(|message| pixi_policy::rules::freshness::unavailable(&message)),
+                ),
+                None => (None, None),
+            };
+            let rules = pixi_policy::rules::with_data(data, freshness);
             let mut outcome = match &lock {
                 Some(lock) => check::run(lock, &policy, &rules)?,
                 None => Outcome::default(),
             };
             outcome.findings.extend(unavailable);
+            outcome.findings.extend(stale);
             if policy.manifest.is_some() || policy.lock.is_some() {
                 let manifest = Manifest::load(&workspace.manifest)?;
                 check::run_manifest(&mut outcome, &manifest, &policy, &rules);

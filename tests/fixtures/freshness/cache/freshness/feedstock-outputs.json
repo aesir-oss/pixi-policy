@@ -1,0 +1,146 @@
+{
+ "_openmp_mutex": [
+  "ctng-compilers",
+  "_openmp_mutex"
+ ],
+ "_python_abi3_support": [
+  "python-abi3"
+ ],
+ "backports.zstd": [
+  "backports.zstd"
+ ],
+ "brotli-python": [
+  "brotli"
+ ],
+ "bzip2": [
+  "bzip2"
+ ],
+ "ca-certificates": [
+  "ca-certificates"
+ ],
+ "certifi": [
+  "certifi"
+ ],
+ "charset-normalizer": [
+  "charset-normalizer"
+ ],
+ "coreapi": [
+  "coreapi"
+ ],
+ "coreschema": [
+  "coreschema"
+ ],
+ "cpython": [
+  "python"
+ ],
+ "h2": [
+  "h2"
+ ],
+ "hpack": [
+  "hpack"
+ ],
+ "hyperframe": [
+  "hyperframe"
+ ],
+ "idna": [
+  "idna"
+ ],
+ "itypes": [
+  "itypes"
+ ],
+ "jinja2": [
+  "jinja2"
+ ],
+ "ld_impl_linux-64": [
+  "binutils"
+ ],
+ "libexpat": [
+  "expat"
+ ],
+ "libffi": [
+  "libffi"
+ ],
+ "libgcc": [
+  "m2w64-gcc-libs",
+  "ctng-compilers"
+ ],
+ "libgcc-ng": [
+  "ctng-compilers"
+ ],
+ "libgomp": [
+  "ctng-compilers",
+  "m2w64-gcc-libs"
+ ],
+ "liblzma": [
+  "xz"
+ ],
+ "libnsl": [
+  "libnsl"
+ ],
+ "libsqlite": [
+  "sqlite"
+ ],
+ "libstdcxx": [
+  "m2w64-gcc-libs",
+  "ctng-compilers"
+ ],
+ "libuuid": [
+  "libuuid"
+ ],
+ "libxcrypt": [
+  "libxcrypt"
+ ],
+ "libzlib": [
+  "zlib",
+  "zlib-ng"
+ ],
+ "markupsafe": [
+  "markupsafe"
+ ],
+ "ncurses": [
+  "ncurses"
+ ],
+ "openssl": [
+  "openssl"
+ ],
+ "pysocks": [
+  "pysocks"
+ ],
+ "python": [
+  "pypy-meta",
+  "python",
+  "graalpy"
+ ],
+ "python-gil": [
+  "python"
+ ],
+ "python_abi": [
+  "python_abi",
+  "python",
+  "pypy-meta"
+ ],
+ "readline": [
+  "readline"
+ ],
+ "requests": [
+  "requests"
+ ],
+ "setuptools": [
+  "setuptools"
+ ],
+ "tk": [
+  "tk"
+ ],
+ "tzdata": [
+  "tzdata"
+ ],
+ "uritemplate": [
+  "uritemplate"
+ ],
+ "urllib3": [
+  "urllib3"
+ ],
+ "zstd": [
+  "zstd"
+ ]
+}

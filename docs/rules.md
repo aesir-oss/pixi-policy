@@ -19,6 +19,11 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`advisories.vulnerable`](#advisories-vulnerable) | A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold |
 | [`advisories.unknown`](#advisories-unknown) | A package has a known vulnerability whose severity no advisory gives |
 | [`advisories.unavailable`](#advisories-unavailable) | The advisory data cannot be read, so no package could be checked |
+| [`freshness.build-age`](#freshness-build-age) | A conda package was built longer ago than max-build-age-days |
+| [`freshness.majors-behind`](#freshness-majors-behind) | A conda package is more major versions behind its channel's newest than allowed |
+| [`freshness.archived`](#freshness-archived) | A conda-forge package comes from an archived feedstock |
+| [`freshness.unknown`](#freshness-unknown) | The channel data says nothing about a conda package a freshness rule checks |
+| [`freshness.unavailable`](#freshness-unavailable) | The channel data cannot be read, so no package could be checked for freshness |
 | [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
 | [`manifest.python-pinned`](#manifest-python-pinned) | Python is constrained to one minor version or narrower |
 | [`manifest.required-platforms`](#manifest-required-platforms) | The workspace lists every platform the policy requires |
@@ -201,6 +206,70 @@ Key: [advisories]. The advisory data could not be read: OSV, CISA's catalog, FIR
 ```
 
 Keys: .
+
+## `freshness.build-age` {#freshness-build-age}
+
+A conda package was built longer ago than max-build-age-days.
+
+Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the limit, by the build time its record in pixi.lock states: no network. A package with no build time is freshness.unknown.
+
+```toml
+[freshness]
+max-build-age-days = 730
+```
+
+Keys: [`freshness`](reference.md#top-level), [`[freshness] max-build-age-days`](reference.md#freshness).
+
+## `freshness.majors-behind` {#freshness-majors-behind}
+
+A conda package is more major versions behind its channel's newest than allowed.
+
+Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the leading number) is more than the limit behind the newest release in the repodata of the channel and subdir pixi.lock names for it, so a mirror is judged by its own contents. Prereleases do not count as newest. PyPI packages are not checked.
+
+```toml
+[freshness]
+max-majors-behind = 1
+```
+
+Keys: [`freshness`](reference.md#top-level), [`[freshness] max-majors-behind`](reference.md#freshness).
+
+## `freshness.archived` {#freshness-archived}
+
+A conda-forge package comes from an archived feedstock.
+
+Key: [freshness] archived (on once [freshness] exists). Fails a conda-forge package when every feedstock that builds it is archived, by the conda-forge bot's feedstock list, which can trail an archival on GitHub by a bot cycle (hours).
+
+```toml
+[freshness]
+archived = true
+```
+
+Keys: [`freshness`](reference.md#top-level), [`[freshness] archived`](reference.md#freshness).
+
+## `freshness.unknown` {#freshness-unknown}
+
+The channel data says nothing about a conda package a freshness rule checks.
+
+Key: [freshness] unknown = "warn" (default), "error" or "allow": what a conda package gets when a freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version to compare, or no feedstock known to build it.
+
+```toml
+[freshness]
+unknown = "error"
+```
+
+Keys: [`freshness`](reference.md#top-level), [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] unknown`](reference.md#freshness).
+
+## `freshness.unavailable` {#freshness-unavailable}
+
+The channel data cannot be read, so no package could be checked for freshness.
+
+Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.
+
+```toml
+[freshness]
+```
+
+Keys: [`freshness`](reference.md#top-level), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness).
 
 ## `manifest.wildcard-spec` {#manifest-wildcard-spec}
 

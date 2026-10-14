@@ -1,6 +1,6 @@
 ---
 name: network-layer
-description: "pixi-policy's network use: extends URLs (#1) and advisories (#3) via ureq on rustls/ring with the platform verifier, cached; what to watch in the next rc"
+description: "pixi-policy's network use: extends URLs (#1), advisories (#3) and freshness (#2) via ureq on rustls/ring with the platform verifier, cached; what to watch in the next rc"
 metadata:
   type: project
 ---
@@ -16,6 +16,12 @@ EPSS and the conda-forge mapping, ported from pixi-sbom's osv/kev/epss/mapping/c
 them in step). It caches under `<cache>/advisories/` and fails closed (`advisories.unavailable`) when it has no data.
 Its `Client` trait lets unit tests answer for the network; `tests/advisories.rs` runs offline on the recorded cache in
 `tests/fixtures/advisories/` (its README says how to re-record it).
+
+#2 (freshness) added `src/freshness.rs`: CEP-16 sharded repodata from each package's own channel URL (anaconda.org
+gives an empty `shards_base_url`, meaning beside the index), the whole `repodata.json(.zst)` for channels without
+shards, the package's subdir and noarch combined; plus the conda-forge bot's `all_feedstocks.json` and
+feedstock-outputs for archived feedstocks (chosen over the GitHub API: no token, no rate limit; it trails GitHub by a
+bot cycle, documented). Added `ruzstd` and `rmp-serde` (pure Rust) with approval. Fixture: `tests/fixtures/freshness/`.
 
 **Why:** pixi-sbom kept the "shared network stack" at the split, so this crate had none until #1.
 

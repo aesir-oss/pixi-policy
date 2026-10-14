@@ -12,6 +12,7 @@ pub mod cvss;
 pub mod explain;
 pub mod extends;
 pub mod fetch;
+pub mod freshness;
 pub mod init;
 pub mod keys;
 pub mod license;

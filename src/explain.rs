@@ -96,6 +96,37 @@ const DETAILS: &[(&str, &str)] = &[
          PIXI_POLICY_KEV_URL, PIXI_POLICY_EPSS_URL and PIXI_POLICY_MAPPING_URL point at mirrors.\n\n[advisories]",
     ),
     (
+        "freshness.build-age",
+        "Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the \
+         limit, by the build time its record in pixi.lock states: no network. A package with no build time is \
+         freshness.unknown.\n\n[freshness]\nmax-build-age-days = 730",
+    ),
+    (
+        "freshness.majors-behind",
+        "Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the \
+         leading number) is more than the limit behind the newest release in the repodata of the channel and subdir \
+         pixi.lock names for it, so a mirror is judged by its own contents. Prereleases do not count as newest. PyPI \
+         packages are not checked.\n\n[freshness]\nmax-majors-behind = 1",
+    ),
+    (
+        "freshness.archived",
+        "Key: [freshness] archived (on once [freshness] exists). Fails a conda-forge package when every feedstock \
+         that builds it is archived, by the conda-forge bot's feedstock list, which can trail an archival on GitHub by \
+         a bot cycle (hours).\n\n[freshness]\narchived = true",
+    ),
+    (
+        "freshness.unknown",
+        "Key: [freshness] unknown = \"warn\" (default), \"error\" or \"allow\": what a conda package gets when a \
+         freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version \
+         to compare, or no feedstock known to build it.\n\n[freshness]\nunknown = \"error\"",
+    ),
+    (
+        "freshness.unavailable",
+        "Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could not be read: the network is \
+         down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than \
+         pass packages it could not look at.\n\n[freshness]",
+    ),
+    (
         "manifest.wildcard-spec",
         "Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as \"*\" \
          in any dependency table, at its line in the manifest.\n\n[manifest]\nwildcard-spec = true",
