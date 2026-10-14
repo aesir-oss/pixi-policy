@@ -664,6 +664,33 @@
   
   
     <li class="md-nav__item">
+      <a href="freshness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Freshness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="waivers/" class="md-nav__link">
         
   
@@ -924,9 +951,9 @@ CI can stop the merge.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pixi<span class="w"> </span>policy<span class="w"> </span>explain<span class="w">  </span><span class="c1"># every rule; `pixi policy explain &lt;RULE&gt;` for one, with its keys</span>
 </code></pre></div>
 <p>pixi-policy reads three files and needs no server and no database. It uses the network only for a shared policy
-<a href="extends/#extending-a-url">extended by URL</a> and for <a href="advisories/">known vulnerabilities</a>, and caches both, so a
-check runs offline once they are cached; a policy with neither never uses it. It is a single binary that pixi runs as
-<code>pixi policy</code>.</p>
+<a href="extends/#extending-a-url">extended by URL</a>, <a href="advisories/">known vulnerabilities</a> and <a href="freshness/">freshness</a>,
+and caches all three, so a check runs offline once they are cached; a policy with none of them never uses it. It is a
+single binary that pixi runs as <code>pixi policy</code>.</p>
 <h2 id="what-it-checks">What it checks<a class="headerlink" href="#what-it-checks" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -956,6 +983,11 @@ check runs offline once they are cached; a policy with neither never uses it. It
 <td><a href="advisories/">Advisories</a></td>
 <td><code>advisories.vulnerable</code>, <code>advisories.unknown</code>, <code>advisories.unavailable</code></td>
 <td>no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited</td>
+</tr>
+<tr>
+<td><a href="freshness/">Freshness</a></td>
+<td><code>freshness.build-age</code>, <code>freshness.majors-behind</code>, <code>freshness.archived</code>, <code>freshness.unknown</code>, <code>freshness.unavailable</code></td>
+<td>no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock</td>
 </tr>
 <tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>

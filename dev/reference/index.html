@@ -620,6 +620,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#freshness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [freshness]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -702,6 +713,33 @@
     
   
     Known vulnerabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../freshness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Freshness
   
 
     
@@ -969,6 +1007,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#freshness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [freshness]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1044,6 +1093,15 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>freshness</code></td>
+<td>table</td>
+<td>the keys below</td>
+<td>absent: no freshness rule runs, and nothing is fetched</td>
+<td>no</td>
+<td>–</td>
+<td><a href="../rules/#freshness-build-age"><code>freshness.build-age</code></a>, <a href="../rules/#freshness-majors-behind"><code>freshness.majors-behind</code></a>, <a href="../rules/#freshness-archived"><code>freshness.archived</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
+</tr>
 <tr>
 <td><code>max-waiver-days</code></td>
 <td>integer</td>
@@ -1362,6 +1420,59 @@
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#advisories-vulnerable"><code>advisories.vulnerable</code></a>, <a href="../rules/#advisories-unknown"><code>advisories.unknown</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="freshness"><code>[freshness]</code><a class="headerlink" href="#freshness" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: no freshness rule runs, and nothing is fetched.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[freshness] max-build-age-days</code></td>
+<td>integer</td>
+<td>0 or more: a conda package built more days ago than this fails, by the build time pixi.lock records</td>
+<td>not set: build age is not checked</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-build-age"><code>freshness.build-age</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a></td>
+</tr>
+<tr>
+<td><code>[freshness] max-majors-behind</code></td>
+<td>integer</td>
+<td>0 or more: a conda package whose major version is more than this far behind the newest release in its channel's repodata fails</td>
+<td>not set: versions are not compared, and no repodata is fetched</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-majors-behind"><code>freshness.majors-behind</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
+</tr>
+<tr>
+<td><code>[freshness] archived</code></td>
+<td>boolean</td>
+<td>true, false: a conda-forge package whose feedstock conda-forge has archived fails</td>
+<td>true once the table exists; without the table the rule is off</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-archived"><code>freshness.archived</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
+</tr>
+<tr>
+<td><code>[freshness] unknown</code></td>
+<td>string</td>
+<td>"warn", "error", "allow": what a package gets when the data says nothing about it</td>
+<td>"warn"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a></td>
 </tr>
 </tbody>
 </table>
