@@ -114,3 +114,75 @@ fn a_policy_that_extends_itself_exits_2() {
         "{err}"
     );
 }
+
+/// Serve `body` once on a local port; the URL of `/base.toml` there.
+fn serve_once(body: &'static str) -> (String, std::thread::JoinHandle<()>) {
+    use std::io::{BufRead, BufReader, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut reader = BufReader::new(stream.try_clone().unwrap());
+        loop {
+            let mut line = String::new();
+            if reader.read_line(&mut line).unwrap() <= 2 {
+                break;
+            }
+        }
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .unwrap();
+    });
+    (format!("http://127.0.0.1:{port}/base.toml"), server)
+}
+
+#[test]
+fn a_url_base_is_fetched_once_and_then_works_offline() {
+    const BASE_URL_POLICY: &str = "[bans]\ndeny = [{ name = \"django\", version = \"<6\", reason = \"too old\" }]\n";
+    let (url, server) = serve_once(BASE_URL_POLICY);
+    let sha = {
+        use sha2::Digest;
+        sha2::Sha256::digest(BASE_URL_POLICY.as_bytes())
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let ws = workspace(&format!(
+        "[policy]\nextends = [{{ url = \"{url}\", sha256 = \"{sha}\" }}]\n"
+    ));
+    let cache = ws.path().join("cache");
+    let check = |offline: &str| {
+        let output = Command::cargo_bin("pixi-policy")
+            .unwrap()
+            .env("NO_COLOR", "1")
+            .env("PIXI_POLICY_CACHE_DIR", &cache)
+            .env("PIXI_POLICY_OFFLINE", offline)
+            .current_dir(ws.path())
+            .output()
+            .unwrap();
+        (
+            output.status.code(),
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap(),
+        )
+    };
+    let (code, out, err) = check("0");
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert!(out.contains("is banned (version <6): too old"), "{out}");
+    server.join().unwrap();
+    // The server is gone and the network forbidden: the cached copy answers.
+    let (code, out, err) = check("1");
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert!(out.contains("is banned (version <6): too old"), "{out}");
+}
+
+#[test]
+fn an_unpinned_url_exits_2() {
+    let ws = workspace("[policy]\nextends = [\"https://github.com/acme/policies/raw/main/base.toml\"]\n");
+    let (code, out, err) = run(ws.path(), &[]);
+    assert_eq!(code, Some(2), "{out}{err}");
+    assert!(err.contains("pixi_policy::policy::invalid"), "{err}");
+}

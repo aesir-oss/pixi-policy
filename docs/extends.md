@@ -14,9 +14,34 @@ deny = [{ name = "pycrypto", use-instead = "pycryptodome" }]
 
 Paths are relative to the file that names them. The bases apply in the order listed, each on top of the ones before,
 and the extending file last. A base may extend others in turn; a policy that ends up extending itself is an error, and
-a base reached twice is read once. Extending a URL is planned
-([#1](https://github.com/aesir-oss/pixi-policy/issues/1)); until then, commit the shared policy, for example as a git
-submodule, and extend it by its path.
+a base reached twice is read once.
+
+## Extending a URL
+
+A base can also be a URL, as long as it is pinned, so the policy cannot change under a workspace without a commit to
+that workspace:
+
+```toml
+[policy]
+extends = [
+  # A tag or a commit in the URL pins it.
+  "https://github.com/acme/policies/raw/v3/base.toml",
+  # Anything else, or plain http, carries the sha256 of its content.
+  { url = "https://intranet.example.com/policies/base.toml", sha256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" },
+]
+```
+
+- A URL is pinned by a path segment that is a commit (40 hex digits) or a version tag (`v3`, `1.2.0`). A branch such as
+  `main` is not pinned, and an unpinned URL is an error. With a `sha256`, any URL works, http included, and content
+  with another sha256 is refused.
+- A URL is fetched the first time it is needed and cached; after that the check reads the cache and needs no network.
+  The cache is in `~/.cache/pixi-policy` on Linux (or `$XDG_CACHE_HOME/pixi-policy`), `~/Library/Caches/pixi-policy`
+  on macOS and `%LOCALAPPDATA%\pixi-policy` on Windows. `PIXI_POLICY_CACHE_DIR` moves it, for example into a CI cache.
+- `PIXI_POLICY_OFFLINE=1` forbids the network: a base that is not cached is then an error instead of a fetch.
+- The fetch uses the system's certificate store, and a proxy from the first of `ALL_PROXY`, `HTTPS_PROXY` and
+  `HTTP_PROXY` that is set (in upper or lower case), skipping the hosts in `NO_PROXY`.
+- A relative path in a fetched base is read against its URL, and must itself be pinned: a base pinned by a tag or commit
+  can extend its neighbours in the same tree, while one pinned only by its sha256 must name its own bases with theirs.
 
 ## Tighten anything, loosen only what the base allows
 

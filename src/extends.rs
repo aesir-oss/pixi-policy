@@ -7,6 +7,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 
+use crate::fetch::{Remote, Settings, fetch, join, pinned};
 use crate::keys::{KEYS, Key, Merge, TABLES};
 use crate::policy::{Policy, PolicyError};
 use crate::rules::licenses::expand;
@@ -33,12 +34,20 @@ pub struct Resolved {
     pub waivers: Vec<toml::Value>,
 }
 
-/// Read the policy at `path` and every policy it extends.
+/// Read the policy at `path` and every policy it extends, with the cache and network the environment allows.
 pub fn resolve(path: &Path) -> Result<Resolved, PolicyError> {
-    let mut chain = Chain::default();
+    resolve_with(path, &Settings::from_env())
+}
+
+/// [`resolve`], with the cache and network given.
+pub fn resolve_with(path: &Path, settings: &Settings) -> Result<Resolved, PolicyError> {
+    let mut chain = Chain {
+        settings: settings.clone(),
+        ..Chain::default()
+    };
     let shown = path.display().to_string();
     let (policy, raw) = chain
-        .visit(path, &shown, None)?
+        .visit(&Place::File(path.to_path_buf()), &shown, None)?
         .expect("the first file is never seen before");
     let waivers = raw
         .get("waivers")
@@ -63,18 +72,26 @@ pub fn resolve(path: &Path) -> Result<Resolved, PolicyError> {
     })
 }
 
+/// Where a policy is read from.
+#[derive(Debug, Clone)]
+enum Place {
+    File(PathBuf),
+    Url(Remote),
+}
+
 #[derive(Default)]
 struct Chain {
+    settings: Settings,
     table: toml::Table,
     /// Every value each key has had, with the file that set it, in order.
     history: BTreeMap<String, Vec<(String, toml::Value)>>,
     origins: BTreeMap<String, Vec<Origin>>,
     /// Each file's `[policy] overridable`.
     overridable: BTreeMap<String, Vec<String>>,
-    /// The files being read, to catch a cycle.
-    stack: Vec<(PathBuf, String)>,
+    /// The files being read, by canonical path or URL, to catch a cycle.
+    stack: Vec<(String, String)>,
     /// The files already merged: one reached twice is merged once.
-    done: HashSet<PathBuf>,
+    done: HashSet<String>,
     files: Vec<String>,
 }
 
@@ -87,17 +104,20 @@ fn extends_error(path: &str, message: String, help: &str) -> PolicyError {
 }
 
 impl Chain {
-    /// Read `path` (shown as `shown`), its bases first, and merge it in. `None` when it was merged already.
+    /// Read `place` (shown as `shown`), its bases first, and merge it in. `None` when it was merged already.
     fn visit(
         &mut self,
-        path: &Path,
+        place: &Place,
         shown: &str,
         from: Option<&str>,
     ) -> Result<Option<(Policy, toml::Table)>, PolicyError> {
-        let canonical = match (path.canonicalize(), from) {
-            (Ok(canonical), _) => canonical,
-            (Err(_), None) => return Err(PolicyError::Missing { path: shown.into() }),
-            (Err(_), Some(from)) => {
+        let canonical = match (place, from) {
+            (Place::Url(remote), _) => remote.url.clone(),
+            (Place::File(path), _) if path.is_file() => {
+                format!("{}", path.canonicalize().unwrap_or_else(|_| path.clone()).display())
+            }
+            (Place::File(_), None) => return Err(PolicyError::Missing { path: shown.into() }),
+            (Place::File(_), Some(from)) => {
                 return Err(extends_error(
                     from,
                     format!("extends {shown}, which does not exist"),
@@ -117,20 +137,49 @@ impl Chain {
         if self.done.contains(&canonical) {
             return Ok(None);
         }
-        let (policy, text) = Policy::load_file(path)?;
+        let (policy, text) = match place {
+            Place::File(path) => Policy::load_file(path)?,
+            Place::Url(remote) => {
+                let text = fetch(remote, &self.settings).map_err(|err| {
+                    extends_error(
+                        from.unwrap_or(shown),
+                        format!("extends {shown}, which cannot be read: {err}"),
+                        "check the URL and the network; once read, a pinned policy is cached and needs no network",
+                    )
+                })?;
+                (Policy::parse(&text, shown)?, text)
+            }
+        };
         let raw: toml::Table = toml::from_str(&text).expect("Policy::parse accepted it");
         self.stack.push((canonical.clone(), shown.to_string()));
         for entry in policy.extends() {
-            if entry.contains("://") {
-                return Err(extends_error(
-                    shown,
-                    format!("extends {entry}: extending a URL is not supported yet"),
-                    "download the policy, commit it and extend it by its path",
-                ));
-            }
-            let dir = Path::new(shown).parent().unwrap_or(Path::new(""));
-            let base = tidy(&dir.join(entry));
-            self.visit(&base, &base.display().to_string(), Some(shown))?;
+            let base = match (place, entry.is_url()) {
+                (_, true) => Place::Url(Remote {
+                    url: entry.location().to_string(),
+                    sha256: entry.sha256().map(str::to_string),
+                }),
+                (Place::File(_), false) => {
+                    let dir = Path::new(shown).parent().unwrap_or(Path::new(""));
+                    Place::File(tidy(&dir.join(entry.location())))
+                }
+                (Place::Url(remote), false) => {
+                    let url = join(&remote.url, entry.location());
+                    if !pinned(&url) {
+                        return Err(extends_error(
+                            shown,
+                            format!("extends {}, which is {url} and not pinned", entry.location()),
+                            "a policy fetched by its sha256 alone can extend only URLs that pin a tag or commit, \
+                             or carry their own sha256",
+                        ));
+                    }
+                    Place::Url(Remote { url, sha256: None })
+                }
+            };
+            let name = match &base {
+                Place::File(path) => path.display().to_string(),
+                Place::Url(remote) => remote.url.clone(),
+            };
+            self.visit(&base, &name, Some(shown))?;
         }
         self.stack.pop();
         self.done.insert(canonical);
@@ -626,7 +675,7 @@ mod tests {
     }
 
     #[test]
-    fn a_cycle_a_missing_base_and_a_url_are_errors() {
+    fn a_cycle_and_a_missing_base_are_errors() {
         let dir = tempfile::tempdir().unwrap();
         files(
             dir.path(),
@@ -634,7 +683,6 @@ mod tests {
                 ("a.toml", "[policy]\nextends = [\"b.toml\"]\n"),
                 ("b.toml", "[policy]\nextends = [\"a.toml\"]\n"),
                 ("gone.toml", "[policy]\nextends = [\"nope.toml\"]\n"),
-                ("url.toml", "[policy]\nextends = [\"https://example.com/base.toml\"]\n"),
             ],
         );
         let err = resolve_in(dir.path(), "a.toml").unwrap_err().to_string();
@@ -644,8 +692,6 @@ mod tests {
         );
         let err = resolve_in(dir.path(), "gone.toml").unwrap_err().to_string();
         assert!(err.contains("nope.toml, which does not exist"), "{err}");
-        let err = resolve_in(dir.path(), "url.toml").unwrap_err().to_string();
-        assert!(err.contains("extending a URL is not supported yet"), "{err}");
         assert!(matches!(
             resolve_in(dir.path(), "none.toml"),
             Err(PolicyError::Missing { .. })
@@ -709,6 +755,70 @@ mod tests {
         // What it prints is a policy that reads back to the same keys.
         let merged = Policy::parse(&text, "shown.toml").unwrap();
         assert_eq!(merged.bans.unwrap().deny.len(), 2);
+    }
+
+    #[test]
+    fn a_url_base_is_fetched_once_and_read_from_the_cache_after() {
+        const BASE: &str = "[bans]\ndeny = [{ name = \"pycrypto\" }]\n";
+        let dir = tempfile::tempdir().unwrap();
+        let (url, server) = crate::fetch::tests::serve(BASE, 1);
+        let sha = crate::fetch::sha256(BASE.as_bytes());
+        files(
+            dir.path(),
+            &[(
+                "p.toml",
+                &format!(
+                    "[policy]\nextends = [{{ url = \"{url}\", sha256 = \"{sha}\" }}]\n[bans]\ndeny = [{{ name = \"x\" }}]\n"
+                ),
+            )],
+        );
+        let online = Settings {
+            cache: Some(dir.path().join("cache")),
+            offline: false,
+        };
+        let resolved = resolve_with(&dir.path().join("p.toml"), &online).unwrap();
+        assert_eq!(resolved.files[0], url);
+        assert_eq!(resolved.policy.bans.unwrap().deny.len(), 2);
+        server.join().unwrap();
+        let offline = Settings {
+            offline: true,
+            ..online.clone()
+        };
+        let again = resolve_with(&dir.path().join("p.toml"), &offline).unwrap();
+        assert_eq!(again.origins["bans.deny"][0].source, url);
+        // Nothing cached and no network: an error that names the URL.
+        let empty = Settings {
+            cache: Some(dir.path().join("empty")),
+            offline: true,
+        };
+        let err = resolve_with(&dir.path().join("p.toml"), &empty)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains(&format!("extends {url}, which cannot be read")), "{err}");
+    }
+
+    #[test]
+    fn a_relative_entry_in_a_url_base_must_be_pinned_too() {
+        const BASE: &str = "[policy]\nextends = [\"team.toml\"]\n";
+        let dir = tempfile::tempdir().unwrap();
+        let (url, server) = crate::fetch::tests::serve(BASE, 1);
+        let sha = crate::fetch::sha256(BASE.as_bytes());
+        files(
+            dir.path(),
+            &[(
+                "p.toml",
+                &format!("[policy]\nextends = [{{ url = \"{url}\", sha256 = \"{sha}\" }}]\n"),
+            )],
+        );
+        let settings = Settings {
+            cache: Some(dir.path().join("cache")),
+            offline: false,
+        };
+        let err = resolve_with(&dir.path().join("p.toml"), &settings)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("/team.toml and not pinned"), "{err}");
+        server.join().unwrap();
     }
 
     #[test]

@@ -206,12 +206,84 @@ pub struct LockRules {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct PolicyTable {
-    /// Paths of the base policies, relative to this file, applied in order before it.
+    /// The base policies, applied in order before this file.
     #[serde(default)]
-    pub extends: Vec<String>,
+    pub extends: Vec<Extends>,
     /// IDs of keys a policy extending this one may loosen (`licenses.allow`).
     #[serde(default)]
     pub overridable: Vec<String>,
+}
+
+/// One `[policy] extends` entry: a path relative to the file, a URL pinned to a tag or commit, or a URL with the
+/// sha256 its content must have.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
+pub enum Extends {
+    Location(String),
+    Pinned(PinnedUrl),
+}
+
+/// `{ url = "...", sha256 = "..." }`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PinnedUrl {
+    pub url: String,
+    pub sha256: String,
+}
+
+impl Extends {
+    /// The path or URL.
+    pub fn location(&self) -> &str {
+        match self {
+            Self::Location(location) => location,
+            Self::Pinned(pinned) => &pinned.url,
+        }
+    }
+
+    /// Whether it is a URL rather than a path.
+    pub fn is_url(&self) -> bool {
+        self.location().contains("://")
+    }
+
+    /// The sha256 the content must have, when the entry gives one.
+    pub fn sha256(&self) -> Option<&str> {
+        match self {
+            Self::Location(_) => None,
+            Self::Pinned(pinned) => Some(&pinned.sha256),
+        }
+    }
+
+    /// Why the entry cannot be used, if it cannot: a URL must be https and pinned, or carry a sha256.
+    fn check(&self) -> Result<(), String> {
+        let location = self.location();
+        if location.trim().is_empty() {
+            return Err("an entry is empty: give a path or a URL".into());
+        }
+        if let Some(sha256) = self.sha256() {
+            if !self.is_url() {
+                return Err(format!("{location:?}: a sha256 goes with a url, not a path"));
+            }
+            if sha256.len() != 64 || !sha256.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+                return Err(format!("{location:?}: sha256 must be 64 lower-case hex digits"));
+            }
+            return Ok(());
+        }
+        if !self.is_url() {
+            return Ok(());
+        }
+        if !location.starts_with("https://") {
+            return Err(format!(
+                "{location:?} is not https: give it with a sha256, {{ url = ..., sha256 = ... }}"
+            ));
+        }
+        if !crate::fetch::pinned(location) {
+            return Err(format!(
+                "{location:?} is not pinned: put a tag or commit in the URL, or give it with a sha256, \
+                 {{ url = ..., sha256 = ... }}, so the policy cannot change under you"
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// The policy, as `pixi-policy.toml` writes it.
@@ -257,10 +329,10 @@ impl Policy {
             for id in &table.overridable {
                 overridable_key(id).map_err(|message| invalid(format!("[policy] overridable: {message}")))?;
             }
-            if let Some(entry) = table.extends.iter().find(|entry| entry.trim().is_empty()) {
-                return Err(invalid(format!(
-                    "[policy] extends has an empty entry ({entry:?}): give a path"
-                )));
+            for entry in &table.extends {
+                entry
+                    .check()
+                    .map_err(|message| invalid(format!("[policy] extends: {message}")))?;
             }
         }
         let known: Vec<&'static str> = crate::check::rules().iter().map(|rule| rule.id()).collect();
@@ -328,8 +400,8 @@ impl Policy {
         Ok((Self::parse(&text, &shown)?, text))
     }
 
-    /// The paths this policy extends.
-    pub fn extends(&self) -> &[String] {
+    /// The policies this policy extends.
+    pub fn extends(&self) -> &[Extends] {
         self.policy.as_ref().map_or(&[], |table| &table.extends)
     }
 
@@ -395,6 +467,38 @@ mod tests {
     fn a_misspelt_sources_key_is_an_error() {
         let err = Policy::parse("[sources]\nallowed-channel = []\n", "p.toml").unwrap_err();
         assert!(err.to_string().contains("allowed-channel"), "{err}");
+    }
+
+    #[test]
+    fn an_extends_url_must_be_pinned() {
+        let parse = |entry: &str| Policy::parse(&format!("[policy]\nextends = [{entry}]\n"), "p.toml");
+        let sha = "0".repeat(64);
+        for ok in [
+            "\"../base.toml\"".to_string(),
+            "\"https://github.com/acme/policies/raw/v3/base.toml\"".to_string(),
+            format!("{{ url = \"http://intranet/base.toml\", sha256 = \"{sha}\" }}"),
+        ] {
+            parse(&ok).unwrap_or_else(|err| panic!("{ok}: {err}"));
+        }
+        for (bad, wanted) in [
+            (
+                "\"https://github.com/acme/policies/raw/main/base.toml\"".to_string(),
+                "is not pinned",
+            ),
+            ("\"http://intranet/v3/base.toml\"".to_string(), "is not https"),
+            (
+                format!("{{ url = \"https://x/base.toml\", sha256 = \"{}\" }}", "A".repeat(64)),
+                "64 lower-case hex",
+            ),
+            (
+                format!("{{ url = \"base.toml\", sha256 = \"{sha}\" }}"),
+                "goes with a url",
+            ),
+            ("\" \"".to_string(), "empty"),
+        ] {
+            let err = parse(&bad).unwrap_err().to_string();
+            assert!(err.contains(wanted), "{bad}: {err}");
+        }
     }
 
     #[test]

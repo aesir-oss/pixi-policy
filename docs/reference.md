@@ -16,7 +16,9 @@ A table. When it is left out: the policy extends nothing, and nothing may loosen
 
 | Key | Type | Allowed values | Default | Required | When extended | Rules |
 |---|---|---|---|---|---|---|
-| `[policy] extends` | list of strings | paths of the policies this one builds on, relative to this file. They apply in order, then this file on top: it may tighten anything, and loosen only what they list in overridable | []: the policy stands alone | no | this file only | – |
+| `[policy] extends` | list of strings or tables | the policies this one builds on: a path relative to this file, an https URL pinned to a tag or commit ("https://github.com/acme/policies/raw/v3/base.toml"), or a table with url and sha256. They apply in order, then this file on top: it may tighten anything, and loosen only what they list in overridable | []: the policy stands alone | no | this file only | – |
+| `[policy] extends: url` | string | the policy's URL, http or https; fetched once and cached | none | yes | – | – |
+| `[policy] extends: sha256` | string | the sha256 of the policy's content, 64 lower-case hex digits; a policy with another is refused | none | yes | – | – |
 | `[policy] overridable` | list of strings | IDs of keys a policy extending this one may loosen: the keys that may only narrow or be stricter ("licenses.allow", "sources.allow-git", "max-waiver-days") | []: nothing this policy sets may be loosened | no | this file only | – |
 
 ## `[sources]` {#sources}
