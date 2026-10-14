@@ -423,9 +423,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # Trusted publishing: no token, PyPI checks this workflow's OIDC identity against the
-  # publisher registered for the project (repository aesir-oss/pixi-ext-contrib, workflow
-  # release-artifacts.yml, and the environment named here); each extension's PyPI and TestPyPI project registers
-  # the same publisher. A release candidate goes to
+  # publisher registered for the project (repository aesir-oss/pixi-policy, workflow
+  # release-artifacts.yml, and the environment named here), on PyPI and TestPyPI alike. A release candidate goes to
   # TestPyPI, a final release to PyPI, and either only once the GitHub Release is out.
   testpypi:
     name: Publish the wheels to TestPyPI

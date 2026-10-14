@@ -71,6 +71,16 @@ gh attestation verify pixi-policy-v<version>-<platform>.tar.gz --repo aesir-oss/
   --deny-self-hosted-runners
 ```
 
-Releases up to 0.1.0 were built in `aesir-oss/pixi-ext-contrib` and tagged `pixi-policy-v<version>`: verify those
-with `--repo aesir-oss/pixi-ext-contrib`, `--signer-workflow aesir-oss/pixi-ext-contrib/.github/workflows/release-artifacts.yml`
-and `--source-ref refs/tags/pixi-policy-v<version>`.
+Releases up to 0.1.0 were built, and signed, in `aesir-oss/pixi-ext-contrib`, tagged `pixi-policy-v<version>` there.
+They were copied to this repository's releases page with every file, including each archive's signed bundle
+(`<archive>.sigstore.json`). Verify them against that bundle, naming the repository that built them. The check runs
+offline and does not need that repository to exist:
+
+```sh
+gh attestation verify pixi-policy-v0.1.0-linux-64.tar.gz \
+  --bundle pixi-policy-v0.1.0-linux-64.tar.gz.sigstore.json \
+  --repo aesir-oss/pixi-ext-contrib \
+  --signer-workflow aesir-oss/pixi-ext-contrib/.github/workflows/release-artifacts.yml \
+  --source-ref refs/tags/pixi-policy-v0.1.0 \
+  --deny-self-hosted-runners
+```
