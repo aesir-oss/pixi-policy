@@ -635,6 +635,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#extending-a-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extending a URL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tighten-anything-loosen-only-what-the-base-allows" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -799,6 +810,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#extending-a-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extending a URL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tighten-anything-loosen-only-what-the-base-allows" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -857,19 +879,41 @@ A policy names the policies it builds on in <code>[policy] extends</code>:</p>
 </code></pre></div>
 <p>Paths are relative to the file that names them. The bases apply in the order listed, each on top of the ones before,
 and the extending file last. A base may extend others in turn; a policy that ends up extending itself is an error, and
-a base reached twice is read once. Extending a URL is planned
-(<a href="https://github.com/aesir-oss/pixi-policy/issues/1">#1</a>); until then, commit the shared policy, for example as a git
-submodule, and extend it by its path.</p>
+a base reached twice is read once.</p>
+<h2 id="extending-a-url">Extending a URL<a class="headerlink" href="#extending-a-url" title="Permanent link">&para;</a></h2>
+<p>A base can also be a URL, as long as it is pinned, so the policy cannot change under a workspace without a commit to
+that workspace:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[policy]</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">extends</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="c1"># A tag or a commit in the URL pins it.</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="s2">"https://github.com/acme/policies/raw/v3/base.toml"</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="c1"># Anything else, or plain http, carries the sha256 of its content.</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="n">url</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"https://intranet.example.com/policies/base.toml"</span><span class="p">,</span><span class="w"> </span><span class="n">sha256</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>A URL is pinned by a path segment that is a commit (40 hex digits) or a version tag (<code>v3</code>, <code>1.2.0</code>). A branch such as
+  <code>main</code> is not pinned, and an unpinned URL is an error. With a <code>sha256</code>, any URL works, http included, and content
+  with another sha256 is refused.</li>
+<li>A URL is fetched the first time it is needed and cached; after that the check reads the cache and needs no network.
+  The cache is in <code>~/.cache/pixi-policy</code> on Linux (or <code>$XDG_CACHE_HOME/pixi-policy</code>), <code>~/Library/Caches/pixi-policy</code>
+  on macOS and <code>%LOCALAPPDATA%\pixi-policy</code> on Windows. <code>PIXI_POLICY_CACHE_DIR</code> moves it, for example into a CI cache.</li>
+<li><code>PIXI_POLICY_OFFLINE=1</code> forbids the network: a base that is not cached is then an error instead of a fetch.</li>
+<li>The fetch uses the system's certificate store, and a proxy from the first of <code>ALL_PROXY</code>, <code>HTTPS_PROXY</code> and
+  <code>HTTP_PROXY</code> that is set (in upper or lower case), skipping the hosts in <code>NO_PROXY</code>.</li>
+<li>A relative path in a fetched base is read against its URL, and must itself be pinned: a base pinned by a tag or commit
+  can extend its neighbours in the same tree, while one pinned only by its sha256 must name its own bases with theirs.</li>
+</ul>
 <h2 id="tighten-anything-loosen-only-what-the-base-allows">Tighten anything, loosen only what the base allows<a class="headerlink" href="#tighten-anything-loosen-only-what-the-base-allows" title="Permanent link">&para;</a></h2>
 <p>An extending policy may make anything stricter. It may loosen a value only when the base that set it lists the key in
 <code>[policy] overridable</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># policies/base.toml</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">[policy]</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">overridable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"licenses.allow"</span><span class="p">]</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">[licenses]</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"MIT"</span><span class="p">,</span><span class="w"> </span><span class="s2">"BSD-3-Clause"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Apache-2.0"</span><span class="p">]</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"AGPL-*"</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># policies/base.toml</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">[policy]</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">overridable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"licenses.allow"</span><span class="p">]</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">[licenses]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"MIT"</span><span class="p">,</span><span class="w"> </span><span class="s2">"BSD-3-Clause"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Apache-2.0"</span><span class="p">]</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"AGPL-*"</span><span class="p">]</span>
 </code></pre></div>
 <p>Here a workspace may add a license to <code>allow</code>, but it cannot remove <code>AGPL-*</code> from <code>deny</code> or widen anything else the
 base sets. Loosening a key the base does not list stops the check with an error (exit 2) that names the key and the
@@ -921,15 +965,15 @@ expiry, and needs nothing from the base.</p>
 <h2 id="what-a-policy-resolves-to">What a policy resolves to<a class="headerlink" href="#what-a-policy-resolves-to" title="Permanent link">&para;</a></h2>
 <p><code>pixi policy show --resolved</code> prints the merged policy, each value followed by the file it comes from, and marks each
 value a policy loosened under its base's <code>overridable</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>pixi<span class="w"> </span>policy<span class="w"> </span>show<span class="w"> </span>--resolved
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="gp"># </span>pixi-policy.toml,<span class="w"> </span>resolved:<span class="w"> </span>every<span class="w"> </span>policy<span class="w"> </span>it<span class="w"> </span>extends<span class="w"> </span>merged<span class="w"> </span><span class="k">in</span>,<span class="w"> </span>each<span class="w"> </span>value<span class="w"> </span>followed<span class="w"> </span>by<span class="w"> </span>the<span class="w"> </span>file<span class="w"> </span>it<span class="w"> </span>comes<span class="w"> </span>from.
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="gp"># </span>Read<span class="w"> </span><span class="k">in</span><span class="w"> </span>order:<span class="w"> </span>../policies/base.toml,<span class="w"> </span>pixi-policy.toml
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go">[licenses]</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="go">allow = ["MIT", "BSD-3-Clause", "Apache-2.0", "PSF-2.0"]  # pixi-policy.toml, loosens ../policies/base.toml (overridable there)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go">deny = [</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="go">  "AGPL-*",  # ../policies/base.toml</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="go">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>pixi<span class="w"> </span>policy<span class="w"> </span>show<span class="w"> </span>--resolved
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="gp"># </span>pixi-policy.toml,<span class="w"> </span>resolved:<span class="w"> </span>every<span class="w"> </span>policy<span class="w"> </span>it<span class="w"> </span>extends<span class="w"> </span>merged<span class="w"> </span><span class="k">in</span>,<span class="w"> </span>each<span class="w"> </span>value<span class="w"> </span>followed<span class="w"> </span>by<span class="w"> </span>the<span class="w"> </span>file<span class="w"> </span>it<span class="w"> </span>comes<span class="w"> </span>from.
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="gp"># </span>Read<span class="w"> </span><span class="k">in</span><span class="w"> </span>order:<span class="w"> </span>../policies/base.toml,<span class="w"> </span>pixi-policy.toml
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go">[licenses]</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">allow = ["MIT", "BSD-3-Clause", "Apache-2.0", "PSF-2.0"]  # pixi-policy.toml, loosens ../policies/base.toml (overridable there)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">deny = [</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">  "AGPL-*",  # ../policies/base.toml</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go">]</span>
 </code></pre></div>
 <p><code>pixi policy show</code> without <code>--resolved</code> prints the policy file as written.</p>
 

@@ -1023,11 +1023,29 @@
 <tbody>
 <tr>
 <td><code>[policy] extends</code></td>
-<td>list of strings</td>
-<td>paths of the policies this one builds on, relative to this file. They apply in order, then this file on top: it may tighten anything, and loosen only what they list in overridable</td>
+<td>list of strings or tables</td>
+<td>the policies this one builds on: a path relative to this file, an https URL pinned to a tag or commit ("https://github.com/acme/policies/raw/v3/base.toml"), or a table with url and sha256. They apply in order, then this file on top: it may tighten anything, and loosen only what they list in overridable</td>
 <td>[]: the policy stands alone</td>
 <td>no</td>
 <td>this file only</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>[policy] extends: url</code></td>
+<td>string</td>
+<td>the policy's URL, http or https; fetched once and cached</td>
+<td>none</td>
+<td>yes</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>[policy] extends: sha256</code></td>
+<td>string</td>
+<td>the sha256 of the policy's content, 64 lower-case hex digits; a policy with another is refused</td>
+<td>none</td>
+<td>yes</td>
+<td>–</td>
 <td>–</td>
 </tr>
 <tr>
