@@ -10,6 +10,14 @@ use serde_json::{Value, json};
 
 use crate::check::{File, Finding, Outcome, Rule, Severity, Waived};
 
+/// The docs site. SARIF names it as the tool's home and links each rule to its entry on the rules page.
+const DOCS: &str = "https://aesir-oss.github.io/pixi-policy/";
+
+/// A rule's entry on the rules page: `bans.deny` is `#bans-deny`.
+fn help_uri(id: &str) -> String {
+    format!("{DOCS}latest/rules/#{}", id.replace('.', "-"))
+}
+
 /// The version of the JSON report's shape; it changes only when a field is renamed or removed.
 pub const JSON_VERSION: u32 = 1;
 
@@ -310,7 +318,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "name": rule_name(id),
                 "shortDescription": { "text": summary },
                 "help": { "text": crate::explain::details(id).unwrap_or(summary) },
-                "helpUri": "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/",
+                "helpUri": help_uri(id),
             })
         })
         .collect();
@@ -322,7 +330,7 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
                 "driver": {
                     "name": "pixi-policy",
                     "version": env!("CARGO_PKG_VERSION"),
-                    "informationUri": "https://aesir-oss.github.io/pixi-ext-contrib/pixi-policy/",
+                    "informationUri": DOCS,
                     "rules": rules,
                 }
             },
@@ -341,6 +349,23 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
+
+    #[test]
+    fn every_rule_links_to_its_entry_on_the_rules_page() {
+        let page = include_str!("../docs/rules.md");
+        for (id, _) in crate::explain::catalog() {
+            let uri = help_uri(id);
+            let anchor = uri.rsplit_once('#').map(|(_, anchor)| anchor).unwrap_or_default();
+            assert!(
+                page.contains(&format!("{{#{anchor}}}")),
+                "{id}: no {{#{anchor}}} in docs/rules.md"
+            );
+            assert!(
+                uri.starts_with("https://aesir-oss.github.io/pixi-policy/latest/rules/#"),
+                "{uri}"
+            );
+        }
+    }
 
     struct Deny;
 
