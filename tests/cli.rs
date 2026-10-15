@@ -459,7 +459,7 @@ fn waivers_let_findings_through_with_their_reason_and_report_expired_and_unused_
             "\n[[waivers]]\nrule = \"licenses.deny\"\npackage = \"{package}\"\nreason = \"LEGAL-1234\"\nexpires = {expires}\n"
         )
     };
-    let base = "[licenses]\ndeny = [\"GPL-3.0-only\"]\nunknown = \"allow\"\n";
+    let base = "[licenses]\ndeny = [\"GPL-3.0-only\"]\nunknown = \"allow\"\nambiguous = \"allow\"\n";
     let run = |format: &str| {
         let output = policy()
             .arg("--manifest-path")

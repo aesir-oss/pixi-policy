@@ -57,6 +57,7 @@ A table. When it is left out: no license rule runs.
 | `[licenses] review` | list of strings | SPDX license identifiers or patterns, as for allow | [] | no | adds up | [`licenses.review`](rules.md#licenses-review), [`licenses.not-allowed`](rules.md#licenses-not-allowed) |
 | `[licenses] deny` | list of strings | SPDX license identifiers or patterns, as for allow | [] | no | adds up | [`licenses.deny`](rules.md#licenses-deny) |
 | `[licenses] unknown` | string | "warn", "error", "allow" | "warn" | no | may only be stricter, unless overridable | [`licenses.unknown`](rules.md#licenses-unknown) |
+| `[licenses] ambiguous` | string | "warn", "error", "allow": what a license name that could be more than one SPDX license gets | "warn" | no | may only be stricter, unless overridable | [`licenses.ambiguous`](rules.md#licenses-ambiguous) |
 
 ## `[advisories]` {#advisories}
 

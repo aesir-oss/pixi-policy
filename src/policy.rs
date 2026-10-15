@@ -149,6 +149,9 @@ pub struct Licenses {
     pub deny: Vec<String>,
     #[serde(default)]
     pub unknown: Unknown,
+    /// What a license name that could be more than one SPDX license gets (#7).
+    #[serde(default)]
+    pub ambiguous: Unknown,
 }
 
 /// What a known exploited advisory gets.

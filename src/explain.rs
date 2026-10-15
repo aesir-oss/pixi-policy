@@ -74,6 +74,13 @@ const DETAILS: &[(&str, &str)] = &[
          unknown until pixi-policy reads license files.\n\n[licenses]\nunknown = \"error\"",
     ),
     (
+        "licenses.ambiguous",
+        "Key: [licenses] ambiguous = \"warn\" (default), \"error\" or \"allow\": what a package gets whose license is a \
+         name that could be more than one SPDX license (BSD, GPL, LGPL2, Apache), rather than a guess at one. Common \
+         spellings that name one license (BSD 3-Clause, Apache License 2.0, PSF) are read as it from a reviewed \
+         table, and a finding about such a package shows what pixi.lock says.\n\n[licenses]\nambiguous = \"error\"",
+    ),
+    (
         "advisories.vulnerable",
         "Keys: [advisories] fail-on (default \"high\"), known-exploited (default \"error\") and epss (not set by \
          default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities \
