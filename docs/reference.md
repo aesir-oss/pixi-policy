@@ -8,7 +8,6 @@ Every key `pixi-policy.toml` accepts. A key the table does not list is an error,
 
 | Key | Type | Allowed values | Default | Required | When extended | Rules |
 |---|---|---|---|---|---|---|
-| `freshness` | table | the keys below | absent: no freshness rule runs, and nothing is fetched | no | – | [`freshness.build-age`](rules.md#freshness-build-age), [`freshness.majors-behind`](rules.md#freshness-majors-behind), [`freshness.archived`](rules.md#freshness-archived), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
 | `max-waiver-days` | integer | 0 or more: the furthest a waiver's expires may be from today, in days; 0 turns the check off | 365 | no | may only be stricter, unless overridable | [`waivers.too-long`](rules.md#waivers-too-long) |
 
 ## `[policy]` {#policy}

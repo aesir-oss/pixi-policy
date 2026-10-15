@@ -220,7 +220,7 @@ Key: [freshness] max-build-age-days (not set by default). Fails a conda package 
 max-build-age-days = 730
 ```
 
-Keys: [`freshness`](reference.md#top-level), [`[freshness] max-build-age-days`](reference.md#freshness).
+Keys: [`[freshness] max-build-age-days`](reference.md#freshness).
 
 ## `freshness.majors-behind` {#freshness-majors-behind}
 
@@ -233,7 +233,7 @@ Key: [freshness] max-majors-behind (not set by default). Fails a conda package w
 max-majors-behind = 1
 ```
 
-Keys: [`freshness`](reference.md#top-level), [`[freshness] max-majors-behind`](reference.md#freshness).
+Keys: [`[freshness] max-majors-behind`](reference.md#freshness).
 
 ## `freshness.archived` {#freshness-archived}
 
@@ -246,7 +246,7 @@ Key: [freshness] archived (on once [freshness] exists). Fails a conda-forge pack
 archived = true
 ```
 
-Keys: [`freshness`](reference.md#top-level), [`[freshness] archived`](reference.md#freshness).
+Keys: [`[freshness] archived`](reference.md#freshness).
 
 ## `freshness.unknown` {#freshness-unknown}
 
@@ -259,7 +259,7 @@ Key: [freshness] unknown = "warn" (default), "error" or "allow": what a conda pa
 unknown = "error"
 ```
 
-Keys: [`freshness`](reference.md#top-level), [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] unknown`](reference.md#freshness).
+Keys: [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] unknown`](reference.md#freshness).
 
 ## `freshness.unavailable` {#freshness-unavailable}
 
@@ -271,7 +271,7 @@ Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could 
 [freshness]
 ```
 
-Keys: [`freshness`](reference.md#top-level), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness).
+Keys: [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness).
 
 ## `python.older` {#python-older}
 
