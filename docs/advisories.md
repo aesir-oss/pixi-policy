@@ -71,5 +71,38 @@ expires = 2027-03-31
 ```
 
 Without `advisory`, the waiver accepts every advisory on the package, including ones published after it was written.
-A waiver does not say why the code is not affected the way a VEX statement does; reading VEX documents is planned for
-pixi-policy 0.3.0.
+
+## VEX statements
+
+A VEX document says why an advisory does not affect a product. `[advisories] vex` names the ones the check reads:
+
+```toml
+[advisories]
+vex = ["security/vex.cdx.json", "https://github.com/acme/policies/raw/v3/vendor.openvex.json"]
+```
+
+Each entry is a path relative to the policy file that names it, or a pinned https URL (a tag or a commit in it),
+fetched once and cached like an [extended policy](extends.md). A shared policy can carry its VEX: an entry in a base
+is found beside that base, by its path or relative to its URL, and every file's entries add up.
+
+pixi-policy reads CycloneDX JSON (a VEX, or an SBOM with `vulnerabilities[].analysis`) and OpenVEX, as pixi-sbom's
+`--vex-in` does. A statement applies to an advisory finding when it names the advisory by its id or any alias, and
+names the package by a purl (`pkg:pypi/urllib3@1.26.4`; without a version, every version), or names no product at
+all. A conda package is matched by its own purl and by the PyPI purls it was looked up by. When several statements
+apply, the last one wins.
+
+| State | OpenVEX status | The finding |
+|---|---|---|
+| `not_affected`, `false_positive` | `not_affected` | is waived, with the statement |
+| `resolved`, `resolved_with_pedigree` | `fixed` | is waived, with the statement |
+| `exploitable`, `in_triage` | `affected`, `under_investigation` | still fails |
+
+A waived finding is listed with the others, its statement in place of a waiver:
+
+```text
+waived[advisories.vulnerable] urllib3 1.26.4: GHSA-v845-jxx5-vc9f (CVE-2023-43804), high severity: ... (pixi.lock: environment "default", linux-64); VEX: not_affected (code_not_reachable), vex.cdx.json: never parses cookies
+```
+
+In JSON the entry has `vex` (`state`, `justification`, `detail`, `source`) instead of `waiver`; in SARIF it is a
+suppressed result with the statement as its justification. A statement does not expire; a VEX file that cannot be
+read or is neither format stops the check with exit code 2.

@@ -124,10 +124,15 @@ pub fn text(outcome: &Outcome, palette: Palette, policy: &str) -> String {
         finding,
         reason,
         expires,
+        vex,
     } in &outcome.waived
     {
+        let by = match vex {
+            Some(vex) => format!("VEX: {}", vex.describe()),
+            None => format!("waiver: {reason}, expires {expires}"),
+        };
         let line = format!(
-            "waived[{}] {}{} ({}); waiver: {reason}, expires {expires}",
+            "waived[{}] {}{} ({}); {by}",
             finding.rule,
             package(finding),
             finding.message,
@@ -222,7 +227,17 @@ pub fn json(outcome: &Outcome, context: &Context<'_>) -> Value {
         "findings": outcome.findings.iter().map(finding_json).collect::<Vec<_>>(),
         "waived": outcome.waived.iter().map(|waived| {
             let mut entry = finding_json(&waived.finding);
-            entry["waiver"] = json!({ "reason": waived.reason, "expires": waived.expires });
+            match &waived.vex {
+                Some(vex) => {
+                    entry["vex"] = json!({
+                        "state": vex.state,
+                        "justification": vex.justification,
+                        "detail": vex.detail,
+                        "source": vex.source,
+                    });
+                }
+                None => entry["waiver"] = json!({ "reason": waived.reason, "expires": waived.expires }),
+            }
             entry
         }).collect::<Vec<_>>(),
     })
@@ -299,11 +314,15 @@ pub fn sarif(outcome: &Outcome, context: &Context<'_>) -> Value {
             },
         });
         if let Some(waived) = waived {
+            let properties = match &waived.vex {
+                Some(vex) => json!({ "vex": { "state": vex.state, "source": vex.source } }),
+                None => json!({ "expires": waived.expires }),
+            };
             result["suppressions"] = json!([{
                 "kind": "external",
                 "status": "accepted",
                 "justification": waived.reason,
-                "properties": { "expires": waived.expires },
+                "properties": properties,
             }]);
         }
         result
@@ -419,6 +438,7 @@ mod tests {
                 finding: finding("bans.deny", Severity::Error, "legacy", File::Lockfile, None),
                 reason: "vendored; LEGAL-1234".into(),
                 expires: "2027-03-31".into(),
+                vex: None,
             }],
             targets: 2,
             packages: 40,

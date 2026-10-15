@@ -70,6 +70,7 @@ A table. When it is left out: no advisory rule runs, and nothing is fetched.
 | `[advisories] epss` | float | a probability from 0 to 1: an advisory whose EPSS score (FIRST's estimate that it is exploited in the next 30 days) is at or above it fails | not set: EPSS scores are not asked for | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable) |
 | `[advisories] unknown` | string | "warn", "error", "allow": what an advisory with no severity gets | "warn" | no | may only be stricter, unless overridable | [`advisories.unknown`](rules.md#advisories-unknown) |
 | `[advisories] pypi-mapping` | string | "prefix": a conda package is looked up by the PyPI purls pixi.lock states for it or, when it states none, by conda-forge's conda-to-PyPI mapping; "lock": by pixi.lock's purls only | "prefix" | no | may only be stricter, unless overridable | [`advisories.vulnerable`](rules.md#advisories-vulnerable), [`advisories.unknown`](rules.md#advisories-unknown) |
+| `[advisories] vex` | list of strings | CycloneDX or OpenVEX JSON files, by a path relative to the policy that names them or a pinned https URL: an advisory a statement marks not_affected, false_positive or resolved for a package is waived with it | [] | no | adds up | [`advisories.vulnerable`](rules.md#advisories-vulnerable), [`advisories.unknown`](rules.md#advisories-unknown) |
 
 ## `[freshness]` {#freshness}
 

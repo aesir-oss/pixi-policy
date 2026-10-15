@@ -137,7 +137,7 @@ impl Chain {
         if self.done.contains(&canonical) {
             return Ok(None);
         }
-        let (policy, text) = match place {
+        let (mut policy, text) = match place {
             Place::File(path) => Policy::load_file(path)?,
             Place::Url(remote) => {
                 let text = fetch(remote, &self.settings).map_err(|err| {
@@ -150,7 +150,23 @@ impl Chain {
                 (Policy::parse(&text, shown)?, text)
             }
         };
-        let raw: toml::Table = toml::from_str(&text).expect("Policy::parse accepted it");
+        let mut raw: toml::Table = toml::from_str(&text).expect("Policy::parse accepted it");
+        if let Some(advisories) = policy.advisories.as_mut()
+            && !advisories.vex.is_empty()
+        {
+            let located = advisories
+                .vex
+                .iter()
+                .map(|entry| vex_location(place, shown, entry))
+                .collect::<Result<Vec<_>, _>>()?;
+            if let Some(table) = raw.get_mut("advisories").and_then(toml::Value::as_table_mut) {
+                table.insert(
+                    "vex".into(),
+                    toml::Value::Array(located.iter().cloned().map(toml::Value::String).collect()),
+                );
+            }
+            advisories.vex = located;
+        }
         self.stack.push((canonical.clone(), shown.to_string()));
         for entry in policy.extends() {
             let base = match (place, entry.is_url()) {
@@ -316,6 +332,32 @@ impl Chain {
                  packages that need it with [[waivers]]"
             ),
         ))
+    }
+}
+
+/// Where a `[advisories] vex` entry of the policy at `place` (shown as `shown`) is: a URL as it is, a path relative to
+/// the policy's file, or to its URL when it was extended by URL (decided on #10).
+fn vex_location(place: &Place, shown: &str, entry: &str) -> Result<String, PolicyError> {
+    if entry.contains("://") {
+        return Ok(entry.to_string());
+    }
+    match place {
+        Place::File(_) => {
+            let dir = Path::new(shown).parent().unwrap_or(Path::new(""));
+            Ok(tidy(&dir.join(entry)).display().to_string())
+        }
+        Place::Url(remote) => {
+            let url = join(&remote.url, entry);
+            if pinned(&url) {
+                Ok(url)
+            } else {
+                Err(extends_error(
+                    shown,
+                    format!("names the VEX {entry}, which is {url} and not pinned"),
+                    "a policy fetched by its sha256 alone can name only VEX URLs that pin a tag or commit",
+                ))
+            }
+        }
     }
 }
 
@@ -943,6 +985,35 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains(&format!("extends {url}, which cannot be read")), "{err}");
+    }
+
+    #[test]
+    fn a_vex_entry_is_found_beside_the_policy_that_names_it() {
+        let file = Place::File(PathBuf::from("shared/base.toml"));
+        assert_eq!(
+            vex_location(&file, "shared/base.toml", "../vex/a.json").unwrap(),
+            "vex/a.json"
+        );
+        let pinned = Place::Url(crate::fetch::Remote {
+            url: "https://example.com/acme/v3/base.toml".into(),
+            sha256: None,
+        });
+        assert_eq!(
+            vex_location(&pinned, "x", "vex.json").unwrap(),
+            "https://example.com/acme/v3/vex.json"
+        );
+        assert_eq!(
+            vex_location(&pinned, "x", "https://example.com/v1/other.json").unwrap(),
+            "https://example.com/v1/other.json"
+        );
+        let by_sha = Place::Url(crate::fetch::Remote {
+            url: "http://intranet/base.toml".into(),
+            sha256: Some("0".repeat(64)),
+        });
+        let err = vex_location(&by_sha, "http://intranet/base.toml", "vex.json")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("not pinned"), "{err}");
     }
 
     #[test]

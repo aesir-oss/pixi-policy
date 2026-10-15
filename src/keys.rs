@@ -483,6 +483,19 @@ pub const KEYS: &[Key] = &[
         merge: Merge::Stricter,
     },
     Key {
+        table: "advisories",
+        name: "vex",
+        kind: "list of strings",
+        values: "CycloneDX or OpenVEX JSON files, by a path relative to the policy that names them or a pinned https \
+                 URL: an advisory a statement marks not_affected, false_positive or resolved for a package is waived \
+                 with it",
+        default: "[]",
+        required: false,
+        rules: &["advisories.vulnerable", "advisories.unknown"],
+        example: "[\"vex.cdx.json\"]",
+        merge: Merge::Grows,
+    },
+    Key {
         table: "",
         name: "freshness",
         kind: "table",

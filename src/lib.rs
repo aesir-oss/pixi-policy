@@ -25,6 +25,7 @@ pub mod purl;
 pub mod report;
 pub mod rules;
 pub mod style;
+pub mod vex;
 pub mod waivers;
 pub mod workspace;
 

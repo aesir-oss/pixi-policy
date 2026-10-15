@@ -100,8 +100,10 @@ pub struct Finding {
 pub struct Waived {
     pub finding: Finding,
     pub reason: String,
-    /// `YYYY-MM-DD`.
+    /// `YYYY-MM-DD`; empty for a VEX statement, which does not expire.
     pub expires: String,
+    /// The VEX statement that let it through, when it was one rather than a waiver (#10).
+    pub vex: Option<crate::vex::Analysis>,
 }
 
 /// A rule of the policy.
