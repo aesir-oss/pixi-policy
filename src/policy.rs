@@ -243,6 +243,34 @@ impl Freshness {
     }
 }
 
+/// `[python]`: the Python minor version every environment runs (#42). Any patch release of `version` matches it.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct PythonRules {
+    /// The standard, a minor version: `3.14`.
+    pub version: String,
+    /// What an environment whose Python is below the standard gets (default error).
+    pub older: Option<Action>,
+    /// What an environment whose Python is above the standard gets (default warn).
+    pub newer: Option<Action>,
+}
+
+impl PythonRules {
+    pub fn older(&self) -> Action {
+        self.older.unwrap_or(Action::Error)
+    }
+
+    pub fn newer(&self) -> Action {
+        self.newer.unwrap_or(Action::Warn)
+    }
+
+    /// The standard's major and minor version.
+    pub fn standard(&self) -> Option<(u64, u64)> {
+        let (major, minor) = self.version.trim().split_once('.')?;
+        Some((major.parse().ok()?, minor.parse().ok()?))
+    }
+}
+
 /// One `[[waivers]]` entry: an exception for one rule and one package, with a reason and an expiry date.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -408,6 +436,9 @@ pub struct Policy {
     /// How old and how far behind packages may be.
     #[serde(default)]
     pub freshness: Option<Freshness>,
+    /// The Python minor version every environment runs.
+    #[serde(default)]
+    pub python: Option<PythonRules>,
     /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
     /// off. Default 365 (decided on #66).
     #[serde(default)]
@@ -469,6 +500,14 @@ impl Policy {
             advisories
                 .check()
                 .map_err(|message| invalid(format!("[advisories]: {message}")))?;
+        }
+        if let Some(python) = &policy.python
+            && python.standard().is_none()
+        {
+            return Err(invalid(format!(
+                "[python]: version {:?} is not a minor version: write it as \"3.14\"",
+                python.version
+            )));
         }
         if let Some(bans) = &policy.bans {
             for ban in &bans.deny {
@@ -599,6 +638,28 @@ mod tests {
             let err = Policy::parse(bad, "p.toml").unwrap_err().to_string();
             assert!(err.contains(wanted), "{bad}: {err}");
         }
+    }
+
+    #[test]
+    fn python_takes_a_minor_version() {
+        let python = Policy::parse("[python]\nversion = \"3.14\"\n", "p.toml")
+            .unwrap()
+            .python
+            .unwrap();
+        assert_eq!(
+            (python.standard(), python.older(), python.newer()),
+            (Some((3, 14)), Action::Error, Action::Warn)
+        );
+        for bad in ["3", "3.14.2", "3.x", ""] {
+            let err = Policy::parse(&format!("[python]\nversion = {bad:?}\n"), "p.toml")
+                .unwrap_err()
+                .to_string();
+            assert!(err.contains("is not a minor version"), "{bad}: {err}");
+        }
+        assert!(
+            Policy::parse("[python]\nnewer = \"error\"\n", "p.toml").is_err(),
+            "version is required"
+        );
     }
 
     #[test]

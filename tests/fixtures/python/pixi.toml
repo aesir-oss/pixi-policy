@@ -1,0 +1,22 @@
+[workspace]
+name = "python-versions"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.py312.dependencies]
+python = "3.12.*"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.py314.dependencies]
+python = "3.14.*"
+
+[feature.tools.dependencies]
+jq = "*"
+
+[environments]
+default = ["py313"]
+old = ["py312"]
+new = ["py314"]
+no-python = { features = ["tools"], no-default-feature = true }

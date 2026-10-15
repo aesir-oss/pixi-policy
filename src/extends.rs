@@ -342,7 +342,8 @@ fn implicit(id: &str) -> Option<toml::Value> {
         | "freshness.archived" => Some(toml::Value::Boolean(true)),
         "licenses.unknown" | "advisories.unknown" | "freshness.unknown" => Some(toml::Value::String("warn".into())),
         "advisories.fail-on" => Some(toml::Value::String("high".into())),
-        "advisories.known-exploited" => Some(toml::Value::String("error".into())),
+        "advisories.known-exploited" | "python.older" => Some(toml::Value::String("error".into())),
+        "python.newer" => Some(toml::Value::String("warn".into())),
         "advisories.pypi-mapping" => Some(toml::Value::String("prefix".into())),
         _ => None,
     }
@@ -422,7 +423,13 @@ fn looser(id: &str, new: &toml::Value, old: &toml::Value) -> Option<String> {
             let limit = |value: &toml::Value| value.as_integer().unwrap_or(i64::MAX);
             (limit(new) > limit(old)).then(|| format!("to {new} (it was {old})"))
         }
-        "licenses.unknown" | "advisories.unknown" | "advisories.known-exploited" | "freshness.unknown" => {
+        "python.version" => (new != old).then(|| format!("to {new} (it was {old})")),
+        "licenses.unknown"
+        | "advisories.unknown"
+        | "advisories.known-exploited"
+        | "freshness.unknown"
+        | "python.older"
+        | "python.newer" => {
             let rank = |value: &toml::Value| match value.as_str() {
                 Some("allow") => 0,
                 Some("error") => 2,
@@ -708,6 +715,41 @@ mod tests {
             ("[freshness]\nmax-majors-behind = 3\n", "to 3 (it was 2)"),
             ("[freshness]\narchived = false\n", "to false (it was true)"),
             ("[freshness]\nunknown = \"allow\"\n", "to \"allow\" (it was \"warn\")"),
+        ] {
+            let err = child(body).unwrap_err().to_string();
+            assert!(err.contains(wanted), "{body}: {err}");
+        }
+    }
+
+    #[test]
+    fn the_python_standard_is_fixed_and_its_severities_only_tighten() {
+        let dir = tempfile::tempdir().unwrap();
+        files(dir.path(), &[("base.toml", "[python]\nversion = \"3.14\"\n")]);
+        let child = |body: &str| {
+            std::fs::write(
+                dir.path().join("p.toml"),
+                format!("[policy]\nextends = [\"base.toml\"]\n{body}"),
+            )
+            .unwrap();
+            resolve_in(dir.path(), "p.toml")
+        };
+        let inherited = child("").unwrap().policy.python.unwrap();
+        assert_eq!(
+            (inherited.version.as_str(), inherited.older()),
+            ("3.14", crate::policy::Action::Error)
+        );
+        let tight = child("[python]\nversion = \"3.14\"\nnewer = \"error\"\n").unwrap();
+        assert_eq!(tight.policy.python.unwrap().newer(), crate::policy::Action::Error);
+        for (body, wanted) in [
+            ("[python]\nversion = \"3.13\"\n", "to \"3.13\" (it was \"3.14\")"),
+            (
+                "[python]\nversion = \"3.14\"\nolder = \"warn\"\n",
+                "to \"warn\" (it was \"error\")",
+            ),
+            (
+                "[python]\nversion = \"3.14\"\nnewer = \"allow\"\n",
+                "to \"allow\" (it was \"warn\")",
+            ),
         ] {
             let err = child(body).unwrap_err().to_string();
             assert!(err.contains(wanted), "{body}: {err}");
