@@ -27,6 +27,7 @@ they are cached.
 | `licenses` | every package can be used under the licenses the policy allows (SPDX allow, review and deny lists) |
 | `advisories` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited (OSV, CISA KEV, EPSS) |
 | `freshness` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
+| `hygiene` | no PyPI package is one a conda package in the same environment already provides |
 | `python` | every environment runs the policy's standard Python minor version (any patch release of it) |
 | `manifest` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
 | `lock` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |

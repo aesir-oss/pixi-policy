@@ -267,22 +267,31 @@ pub fn identities(fact: &Fact, mapping: Option<&Mapping>) -> Vec<String> {
         }
         Kind::CondaBinary | Kind::CondaSource => {
             out.extend(fact.stated_purls.iter().filter_map(|purl| queryable(purl)));
-            let conda_forge = fact
-                .channel_url
-                .as_deref()
-                .is_some_and(|url| url.trim_end_matches('/').ends_with("/conda-forge"));
-            if !fact.purls_from_lock && fact.kind == Kind::CondaBinary && conda_forge {
-                let names = mapping.and_then(|mapping| mapping.0.get(&fact.name.to_lowercase()));
-                out.extend(
-                    names
-                        .into_iter()
-                        .flatten()
-                        .filter_map(|name| crate::purl::pypi(name, version).ok()),
-                );
-            }
+            out.extend(
+                mapped(fact, mapping)
+                    .iter()
+                    .filter_map(|name| crate::purl::pypi(name, version).ok()),
+            );
         }
     }
     out.into_iter().collect()
+}
+
+/// Whether `mapping` speaks for `fact`: a conda-forge package the lockfile states no purls for.
+pub fn needs_mapping(fact: &Fact) -> bool {
+    let conda_forge = fact
+        .channel_url
+        .as_deref()
+        .is_some_and(|url| url.trim_end_matches('/').ends_with("/conda-forge"));
+    !fact.purls_from_lock && fact.kind == Kind::CondaBinary && conda_forge
+}
+
+/// The PyPI names `mapping` gives `fact`, when it speaks for it.
+pub fn mapped<'a>(fact: &Fact, mapping: Option<&'a Mapping>) -> &'a [String] {
+    match mapping {
+        Some(mapping) if needs_mapping(fact) => mapping.0.get(&fact.name.to_lowercase()).map_or(&[], Vec::as_slice),
+        _ => &[],
+    }
 }
 
 /// What to look up besides OSV.
