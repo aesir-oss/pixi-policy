@@ -25,6 +25,7 @@ single binary that pixi runs as `pixi policy`.
 | [Licenses](licenses.md) | `licenses.deny`, `licenses.review`, `licenses.not-allowed`, `licenses.unknown` | every package can be used under the licenses the policy allows |
 | [Advisories](advisories.md) | `advisories.vulnerable`, `advisories.unknown`, `advisories.unavailable` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited |
 | [Freshness](freshness.md) | `freshness.build-age`, `freshness.majors-behind`, `freshness.archived`, `freshness.unknown`, `freshness.unavailable` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
+| [Python](rules.md#python-older) | `python.older`, `python.newer` | every environment runs the policy's standard Python minor version (any patch release of it) |
 | [Manifest](rules.md#manifest-wildcard-spec) | `manifest.wildcard-spec`, `manifest.python-pinned`, `manifest.required-platforms` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
 | [Lock](rules.md#lock-present) | `lock.present`, `lock.complete`, `lock.in-sync` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | [Waivers](waivers.md) | `waivers.expired`, `waivers.unused`, `waivers.too-long` | every exception has a reason and an end date, and still matches something |

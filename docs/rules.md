@@ -24,6 +24,8 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`freshness.archived`](#freshness-archived) | A conda-forge package comes from an archived feedstock |
 | [`freshness.unknown`](#freshness-unknown) | The channel data says nothing about a conda package a freshness rule checks |
 | [`freshness.unavailable`](#freshness-unavailable) | The channel data cannot be read, so no package could be checked for freshness |
+| [`python.older`](#python-older) | No environment runs a Python older than the policy's standard |
+| [`python.newer`](#python-newer) | No environment runs a Python newer than the policy's standard |
 | [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
 | [`manifest.python-pinned`](#manifest-python-pinned) | Python is constrained to one minor version or narrower |
 | [`manifest.required-platforms`](#manifest-required-platforms) | The workspace lists every platform the policy requires |
@@ -270,6 +272,34 @@ Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could 
 ```
 
 Keys: [`freshness`](reference.md#top-level), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness).
+
+## `python.older` {#python-older}
+
+No environment runs a Python older than the policy's standard.
+
+Keys: [python] version, the standard minor version, and older = "error" (default), "warn" or "allow". Reports an environment whose Python, as pixi.lock resolves it for each platform, is an older minor version than the standard. Every patch release of the standard matches it; an environment without Python is not checked.
+
+```toml
+[python]
+version = "3.14"
+older = "error"
+```
+
+Keys: [`[python] version`](reference.md#python), [`[python] older`](reference.md#python).
+
+## `python.newer` {#python-newer}
+
+No environment runs a Python newer than the policy's standard.
+
+Keys: [python] version, the standard minor version, and newer = "warn" (default), "error" or "allow". Reports an environment whose Python, as pixi.lock resolves it for each platform, is a newer minor version than the standard. Every patch release of the standard matches it; an environment without Python is not checked.
+
+```toml
+[python]
+version = "3.14"
+newer = "error"
+```
+
+Keys: [`[python] version`](reference.md#python), [`[python] newer`](reference.md#python).
 
 ## `manifest.wildcard-spec` {#manifest-wildcard-spec}
 

@@ -6,6 +6,7 @@ pub mod freshness;
 pub mod licenses;
 pub mod lock;
 pub mod manifest;
+pub mod python;
 pub mod sources;
 
 use std::sync::Arc;
@@ -27,6 +28,7 @@ pub fn with_data(
     rules.extend(licenses::rules());
     rules.extend(advisories::rules(advisories));
     rules.extend(freshness::rules(freshness));
+    rules.extend(python::rules());
     rules.extend(manifest::rules());
     rules.extend(lock::rules());
     rules

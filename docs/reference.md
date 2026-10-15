@@ -82,6 +82,16 @@ A table. When it is left out: no freshness rule runs, and nothing is fetched.
 | `[freshness] archived` | boolean | true, false: a conda-forge package whose feedstock conda-forge has archived fails | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`freshness.archived`](rules.md#freshness-archived), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
 | `[freshness] unknown` | string | "warn", "error", "allow": what a package gets when the data says nothing about it | "warn" | no | may only be stricter, unless overridable | [`freshness.unknown`](rules.md#freshness-unknown) |
 
+## `[python]` {#python}
+
+A table. When it is left out: no python rule runs.
+
+| Key | Type | Allowed values | Default | Required | When extended | Rules |
+|---|---|---|---|---|---|---|
+| `[python] version` | string | a minor version, "3.14": the Python every environment runs; any patch release of it matches | none | yes | may only be stricter, unless overridable | [`python.older`](rules.md#python-older), [`python.newer`](rules.md#python-newer) |
+| `[python] older` | string | "error", "warn", "allow": what an environment whose Python is an older minor version gets | "error" | no | may only be stricter, unless overridable | [`python.older`](rules.md#python-older) |
+| `[python] newer` | string | "warn", "error", "allow": what an environment whose Python is a newer minor version gets | "warn" | no | may only be stricter, unless overridable | [`python.newer`](rules.md#python-newer) |
+
 ## `[manifest]` {#manifest}
 
 A table. When it is left out: no manifest rule runs.

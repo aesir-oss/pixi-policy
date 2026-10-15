@@ -88,6 +88,7 @@ pub const TABLES: &[&str] = &[
     "bans",
     "licenses",
     "advisories",
+    "python",
     "manifest",
     "lock",
 ];
@@ -113,6 +114,7 @@ const FRESHNESS: &[&str] = &[
     "freshness.unknown",
     "freshness.unavailable",
 ];
+const PYTHON: &[&str] = &["python.older", "python.newer"];
 const MANIFEST: &[&str] = &[
     "manifest.wildcard-spec",
     "manifest.python-pinned",
@@ -523,6 +525,50 @@ pub const KEYS: &[Key] = &[
     },
     Key {
         table: "",
+        name: "python",
+        kind: "table",
+        values: "the keys below",
+        default: "absent: no python rule runs",
+        required: false,
+        rules: PYTHON,
+        example: "{ version = \"3.14\" }",
+        merge: Merge::Table,
+    },
+    Key {
+        table: "python",
+        name: "version",
+        kind: "string",
+        values: "a minor version, \"3.14\": the Python every environment runs; any patch release of it matches",
+        default: "none",
+        required: true,
+        rules: PYTHON,
+        example: "\"3.14\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "python",
+        name: "older",
+        kind: "string",
+        values: "\"error\", \"warn\", \"allow\": what an environment whose Python is an older minor version gets",
+        default: "\"error\"",
+        required: false,
+        rules: &["python.older"],
+        example: "\"warn\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "python",
+        name: "newer",
+        kind: "string",
+        values: "\"warn\", \"error\", \"allow\": what an environment whose Python is a newer minor version gets",
+        default: "\"warn\"",
+        required: false,
+        rules: &["python.newer"],
+        example: "\"error\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "",
         name: "manifest",
         kind: "table",
         values: "the keys below",
@@ -784,6 +830,9 @@ mod tests {
                     .collect();
                 format!("[[waivers]]\n{base}{} = {}\n", key.name, key.example)
             }
+            "python" if key.name != "version" => {
+                format!("[python]\nversion = \"3.14\"\n{} = {}\n", key.name, key.example)
+            }
             table => format!("[{table}]\n{} = {}\n", key.name, key.example),
         }
     }
@@ -830,6 +879,7 @@ mod tests {
             "licenses",
             "advisories",
             "freshness",
+            "python",
             "manifest",
             "lock",
             "waivers",

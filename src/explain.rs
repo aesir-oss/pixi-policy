@@ -127,6 +127,20 @@ const DETAILS: &[(&str, &str)] = &[
          pass packages it could not look at.\n\n[freshness]",
     ),
     (
+        "python.older",
+        "Keys: [python] version, the standard minor version, and older = \"error\" (default), \"warn\" or \"allow\". \
+         Reports an environment whose Python, as pixi.lock resolves it for each platform, is an older minor version \
+         than the standard. Every patch release of the standard matches it; an environment without Python is not \
+         checked.\n\n[python]\nversion = \"3.14\"\nolder = \"error\"",
+    ),
+    (
+        "python.newer",
+        "Keys: [python] version, the standard minor version, and newer = \"warn\" (default), \"error\" or \"allow\". \
+         Reports an environment whose Python, as pixi.lock resolves it for each platform, is a newer minor version \
+         than the standard. Every patch release of the standard matches it; an environment without Python is not \
+         checked.\n\n[python]\nversion = \"3.14\"\nnewer = \"error\"",
+    ),
+    (
         "manifest.wildcard-spec",
         "Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as \"*\" \
          in any dependency table, at its line in the manifest.\n\n[manifest]\nwildcard-spec = true",
