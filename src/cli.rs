@@ -47,6 +47,8 @@ pub enum Command {
         #[arg(long)]
         resolved: bool,
     },
+    /// Write what pixi.lock says about every environment and platform as JSON, for a policy engine such as OPA.
+    Facts,
     /// Say what a rule checks, its keys and an example; without RULE, list every rule.
     Explain {
         /// A rule ID, such as licenses.deny.

@@ -1,0 +1,52 @@
+{
+  "expected": [
+    {
+      "rule": "bans.deny",
+      "package": "py",
+      "environment": "test",
+      "platform": "linux-64"
+    },
+    {
+      "rule": "bans.deny",
+      "package": "py",
+      "environment": "test",
+      "platform": "osx-arm64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "ld_impl_linux-64",
+      "environment": "default",
+      "platform": "linux-64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "ld_impl_linux-64",
+      "environment": "test",
+      "platform": "linux-64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "readline",
+      "environment": "default",
+      "platform": "linux-64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "readline",
+      "environment": "default",
+      "platform": "osx-arm64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "readline",
+      "environment": "test",
+      "platform": "linux-64"
+    },
+    {
+      "rule": "licenses.deny",
+      "package": "readline",
+      "environment": "test",
+      "platform": "osx-arm64"
+    }
+  ]
+}

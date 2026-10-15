@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aesir-oss.github.io/pixi-policy/latest/schemas/pixi-policy-facts.schema.json",
+  "title": "pixi-policy facts",
+  "description": "What `pixi policy facts` writes: every environment and platform of pixi.lock with its packages, as input for a policy engine such as OPA. Version 1: fields may be added; a renamed or removed field raises the version.",
+  "type": "object",
+  "required": ["version", "tool", "workspace", "environments"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "pixi-policy" },
+        "version": { "type": "string" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "description": "Paths relative to the working directory when inside it, as given otherwise.",
+      "required": ["manifest", "lockfile"],
+      "additionalProperties": false,
+      "properties": {
+        "manifest": { "type": "string" },
+        "lockfile": { "type": "string" }
+      }
+    },
+    "environments": {
+      "type": "array",
+      "description": "One entry per environment and platform pixi.lock locks: `default` first, the rest by name, each platform by name.",
+      "items": { "$ref": "#/$defs/environment" }
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "required": ["name", "platform", "packages"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "platform": { "type": "string", "description": "A conda platform: linux-64, osx-arm64, win-64, ..." },
+        "packages": { "type": "array", "items": { "$ref": "#/$defs/package" } }
+      }
+    },
+    "package": {
+      "type": "object",
+      "required": ["name", "version", "kind", "purl", "provides_pypi", "origin", "license", "build", "build_number", "timestamp", "subdir", "sha256", "requires_python"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": ["string", "null"] },
+        "kind": { "enum": ["conda", "conda-source", "pypi"], "description": "A conda archive from a channel or URL, a conda package pixi builds from source, or a PyPI wheel or source distribution." },
+        "purl": { "type": "string" },
+        "provides_pypi": { "type": "array", "items": { "type": "string" }, "description": "The PyPI distributions pixi.lock states a conda package provides (conda msgpack-python provides msgpack); empty for a PyPI package." },
+        "origin": {
+          "type": "object",
+          "required": ["type", "url", "channel"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "enum": ["channel", "index", "git", "url", "path"] },
+            "url": { "type": "string", "description": "The channel's or index's URL, or the git, archive or local location." },
+            "channel": { "type": ["string", "null"], "description": "The channel's name, for a conda package from one." }
+          }
+        },
+        "license": {
+          "type": "object",
+          "required": ["declared", "spdx", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "declared": { "type": ["string", "null"], "description": "As pixi.lock records it; pixi.lock records no PyPI licenses." },
+            "spdx": { "type": ["string", "null"], "description": "The SPDX expression pixi-policy reads it as." },
+            "status": { "enum": ["spdx", "text", "ambiguous", "missing"] }
+          }
+        },
+        "build": { "type": ["string", "null"] },
+        "build_number": { "type": ["integer", "null"], "minimum": 0 },
+        "timestamp": { "type": ["integer", "null"], "description": "When a conda package was built, in seconds since 1970." },
+        "subdir": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"] },
+        "requires_python": { "type": ["string", "null"], "description": "A PyPI package's Requires-Python." }
+      }
+    }
+  }
+}

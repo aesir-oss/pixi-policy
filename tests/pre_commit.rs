@@ -105,7 +105,7 @@ fn the_release_job_renders_and_tags_the_mirror_after_pypi() {
 fn ci_tries_the_hook() {
     let ci = read(".github/workflows/ci.yml");
     assert!(ci.contains("pre-commit-mirror/try.sh"), "{ci}");
-    assert!(ci.contains("needs: [lint, test, coverage, deny, msrv, build, docs, action, pre-commit-hook]"));
+    assert!(ci.contains("needs: [lint, test, coverage, deny, msrv, build, docs, rego, action, pre-commit-hook]"));
 }
 
 #[cfg(unix)]

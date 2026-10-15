@@ -155,6 +155,38 @@ fn run(args: &Args) -> miette::Result<i32> {
                 .into_diagnostic()?;
             Ok(EXIT_OK)
         }
+        Command::Facts => {
+            if args.format == report::Format::Sarif {
+                return Err(miette::miette!(
+                    code = "pixi_policy::facts::format",
+                    help = "leave --format out, or give --format json",
+                    "pixi policy facts writes JSON only"
+                ));
+            }
+            let cwd = std::env::current_dir()
+                .into_diagnostic()
+                .wrap_err("cannot read the working directory")?;
+            let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
+            if !workspace.has_lockfile() {
+                return Err(workspace.no_lockfile().into());
+            }
+            let lock = check::load_lockfile(&workspace.lockfile)?;
+            let doc = pixi_policy::facts::document(&lock, &workspace.manifest, &workspace.lockfile, &cwd)?;
+            let text = report::pretty(&doc);
+            match &args.output {
+                Some(path) => std::fs::write(path, text)
+                    .into_diagnostic()
+                    .wrap_err_with(|| format!("cannot write the facts to {}", path.display()))?,
+                None => {
+                    let mut out = pixi_policy::pipe::stdout();
+                    out.write_all(text.as_bytes())
+                        .and_then(|()| out.flush())
+                        .into_diagnostic()
+                        .wrap_err("cannot write the facts")?;
+                }
+            }
+            Ok(EXIT_OK)
+        }
         Command::Explain { rule } => {
             let text = match rule {
                 None => pixi_policy::explain::list(),

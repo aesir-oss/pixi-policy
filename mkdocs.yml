@@ -20,6 +20,7 @@ nav:
   - Waivers: waivers.md
   - Sharing a policy: extends.md
   - Output formats: output.md
+  - Facts for OPA and Rego: rego.md
   - Development: development.md
   - Security policy: security.md
   - Changelog: changelog.md
@@ -105,6 +106,7 @@ extra:
     SECURITY.md: security.md
     # The JSON report's schema, at the address its $id names.
     schemas/pixi-policy-report.schema.json: schemas/pixi-policy-report.schema.json
+    schemas/pixi-policy-facts.schema.json: schemas/pixi-policy-facts.schema.json
   # Version selector fed by mike's versions.json; the site root opens `latest`.
   version:
     provider: mike

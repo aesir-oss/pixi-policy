@@ -21,6 +21,7 @@ pixi run ci     # the full gate: pre-commit, release build, check, clippy, cover
 | `-e lint deny` | `cargo deny check`: advisories, licenses, banned crates and sources, against `deny.toml` |
 | `-e msrv msrv-check` | `cargo check` on the oldest toolchain `Cargo.toml` claims |
 | `-e docs docs-serve`, `-e docs docs-build` | this site, served with live reload or built strictly |
+| `-e rego rego-test` | `opa test` on [the Rego example](rego.md) against `pixi policy facts` of an example workspace |
 
 `pixi run bootstrap` installs the pre-commit hooks once per clone.
 
@@ -35,11 +36,13 @@ pixi run ci     # the full gate: pre-commit, release build, check, clippy, cover
 | `src/license.rs`, `src/license_policy.rs`, `src/purl.rs` | license normalisation, the license verdict, package URLs |
 | `src/report.rs`, `src/style.rs`, `src/pipe.rs` | text, JSON and SARIF reports; terminal colour; output a reader may close early |
 | `src/explain.rs`, `src/waivers.rs`, `src/init.rs` | `explain`, waivers that expire, `init` |
-| `schemas/` | the JSON report's schema, published with the docs |
+| `src/vex.rs`, `src/facts.rs` | VEX statements for `[advisories]`; `pixi policy facts` |
+| `schemas/` | the JSON report's and the facts' schemas, published with the docs |
 | `actions/pixi-policy/` | the GitHub Action, copied to `aesir-oss/pixi-policy-action` on each release |
 | `pre-commit-mirror/` | the pre-commit hook, rendered into `aesir-oss/pixi-policy-pre-commit` on each final |
 | `tests/` | end-to-end tests of the binary, with fixtures and schemas |
 | `examples/projects/pixi/` | 19 real pixi workspaces the tests and the field test run against |
+| `examples/rego/` | built-in rules written in Rego over `pixi policy facts`, with `opa test` tests |
 | `docs/`, `mkdocs.yml` | this site |
 
 The license, lockfile, purl, style and pipe modules began in a crate pixi-policy shared with pixi-sbom in

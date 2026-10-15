@@ -20,6 +20,7 @@ test = "cargo test"
 test-integration = "cargo test --test '*'"
 build = "cargo build --release"
 policy-docs = { cmd = "cargo test --test docs", env = { PIXI_POLICY_WRITE_DOCS = "1" }, description = "regenerate the policy reference and rule catalog pages from the code" }
+rego-facts = { cmd = "mkdir -p target/rego/flask && cargo run -q -- facts --manifest-path examples/projects/pixi/02-flask/pixi.toml --output target/rego/flask/facts.json", description = "write the facts the Rego example's tests read" }
 
 # The oldest toolchain the crate claims to build on. Its own environment, because it pins a different rust than the
 # one everything else uses; `pixi run -e msrv msrv-check` is what proves the number in Cargo.toml.
@@ -75,8 +76,18 @@ mike = ">=2.1"
 docs-serve = "mkdocs serve"
 docs-build = "mkdocs build --strict"
 
+# OPA, for the Rego example in examples/rego (#9): its tests run against the facts of an example workspace.
+[feature.rego.dependencies]
+opa = ">=1.0"
+
+[feature.rego.tasks]
+rego-test = { cmd = "opa test examples/rego target/rego -v", depends-on = [
+  { task = "rego-facts", environment = "default" },
+], description = "run the Rego example's tests against pixi policy facts" }
+
 [environments]
 default = ["lint", "cov", "dev"]
 lint = { features = ["lint"], no-default-feature = true }
 docs = { features = ["docs"], no-default-feature = true }
 msrv = { features = ["msrv"], no-default-feature = true }
+rego = { features = ["rego"], no-default-feature = true }

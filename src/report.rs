@@ -54,7 +54,7 @@ pub fn render(format: Format, outcome: &Outcome, context: &Context<'_>, palette:
     }
 }
 
-fn pretty(value: &Value) -> String {
+pub fn pretty(value: &Value) -> String {
     let mut text = serde_json::to_string_pretty(value).expect("a JSON value always serializes");
     text.push('\n');
     text
