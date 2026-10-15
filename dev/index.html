@@ -990,6 +990,11 @@ single binary that pixi runs as <code>pixi policy</code>.</p>
 <td>no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock</td>
 </tr>
 <tr>
+<td><a href="rules/#python-older">Python</a></td>
+<td><code>python.older</code>, <code>python.newer</code></td>
+<td>every environment runs the policy's standard Python minor version (any patch release of it)</td>
+</tr>
+<tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>
 <td><code>manifest.wildcard-spec</code>, <code>manifest.python-pinned</code>, <code>manifest.required-platforms</code></td>
 <td><code>pixi.toml</code> gives no <code>*</code> specs, pins Python to a minor version and lists the required platforms</td>

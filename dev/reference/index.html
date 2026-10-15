@@ -631,6 +631,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [python]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1011,6 +1022,17 @@
     <span class="md-ellipsis">
       
         [freshness]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [python]
       
     </span>
   </a>
@@ -1473,6 +1495,50 @@
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="python"><code>[python]</code><a class="headerlink" href="#python" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: no python rule runs.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[python] version</code></td>
+<td>string</td>
+<td>a minor version, "3.14": the Python every environment runs; any patch release of it matches</td>
+<td>none</td>
+<td>yes</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-older"><code>python.older</code></a>, <a href="../rules/#python-newer"><code>python.newer</code></a></td>
+</tr>
+<tr>
+<td><code>[python] older</code></td>
+<td>string</td>
+<td>"error", "warn", "allow": what an environment whose Python is an older minor version gets</td>
+<td>"error"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-older"><code>python.older</code></a></td>
+</tr>
+<tr>
+<td><code>[python] newer</code></td>
+<td>string</td>
+<td>"warn", "error", "allow": what an environment whose Python is a newer minor version gets</td>
+<td>"warn"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-newer"><code>python.newer</code></a></td>
 </tr>
 </tbody>
 </table>
