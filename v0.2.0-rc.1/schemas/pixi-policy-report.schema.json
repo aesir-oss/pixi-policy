@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aesir-oss.github.io/pixi-policy/latest/schemas/pixi-policy-report.schema.json",
+  "title": "pixi-policy report",
+  "description": "What `pixi policy check --format json` writes. Version 1: fields may be added; a renamed or removed field raises the version.",
+  "type": "object",
+  "required": ["version", "tool", "workspace", "summary", "findings", "waived"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "pixi-policy" },
+        "version": { "type": "string" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "description": "Paths relative to the working directory when inside it, as given otherwise.",
+      "required": ["manifest", "lockfile", "policy"],
+      "additionalProperties": false,
+      "properties": {
+        "manifest": { "type": "string" },
+        "lockfile": { "type": "string" },
+        "policy": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["passed", "errors", "warnings", "waived", "packages", "targets"],
+      "additionalProperties": false,
+      "properties": {
+        "passed": { "type": "boolean", "description": "No finding failed the check (exit code 0)." },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "waived": { "type": "integer", "minimum": 0 },
+        "packages": { "type": "integer", "minimum": 0, "description": "Packages across every environment and platform." },
+        "targets": { "type": "integer", "minimum": 0, "description": "Environment and platform pairs checked." }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "waived": { "type": "array", "items": { "$ref": "#/$defs/waived" }, "description": "Findings a waiver let through, with the waiver's reason and expiry." }
+  },
+  "$defs": {
+    "finding-fields": {
+      "type": "object",
+      "required": ["rule", "severity", "package", "version", "environment", "platform", "file", "line", "message", "help"],
+      "properties": {
+        "rule": { "type": "string", "pattern": "^[a-z]+\\.[a-z0-9-]+$", "description": "family.rule" },
+        "severity": { "enum": ["error", "warning"] },
+        "package": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "environment": { "type": "string", "description": "Empty for a finding about the manifest or the policy file rather than one environment." },
+        "platform": { "type": "string" },
+        "file": { "enum": ["pixi.lock", "pixi.toml", "pyproject.toml", "pixi-policy.toml"] },
+        "line": { "type": ["integer", "null"], "minimum": 1 },
+        "message": { "type": "string" },
+        "help": { "type": ["string", "null"] },
+        "advisory": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "An advisories.* finding's advisory: its id, then its aliases. Absent for every other rule." }
+      }
+    },
+    "finding": {
+      "$ref": "#/$defs/finding-fields",
+      "unevaluatedProperties": false
+    },
+    "waived": {
+      "$ref": "#/$defs/finding-fields",
+      "required": ["waiver"],
+      "properties": {
+        "waiver": {
+          "type": "object",
+          "required": ["reason", "expires"],
+          "additionalProperties": false,
+          "properties": {
+            "reason": { "type": "string" },
+            "expires": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}
