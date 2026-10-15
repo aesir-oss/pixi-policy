@@ -131,6 +131,7 @@ pub fn apply(outcome: &mut Outcome, policy: &Policy, today: Date) {
                     finding,
                     reason: waivers[index].reason.clone(),
                     expires: waivers[index].expires_on().to_string(),
+                    vex: None,
                 });
             }
             None => outcome.findings.push(finding),

@@ -190,6 +190,10 @@ pub struct Advisories {
     /// What an advisory with no severity gets (default warn).
     pub unknown: Option<Unknown>,
     pub pypi_mapping: Option<PypiMapping>,
+    /// VEX documents whose statements take advisories out of the check: paths relative to the policy file, or
+    /// pinned https URLs (#10).
+    #[serde(default)]
+    pub vex: Vec<String>,
 }
 
 impl Advisories {
@@ -216,6 +220,17 @@ impl Advisories {
         }
         if self.epss.is_some_and(|epss| !(0.0..=1.0).contains(&epss)) {
             return Err("epss is a probability, from 0 to 1".into());
+        }
+        for location in &self.vex {
+            if location.trim().is_empty() {
+                return Err("a vex entry is empty: give a path or a URL".into());
+            }
+            if location.contains("://") && !(location.starts_with("https://") && crate::fetch::pinned(location)) {
+                return Err(format!(
+                    "vex {location:?} is not a pinned https URL: put a tag or commit in it, so it cannot change \
+                     under you"
+                ));
+            }
         }
         Ok(())
     }

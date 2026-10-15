@@ -34,6 +34,7 @@ fn run(args: &Args) -> miette::Result<i32> {
             let workspace = Workspace::find(args.manifest_path.as_deref(), &cwd)?;
             let policy_path = workspace.policy_path(args.policy.as_deref());
             let policy = Policy::load(&as_given(&policy_path, &cwd))?;
+            let vex = pixi_policy::vex::load(&policy, &pixi_policy::fetch::Settings::from_env())?;
             let lock_rules_present = policy.lock.as_ref().is_some_and(|lock| lock.present != Some(false));
             let lock = match workspace.has_lockfile() {
                 true => Some(check::load_lockfile(&workspace.lockfile)?),
@@ -66,11 +67,14 @@ fn run(args: &Args) -> miette::Result<i32> {
                 Some(Err(message)) => (None, Some(pixi_policy::rules::hygiene::unavailable(&message))),
                 None => (None, None),
             };
-            let rules = pixi_policy::rules::with_data(data, freshness, mapping);
+            let rules = pixi_policy::rules::with_data(data.clone(), freshness, mapping);
             let mut outcome = match &lock {
                 Some(lock) => check::run(lock, &policy, &rules)?,
                 None => Outcome::default(),
             };
+            if let Some(lock) = &lock {
+                pixi_policy::vex::apply(&mut outcome, &vex, lock, data.as_deref());
+            }
             outcome.findings.extend(unavailable);
             outcome.findings.extend(stale);
             outcome.findings.extend(unmapped);

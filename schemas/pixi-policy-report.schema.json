@@ -42,7 +42,7 @@
       }
     },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
-    "waived": { "type": "array", "items": { "$ref": "#/$defs/waived" }, "description": "Findings a waiver let through, with the waiver's reason and expiry." }
+    "waived": { "type": "array", "items": { "$ref": "#/$defs/waived" }, "description": "Findings a waiver let through, with the waiver's reason and expiry, or a VEX statement, with what it says." }
   },
   "$defs": {
     "finding-fields": {
@@ -68,8 +68,20 @@
     },
     "waived": {
       "$ref": "#/$defs/finding-fields",
-      "required": ["waiver"],
+      "oneOf": [{ "required": ["waiver"] }, { "required": ["vex"] }],
       "properties": {
+        "vex": {
+          "type": "object",
+          "description": "The VEX statement that let an advisories.* finding through (#10).",
+          "required": ["state", "justification", "detail", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "state": { "enum": ["not_affected", "false_positive", "resolved", "resolved_with_pedigree"] },
+            "justification": { "type": ["string", "null"] },
+            "detail": { "type": ["string", "null"] },
+            "source": { "type": "string", "description": "The VEX file's name." }
+          }
+        },
         "waiver": {
           "type": "object",
           "required": ["reason", "expires"],

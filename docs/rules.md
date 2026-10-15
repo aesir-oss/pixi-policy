@@ -189,7 +189,7 @@ Keys: [`[licenses] ambiguous`](reference.md#licenses).
 
 A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold.
 
-Keys: [advisories] fail-on (default "high"), known-exploited (default "error") and epss (not set by default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities catalog, or with an EPSS score at or above epss. Advisories are OSV's, as pixi-sbom --vulns reads them; a conda package is looked up by its PyPI identity (pypi-mapping). The help names the version that fixes it. Waive one advisory with a waiver's advisory key.
+Keys: [advisories] fail-on (default "high"), known-exploited (default "error") and epss (not set by default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities catalog, or with an EPSS score at or above epss. Advisories are OSV's, as pixi-sbom --vulns reads them; a conda package is looked up by its PyPI identity (pypi-mapping). The help names the version that fixes it. Waive one advisory with a waiver's advisory key, or take it out with a VEX statement from a file [advisories] vex names (CycloneDX or OpenVEX: not_affected, false_positive and resolved are waived with it).
 
 ```toml
 [advisories]
@@ -198,7 +198,7 @@ known-exploited = "error"
 epss = 0.1
 ```
 
-Keys: [`[advisories] fail-on`](reference.md#advisories), [`[advisories] known-exploited`](reference.md#advisories), [`[advisories] epss`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories).
+Keys: [`[advisories] fail-on`](reference.md#advisories), [`[advisories] known-exploited`](reference.md#advisories), [`[advisories] epss`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories), [`[advisories] vex`](reference.md#advisories).
 
 ## `advisories.unknown` {#advisories-unknown}
 
@@ -211,7 +211,7 @@ Key: [advisories] unknown = "warn" (default), "error" or "allow": what an adviso
 unknown = "error"
 ```
 
-Keys: [`[advisories] unknown`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories).
+Keys: [`[advisories] unknown`](reference.md#advisories), [`[advisories] pypi-mapping`](reference.md#advisories), [`[advisories] vex`](reference.md#advisories).
 
 ## `advisories.unavailable` {#advisories-unavailable}
 
