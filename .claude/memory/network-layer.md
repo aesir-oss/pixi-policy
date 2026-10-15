@@ -1,6 +1,6 @@
 ---
 name: network-layer
-description: "pixi-policy's network use: extends URLs (#1), advisories (#3) and freshness (#2) via ureq on rustls/ring with the platform verifier, cached; what to watch in the next rc"
+description: "pixi-policy's network use: extends URLs (#1), advisories (#3) and freshness (#2) via ureq on rustls/ring with the platform verifier, cached; what to watch when a C dependency changes"
 metadata:
   type: project
 ---
@@ -26,6 +26,6 @@ bot cycle, documented). Added `ruzstd` and `rmp-serde` (pure Rust) with approval
 **Why:** pixi-sbom kept the "shared network stack" at the split, so this crate had none until #1.
 
 **How to apply:** `ring` is the first C dependency here. The release wheels build from the tag, so a dry run cannot
-exercise it: in the next release candidate, watch all seven wheel jobs (musllinux and the macOS x86-64 cross-build
-especially) before the field test. Any new network feature (#2 freshness, #3 advisories) reuses `fetch.rs`'s agent
+exercise it: 0.2.0-rc.1 was the first release to build it, and all seven wheel jobs (musllinux and the macOS
+x86-64 cross-build included) passed; keep watching them when a C dependency changes. Any new network feature (#2 freshness, #3 advisories) reuses `fetch.rs`'s agent
 and cache. Related: [[release-binaries]], [[releases]].
