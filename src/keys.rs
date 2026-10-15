@@ -88,6 +88,7 @@ pub const TABLES: &[&str] = &[
     "bans",
     "licenses",
     "advisories",
+    "freshness",
     "python",
     "manifest",
     "lock",
@@ -858,6 +859,13 @@ mod tests {
             .flat_map(|field| field.split(" or "))
             .map(|field| field.trim().trim_matches('`').to_string())
             .collect()
+    }
+
+    #[test]
+    fn every_table_row_is_a_table() {
+        for key in KEYS.iter().filter(|key| key.table.is_empty() && key.kind == "table") {
+            assert!(TABLES.contains(&key.name), "[{}] is missing from TABLES", key.name);
+        }
     }
 
     #[test]

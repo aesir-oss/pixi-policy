@@ -862,7 +862,7 @@ mod tests {
             &[
                 (
                     "base.toml",
-                    "[sources]\nallow-git = false\n[bans]\ndeny = [{ name = \"pycrypto\" }]\n[policy]\noverridable = [\"sources.allow-git\"]\n",
+                    "[freshness]\nmax-build-age-days = 730\n[sources]\nallow-git = false\n[bans]\ndeny = [{ name = \"pycrypto\" }]\n[policy]\noverridable = [\"sources.allow-git\"]\n",
                 ),
                 (
                     "p.toml",
@@ -877,6 +877,10 @@ mod tests {
         let local = dir.path().join("p.toml").display().to_string();
         assert!(text.contains(&format!("# Read in order: {base}, {local}\n")), "{text}");
         assert!(text.contains(&format!("max-waiver-days = 90  # {local}\n")), "{text}");
+        assert!(
+            text.contains(&format!("[freshness]\nmax-build-age-days = 730  # {base}\n")),
+            "{text}"
+        );
         assert!(
             text.contains(&format!(
                 "allow-git = true  # {local}, loosens {base} (overridable there)\n"
