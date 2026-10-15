@@ -640,6 +640,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#vex-statements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VEX statements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -896,6 +907,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#vex-statements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VEX statements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -994,9 +1016,52 @@ worse than one that stops. To run offline in CI, run once online and keep <code>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"no redirects to other origins; SEC-123"</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-03-31</span>
 </code></pre></div>
-<p>Without <code>advisory</code>, the waiver accepts every advisory on the package, including ones published after it was written.
-A waiver does not say why the code is not affected the way a VEX statement does; reading VEX documents is planned for
-pixi-policy 0.3.0.</p>
+<p>Without <code>advisory</code>, the waiver accepts every advisory on the package, including ones published after it was written.</p>
+<h2 id="vex-statements">VEX statements<a class="headerlink" href="#vex-statements" title="Permanent link">&para;</a></h2>
+<p>A VEX document says why an advisory does not affect a product. <code>[advisories] vex</code> names the ones the check reads:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[advisories]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">vex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"security/vex.cdx.json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"https://github.com/acme/policies/raw/v3/vendor.openvex.json"</span><span class="p">]</span>
+</code></pre></div>
+<p>Each entry is a path relative to the policy file that names it, or a pinned https URL (a tag or a commit in it),
+fetched once and cached like an <a href="../extends/">extended policy</a>. A shared policy can carry its VEX: an entry in a base
+is found beside that base, by its path or relative to its URL, and every file's entries add up.</p>
+<p>pixi-policy reads CycloneDX JSON (a VEX, or an SBOM with <code>vulnerabilities[].analysis</code>) and OpenVEX, as pixi-sbom's
+<code>--vex-in</code> does. A statement applies to an advisory finding when it names the advisory by its id or any alias, and
+names the package by a purl (<code>pkg:pypi/urllib3@1.26.4</code>; without a version, every version), or names no product at
+all. A conda package is matched by its own purl and by the PyPI purls it was looked up by. When several statements
+apply, the last one wins.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>OpenVEX status</th>
+<th>The finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>not_affected</code>, <code>false_positive</code></td>
+<td><code>not_affected</code></td>
+<td>is waived, with the statement</td>
+</tr>
+<tr>
+<td><code>resolved</code>, <code>resolved_with_pedigree</code></td>
+<td><code>fixed</code></td>
+<td>is waived, with the statement</td>
+</tr>
+<tr>
+<td><code>exploitable</code>, <code>in_triage</code></td>
+<td><code>affected</code>, <code>under_investigation</code></td>
+<td>still fails</td>
+</tr>
+</tbody>
+</table>
+<p>A waived finding is listed with the others, its statement in place of a waiver:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>waived[advisories.vulnerable] urllib3 1.26.4: GHSA-v845-jxx5-vc9f (CVE-2023-43804), high severity: ... (pixi.lock: environment "default", linux-64); VEX: not_affected (code_not_reachable), vex.cdx.json: never parses cookies
+</code></pre></div>
+<p>In JSON the entry has <code>vex</code> (<code>state</code>, <code>justification</code>, <code>detail</code>, <code>source</code>) instead of <code>waiver</code>; in SARIF it is a
+suppressed result with the statement as its justification. A statement does not expire; a VEX file that cannot be
+read or is neither format stops the check with exit code 2.</p>
 
 
 

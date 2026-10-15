@@ -1465,6 +1465,15 @@
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#advisories-vulnerable"><code>advisories.vulnerable</code></a>, <a href="../rules/#advisories-unknown"><code>advisories.unknown</code></a></td>
 </tr>
+<tr>
+<td><code>[advisories] vex</code></td>
+<td>list of strings</td>
+<td>CycloneDX or OpenVEX JSON files, by a path relative to the policy that names them or a pinned https URL: an advisory a statement marks not_affected, false_positive or resolved for a package is waived with it</td>
+<td>[]</td>
+<td>no</td>
+<td>adds up</td>
+<td><a href="../rules/#advisories-vulnerable"><code>advisories.vulnerable</code></a>, <a href="../rules/#advisories-unknown"><code>advisories.unknown</code></a></td>
+</tr>
 </tbody>
 </table>
 <h2 id="freshness"><code>[freshness]</code><a class="headerlink" href="#freshness" title="Permanent link">&para;</a></h2>
