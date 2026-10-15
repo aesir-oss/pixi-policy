@@ -89,6 +89,7 @@ pub const TABLES: &[&str] = &[
     "licenses",
     "advisories",
     "freshness",
+    "hygiene",
     "python",
     "manifest",
     "lock",
@@ -115,6 +116,7 @@ const FRESHNESS: &[&str] = &[
     "freshness.unknown",
     "freshness.unavailable",
 ];
+const HYGIENE: &[&str] = &["hygiene.conda-pypi-duplicate", "hygiene.unavailable"];
 const PYTHON: &[&str] = &["python.older", "python.newer"];
 const MANIFEST: &[&str] = &[
     "manifest.wildcard-spec",
@@ -526,6 +528,28 @@ pub const KEYS: &[Key] = &[
     },
     Key {
         table: "",
+        name: "hygiene",
+        kind: "table",
+        values: "the keys below",
+        default: "absent: no hygiene rule runs",
+        required: false,
+        rules: HYGIENE,
+        example: "{}",
+        merge: Merge::Table,
+    },
+    Key {
+        table: "hygiene",
+        name: "conda-pypi-duplicate",
+        kind: "boolean",
+        values: "true, false: a PyPI package a conda package in the same environment already provides fails",
+        default: WHEN_TABLE_EXISTS,
+        required: false,
+        rules: HYGIENE,
+        example: "true",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "",
         name: "python",
         kind: "table",
         values: "the keys below",
@@ -887,6 +911,7 @@ mod tests {
             "licenses",
             "advisories",
             "freshness",
+            "hygiene",
             "python",
             "manifest",
             "lock",

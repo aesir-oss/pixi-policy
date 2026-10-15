@@ -127,6 +127,21 @@ const DETAILS: &[(&str, &str)] = &[
          pass packages it could not look at.\n\n[freshness]",
     ),
     (
+        "hygiene.conda-pypi-duplicate",
+        "Key: [hygiene] conda-pypi-duplicate (on once [hygiene] exists). Fails a PyPI package whose distribution a \
+         conda package in the same environment already provides, so both are installed one over the other. A conda \
+         package provides the PyPI names pixi.lock states purls for (conda msgpack-python is PyPI msgpack); for a \
+         conda-forge package it states none for, conda-forge's mapping gives them, read only when an environment has \
+         such a package and PyPI packages too.\n\n[hygiene]\nconda-pypi-duplicate = true",
+    ),
+    (
+        "hygiene.unavailable",
+        "Key: [hygiene]. conda-forge's conda-to-PyPI mapping could not be read: the network is down and nothing is \
+         cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The packages pixi.lock states PyPI names for \
+         are still compared; the check fails rather than pass the others. PIXI_POLICY_MAPPING_URL points at a \
+         mirror.\n\n[hygiene]",
+    ),
+    (
         "python.older",
         "Keys: [python] version, the standard minor version, and older = \"error\" (default), \"warn\" or \"allow\". \
          Reports an environment whose Python, as pixi.lock resolves it for each platform, is an older minor version \

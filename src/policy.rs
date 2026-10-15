@@ -243,6 +243,20 @@ impl Freshness {
     }
 }
 
+/// `[hygiene]`: what an environment should not hold. `conda-pypi-duplicate` is on once the table exists (#11).
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct Hygiene {
+    /// A PyPI package a conda package in the same environment already provides (default true).
+    pub conda_pypi_duplicate: Option<bool>,
+}
+
+impl Hygiene {
+    pub fn conda_pypi_duplicate(&self) -> bool {
+        self.conda_pypi_duplicate.unwrap_or(true)
+    }
+}
+
 /// `[python]`: the Python minor version every environment runs (#42). Any patch release of `version` matches it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -439,6 +453,9 @@ pub struct Policy {
     /// The Python minor version every environment runs.
     #[serde(default)]
     pub python: Option<PythonRules>,
+    /// What an environment should not hold.
+    #[serde(default)]
+    pub hygiene: Option<Hygiene>,
     /// A waiver's `expires` further than this many days after today is reported (`waivers.too-long`); 0 turns that
     /// off. Default 365 (decided on #66).
     #[serde(default)]

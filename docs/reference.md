@@ -81,6 +81,14 @@ A table. When it is left out: no freshness rule runs, and nothing is fetched.
 | `[freshness] archived` | boolean | true, false: a conda-forge package whose feedstock conda-forge has archived fails | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`freshness.archived`](rules.md#freshness-archived), [`freshness.unknown`](rules.md#freshness-unknown), [`freshness.unavailable`](rules.md#freshness-unavailable) |
 | `[freshness] unknown` | string | "warn", "error", "allow": what a package gets when the data says nothing about it | "warn" | no | may only be stricter, unless overridable | [`freshness.unknown`](rules.md#freshness-unknown) |
 
+## `[hygiene]` {#hygiene}
+
+A table. When it is left out: no hygiene rule runs.
+
+| Key | Type | Allowed values | Default | Required | When extended | Rules |
+|---|---|---|---|---|---|---|
+| `[hygiene] conda-pypi-duplicate` | boolean | true, false: a PyPI package a conda package in the same environment already provides fails | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`hygiene.conda-pypi-duplicate`](rules.md#hygiene-conda-pypi-duplicate), [`hygiene.unavailable`](rules.md#hygiene-unavailable) |
+
 ## `[python]` {#python}
 
 A table. When it is left out: no python rule runs.
