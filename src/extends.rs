@@ -992,7 +992,7 @@ mod tests {
         let file = Place::File(PathBuf::from("shared/base.toml"));
         assert_eq!(
             vex_location(&file, "shared/base.toml", "../vex/a.json").unwrap(),
-            "vex/a.json"
+            Path::new("vex").join("a.json").display().to_string()
         );
         let pinned = Place::Url(crate::fetch::Remote {
             url: "https://example.com/acme/v3/base.toml".into(),
