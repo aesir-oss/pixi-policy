@@ -631,6 +631,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [hygiene]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#python" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1022,6 +1033,17 @@
     <span class="md-ellipsis">
       
         [freshness]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [hygiene]
       
     </span>
   </a>
@@ -1486,6 +1508,32 @@
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="hygiene"><code>[hygiene]</code><a class="headerlink" href="#hygiene" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: no hygiene rule runs.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[hygiene] conda-pypi-duplicate</code></td>
+<td>boolean</td>
+<td>true, false: a PyPI package a conda package in the same environment already provides fails</td>
+<td>true once the table exists; without the table the rule is off</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#hygiene-conda-pypi-duplicate"><code>hygiene.conda-pypi-duplicate</code></a>, <a href="../rules/#hygiene-unavailable"><code>hygiene.unavailable</code></a></td>
 </tr>
 </tbody>
 </table>

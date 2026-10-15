@@ -990,6 +990,11 @@ single binary that pixi runs as <code>pixi policy</code>.</p>
 <td>no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock</td>
 </tr>
 <tr>
+<td><a href="rules/#hygiene-conda-pypi-duplicate">Hygiene</a></td>
+<td><code>hygiene.conda-pypi-duplicate</code>, <code>hygiene.unavailable</code></td>
+<td>no PyPI package is one a conda package in the same environment already provides</td>
+</tr>
+<tr>
 <td><a href="rules/#python-older">Python</a></td>
 <td><code>python.older</code>, <code>python.newer</code></td>
 <td>every environment runs the policy's standard Python minor version (any patch release of it)</td>

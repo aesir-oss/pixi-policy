@@ -747,6 +747,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hygiene-conda-pypi-duplicate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hygiene.conda-pypi-duplicate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hygiene-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hygiene.unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest-wildcard-spec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1370,6 +1392,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hygiene-conda-pypi-duplicate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hygiene.conda-pypi-duplicate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hygiene-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hygiene.unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest-wildcard-spec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1586,6 +1630,14 @@
 <td>No environment runs a Python newer than the policy's standard</td>
 </tr>
 <tr>
+<td><a href="#hygiene-conda-pypi-duplicate"><code>hygiene.conda-pypi-duplicate</code></a></td>
+<td>No PyPI package is one a conda package in the same environment provides</td>
+</tr>
+<tr>
+<td><a href="#hygiene-unavailable"><code>hygiene.unavailable</code></a></td>
+<td>conda-forge's PyPI mapping cannot be read, so some conda packages were not compared</td>
+</tr>
+<tr>
 <td><a href="#manifest-wildcard-spec"><code>manifest.wildcard-spec</code></a></td>
 <td>No dependency is given as <code>\*</code></td>
 </tr>
@@ -1768,72 +1820,85 @@
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">newer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"error"</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#python"><code>[python] version</code></a>, <a href="../reference/#python"><code>[python] newer</code></a>.</p>
+<h2 id="hygiene-conda-pypi-duplicate"><code>hygiene.conda-pypi-duplicate</code><a class="headerlink" href="#hygiene-conda-pypi-duplicate" title="Permanent link">&para;</a></h2>
+<p>No PyPI package is one a conda package in the same environment provides.</p>
+<p>Key: [hygiene] conda-pypi-duplicate (on once [hygiene] exists). Fails a PyPI package whose distribution a conda package in the same environment already provides, so both are installed one over the other. A conda package provides the PyPI names pixi.lock states purls for (conda msgpack-python is PyPI msgpack); for a conda-forge package it states none for, conda-forge's mapping gives them, read only when an environment has such a package and PyPI packages too.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">[hygiene]</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">conda-pypi-duplicate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</code></pre></div>
+<p>Keys: <a href="../reference/#hygiene"><code>[hygiene] conda-pypi-duplicate</code></a>.</p>
+<h2 id="hygiene-unavailable"><code>hygiene.unavailable</code><a class="headerlink" href="#hygiene-unavailable" title="Permanent link">&para;</a></h2>
+<p>conda-forge's PyPI mapping cannot be read, so some conda packages were not compared.</p>
+<p>Key: [hygiene]. conda-forge's conda-to-PyPI mapping could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The packages pixi.lock states PyPI names for are still compared; the check fails rather than pass the others. PIXI_POLICY_MAPPING_URL points at a mirror.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">[hygiene]</span>
+</code></pre></div>
+<p>Keys: <a href="../reference/#hygiene"><code>[hygiene] conda-pypi-duplicate</code></a>.</p>
 <h2 id="manifest-wildcard-spec"><code>manifest.wildcard-spec</code><a class="headerlink" href="#manifest-wildcard-spec" title="Permanent link">&para;</a></h2>
 <p>No dependency is given as <code>*</code>.</p>
 <p>Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as "*" in any dependency table, at its line in the manifest.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">wildcard-spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">wildcard-spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] wildcard-spec</code></a>.</p>
 <h2 id="manifest-python-pinned"><code>manifest.python-pinned</code><a class="headerlink" href="#manifest-python-pinned" title="Permanent link">&para;</a></h2>
 <p>Python is constrained to one minor version or narrower.</p>
 <p>Key: [manifest] python-pinned (on once [manifest] exists). Fails a python dependency whose spec allows more than one minor version ("&gt;=3.10"), or has none; "3.12.*" and "&gt;=3.12,&lt;3.13" pass.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">python-pinned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">python-pinned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] python-pinned</code></a>.</p>
 <h2 id="manifest-required-platforms"><code>manifest.required-platforms</code><a class="headerlink" href="#manifest-required-platforms" title="Permanent link">&para;</a></h2>
 <p>The workspace lists every platform the policy requires.</p>
 <p>Key: [manifest] required-platforms, a list of platforms the workspace must list in [workspace] platforms.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">[manifest]</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">[manifest]</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">]</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#manifest"><code>[manifest] required-platforms</code></a>.</p>
 <h2 id="lock-present"><code>lock.present</code><a class="headerlink" href="#lock-present" title="Permanent link">&para;</a></h2>
 <p>The workspace has a pixi.lock.</p>
 <p>Key: [lock] present (on once [lock] exists). Fails a workspace without a pixi.lock; without [lock], a missing lockfile is an input error (exit 2) instead.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">present</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">present</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] present</code></a>.</p>
 <h2 id="lock-complete"><code>lock.complete</code><a class="headerlink" href="#lock-complete" title="Permanent link">&para;</a></h2>
 <p>Every environment is locked for every platform it is solved for.</p>
 <p>Key: [lock] complete (on once [lock] exists). Fails an environment the manifest defines that pixi.lock does not lock, or does not lock for one of its platforms.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">complete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="n">complete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] complete</code></a>.</p>
 <h2 id="lock-in-sync"><code>lock.in-sync</code><a class="headerlink" href="#lock-in-sync" title="Permanent link">&para;</a></h2>
 <p>pixi.lock still satisfies the manifest.</p>
 <p>Key: [lock] in-sync (on once [lock] exists). Asks pixi, offline, whether pixi.lock still satisfies the manifest (pixi list --locked); a warning when pixi cannot be run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">[lock]</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">in-sync</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">[lock]</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="n">in-sync</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#lock"><code>[lock] in-sync</code></a>.</p>
 <h2 id="waivers-expired"><code>waivers.expired</code><a class="headerlink" href="#waivers-expired" title="Permanent link">&para;</a></h2>
 <p>A waiver has expired, and what it waived fails again.</p>
 <p>A [[waivers]] entry whose expires date has passed. What it waived fails again; renew it with a new date and a reason that still holds, or fix the finding.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">[[waivers]]</span>
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"licenses.deny"</span>
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"readline"</span>
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"dev only; LEGAL-1234"</span>
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-03-31</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">[[waivers]]</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"licenses.deny"</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"readline"</span>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"dev only; LEGAL-1234"</span>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-03-31</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#waivers"><code>[[waivers]] expires</code></a>.</p>
 <h2 id="waivers-unused"><code>waivers.unused</code><a class="headerlink" href="#waivers-unused" title="Permanent link">&para;</a></h2>
 <p>A waiver matches no finding.</p>
 <p>A [[waivers]] entry that matches no finding: its rule, package, version, environment or platform is wrong, or the finding is gone. Remove it.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">[[waivers]]</span>
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bans.deny"</span>
-<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"pycrypto"</span>
-<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"replaced in Q3"</span>
-<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-01-31</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="k">[[waivers]]</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bans.deny"</span>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="n">package</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"pycrypto"</span>
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="n">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"replaced in Q3"</span>
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="n">expires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ld">2027-01-31</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#waivers"><code>[[waivers]] rule</code></a>, <a href="../reference/#waivers"><code>[[waivers]] package</code></a>, <a href="../reference/#waivers"><code>[[waivers]] version</code></a>, <a href="../reference/#waivers"><code>[[waivers]] environment</code></a>, <a href="../reference/#waivers"><code>[[waivers]] platform</code></a>, <a href="../reference/#waivers"><code>[[waivers]] advisory</code></a>.</p>
 <h2 id="waivers-too-long"><code>waivers.too-long</code><a class="headerlink" href="#waivers-too-long" title="Permanent link">&para;</a></h2>
 <p>A waiver runs further out than max-waiver-days.</p>
 <p>A [[waivers]] entry whose expires is more than max-waiver-days (default 365) away. The waiver still applies. Set max-waiver-days at the top of the policy; 0 turns the check off.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">max-waiver-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">180</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="n">max-waiver-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">180</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#top-level"><code>max-waiver-days</code></a>, <a href="../reference/#waivers"><code>[[waivers]] expires</code></a>.</p>
 
