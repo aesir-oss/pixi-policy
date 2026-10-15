@@ -63,6 +63,7 @@ pub struct Compiled {
     /// `review` as a deny list: denied here means the package needs a review license.
     review: Lists,
     unknown: Unknown,
+    ambiguous: Unknown,
 }
 
 impl Compiled {
@@ -81,6 +82,7 @@ impl Compiled {
             gate: Lists::new(&allow, &deny).map_err(invalid)?,
             review: Lists::new(&[], &review).map_err(invalid)?,
             unknown: licenses.unknown,
+            ambiguous: licenses.ambiguous,
         })
     }
 
@@ -92,6 +94,7 @@ impl Compiled {
         let expression = match license::normalize(raw) {
             License::Expression(expression) => expression,
             License::Text(_) => return Some(Verdict::Unknown(Reason::NotSpdx)),
+            License::Ambiguous(_) => return Some(Verdict::Ambiguous),
         };
         if let Some(reason) = self.gate.evaluate(&expression) {
             return Some(Verdict::Fails(reason, expression));
@@ -109,6 +112,24 @@ pub enum Verdict {
     Review(String),
     /// [`Reason::Missing`] or [`Reason::NotSpdx`].
     Unknown(Reason),
+    /// A name that could be more than one SPDX license.
+    Ambiguous,
+}
+
+/// How a finding names `expression`: with what pixi.lock says when it was spelt otherwise (#7).
+fn named(expression: &str, fact: &Fact) -> String {
+    match fact.license.as_deref().map(str::trim) {
+        Some(raw) if raw != expression => format!("{expression} (pixi.lock says {raw:?})"),
+        _ => expression.to_string(),
+    }
+}
+
+fn severity(setting: Unknown) -> Option<Severity> {
+    match setting {
+        Unknown::Allow => None,
+        Unknown::Warn => Some(Severity::Warning),
+        Unknown::Error => Some(Severity::Error),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,45 +138,64 @@ enum Which {
     Review,
     NotAllowed,
     Unknown,
+    Ambiguous,
 }
 
 struct LicenseRule {
     which: Which,
 }
 
-/// The four `licenses.*` rules.
+/// The five `licenses.*` rules.
 pub fn rules() -> Vec<Box<dyn Rule>> {
-    [Which::Deny, Which::Review, Which::NotAllowed, Which::Unknown]
-        .into_iter()
-        .map(|which| Box::new(LicenseRule { which }) as Box<dyn Rule>)
-        .collect()
+    [
+        Which::Deny,
+        Which::Review,
+        Which::NotAllowed,
+        Which::Unknown,
+        Which::Ambiguous,
+    ]
+    .into_iter()
+    .map(|which| Box::new(LicenseRule { which }) as Box<dyn Rule>)
+    .collect()
 }
 
 impl LicenseRule {
     /// The finding's severity, message and help for `verdict`, when it is this rule's.
-    fn speak(&self, verdict: Verdict, unknown: Unknown, fact: &Fact) -> Option<(Severity, String, String)> {
+    fn speak(&self, verdict: Verdict, compiled: &Compiled, fact: &Fact) -> Option<(Severity, String, String)> {
         match (self.which, verdict) {
+            (Which::Ambiguous, Verdict::Ambiguous) => Some((
+                severity(compiled.ambiguous)?,
+                format!(
+                    "license {:?} could be more than one SPDX license",
+                    fact.license.as_deref().unwrap_or("").trim()
+                ),
+                "find the license the package ships and waive this with it as the reason, or ask its maintainers to \
+                 state an SPDX license; [licenses] ambiguous sets what this gets"
+                    .into(),
+            )),
             (Which::Deny, Verdict::Fails(Reason::Denied, expression)) => Some((
                 Severity::Error,
-                format!("license {expression} cannot be satisfied without a denied license"),
+                format!(
+                    "license {} cannot be satisfied without a denied license",
+                    named(&expression, fact)
+                ),
                 "replace the package, or take the license off [licenses] deny".into(),
             )),
             (Which::NotAllowed, Verdict::Fails(Reason::NotAllowed, expression)) => Some((
                 Severity::Error,
-                format!("license {expression} cannot be satisfied with the allowed licenses"),
+                format!(
+                    "license {} cannot be satisfied with the allowed licenses",
+                    named(&expression, fact)
+                ),
                 "replace the package, or add the license to [licenses] allow".into(),
             )),
             (Which::Review, Verdict::Review(expression)) => Some((
                 Severity::Warning,
-                format!("license {expression} needs a review"),
+                format!("license {} needs a review", named(&expression, fact)),
                 "have the license reviewed; once approved, move it from [licenses] review to allow".into(),
             )),
             (Which::Unknown, Verdict::Unknown(reason)) => {
-                let severity = match unknown {
-                    Unknown::Allow => return None,
-                    Unknown::Warn => Severity::Warning,
-                    Unknown::Error => Severity::Error,
-                };
+                let severity = severity(compiled.unknown)?;
                 let raw = fact.license.as_deref().unwrap_or("").trim();
                 let message = match (reason, fact.kind) {
                     (Reason::Missing, Kind::Pypi) => {
@@ -187,6 +227,7 @@ impl Rule for LicenseRule {
             Which::Review => "licenses.review",
             Which::NotAllowed => "licenses.not-allowed",
             Which::Unknown => "licenses.unknown",
+            Which::Ambiguous => "licenses.ambiguous",
         }
     }
 
@@ -196,6 +237,7 @@ impl Rule for LicenseRule {
             Which::Review => "Packages that need a license under review are reported for it",
             Which::NotAllowed => "Every package can be used under the licenses the policy allows",
             Which::Unknown => "Every package declares an SPDX license",
+            Which::Ambiguous => "No package's license is a name that could be more than one SPDX license",
         }
     }
 
@@ -207,7 +249,7 @@ impl Rule for LicenseRule {
             .packages
             .iter()
             .filter_map(|fact| {
-                let (severity, message, help) = self.speak(compiled.verdict(fact)?, compiled.unknown, fact)?;
+                let (severity, message, help) = self.speak(compiled.verdict(fact)?, &compiled, fact)?;
                 Some(Finding {
                     rule: self.id(),
                     severity,
@@ -362,6 +404,55 @@ mod tests {
     }
 
     #[test]
+    fn an_ambiguous_license_is_its_own_finding_and_a_respelt_one_shows_what_the_lock_says() {
+        let packages = || {
+            vec![
+                fact("bsd", Some("BSD"), Kind::CondaBinary),
+                fact("apache", Some("Apache"), Kind::CondaBinary),
+                fact("bsd3", Some("BSD 3-Clause"), Kind::CondaBinary),
+                fact("psf", Some("PSF"), Kind::CondaBinary),
+            ]
+        };
+        let found = findings("[licenses]\nallow = [\"BSD-3-Clause\"]\n", packages());
+        assert_eq!(
+            found,
+            [
+                ("licenses.not-allowed", Severity::Error, "psf".to_string()),
+                ("licenses.ambiguous", Severity::Warning, "bsd".to_string()),
+                ("licenses.ambiguous", Severity::Warning, "apache".to_string()),
+            ]
+        );
+        let error = findings("[licenses]\nambiguous = \"error\"\n", packages());
+        assert!(
+            error
+                .iter()
+                .all(|f| f.0 == "licenses.ambiguous" && f.1 == Severity::Error),
+            "{error:?}"
+        );
+        assert!(findings("[licenses]\nambiguous = \"allow\"\n", packages()).is_empty());
+
+        let policy = Policy::parse("[licenses]\nreview = [\"PSF-2.0\"]\n", "p.toml").unwrap();
+        let facts = Facts {
+            environment: "default".into(),
+            platform: "linux-64".into(),
+            packages: packages(),
+        };
+        let messages: Vec<String> = rules()
+            .iter()
+            .flat_map(|rule| rule.check(&policy, &facts))
+            .map(|f| f.message)
+            .collect();
+        assert!(
+            messages.contains(&"license PSF-2.0 (pixi.lock says \"PSF\") needs a review".to_string()),
+            "{messages:?}"
+        );
+        assert!(
+            messages.contains(&"license \"Apache\" could be more than one SPDX license".to_string()),
+            "{messages:?}"
+        );
+    }
+
+    #[test]
     fn every_rule_has_an_id_and_a_summary() {
         let ids: Vec<&str> = rules().iter().map(|r| r.id()).collect();
         assert_eq!(
@@ -370,7 +461,8 @@ mod tests {
                 "licenses.deny",
                 "licenses.review",
                 "licenses.not-allowed",
-                "licenses.unknown"
+                "licenses.unknown",
+                "licenses.ambiguous"
             ]
         );
         assert!(rules().iter().all(|r| !r.summary().is_empty()));

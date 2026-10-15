@@ -16,6 +16,7 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`licenses.review`](#licenses-review) | Packages that need a license under review are reported for it |
 | [`licenses.not-allowed`](#licenses-not-allowed) | Every package can be used under the licenses the policy allows |
 | [`licenses.unknown`](#licenses-unknown) | Every package declares an SPDX license |
+| [`licenses.ambiguous`](#licenses-ambiguous) | No package's license is a name that could be more than one SPDX license |
 | [`advisories.vulnerable`](#advisories-vulnerable) | A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold |
 | [`advisories.unknown`](#advisories-unknown) | A package has a known vulnerability whose severity no advisory gives |
 | [`advisories.unavailable`](#advisories-unavailable) | The advisory data cannot be read, so no package could be checked |
@@ -170,6 +171,19 @@ unknown = "error"
 ```
 
 Keys: [`[licenses] unknown`](reference.md#licenses).
+
+## `licenses.ambiguous` {#licenses-ambiguous}
+
+No package's license is a name that could be more than one SPDX license.
+
+Key: [licenses] ambiguous = "warn" (default), "error" or "allow": what a package gets whose license is a name that could be more than one SPDX license (BSD, GPL, LGPL2, Apache), rather than a guess at one. Common spellings that name one license (BSD 3-Clause, Apache License 2.0, PSF) are read as it from a reviewed table, and a finding about such a package shows what pixi.lock says.
+
+```toml
+[licenses]
+ambiguous = "error"
+```
+
+Keys: [`[licenses] ambiguous`](reference.md#licenses).
 
 ## `advisories.vulnerable` {#advisories-vulnerable}
 

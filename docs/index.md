@@ -22,7 +22,7 @@ single binary that pixi runs as `pixi policy`.
 |---|---|---|
 | [Sources](rules.md#sources-channels) | `sources.channels`, `sources.indexes`, `sources.git`, `sources.url`, `sources.path` | conda packages come only from allowed channels, PyPI packages only from allowed indexes, and nothing from git, a direct URL or a local path unless allowed |
 | [Bans](rules.md#bans-deny) | `bans.deny` | no banned package, version range or build is in any environment |
-| [Licenses](licenses.md) | `licenses.deny`, `licenses.review`, `licenses.not-allowed`, `licenses.unknown` | every package can be used under the licenses the policy allows |
+| [Licenses](licenses.md) | `licenses.deny`, `licenses.review`, `licenses.not-allowed`, `licenses.unknown`, `licenses.ambiguous` | every package can be used under the licenses the policy allows |
 | [Advisories](advisories.md) | `advisories.vulnerable`, `advisories.unknown`, `advisories.unavailable` | no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited |
 | [Freshness](freshness.md) | `freshness.build-age`, `freshness.majors-behind`, `freshness.archived`, `freshness.unknown`, `freshness.unavailable` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
 | [Hygiene](rules.md#hygiene-conda-pypi-duplicate) | `hygiene.conda-pypi-duplicate`, `hygiene.unavailable` | no PyPI package is one a conda package in the same environment already provides |

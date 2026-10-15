@@ -50,8 +50,107 @@ pub fn reset_text_budget() {
 pub enum License {
     /// A valid SPDX license expression.
     Expression(String),
-    /// Free text that is not an SPDX expression (e.g. `Proprietary`, `PSF`).
+    /// Free text that is not an SPDX expression (e.g. `Proprietary`, `Public Domain`).
     Text(String),
+    /// A name that could be more than one SPDX license (`BSD`, `GPL`, `Apache`), left for a person to settle.
+    Ambiguous(String),
+}
+
+/// Spellings of licenses seen in conda and PyPI metadata, reviewed against the SPDX list (#7): the key is the
+/// spelling as [`spelling_key`] folds it.
+const SPELLINGS: &[(&str, &str)] = &[
+    ("bsd-3", "BSD-3-Clause"),
+    ("bsd 3", "BSD-3-Clause"),
+    ("bsd 3-clause", "BSD-3-Clause"),
+    ("bsd-3 clause", "BSD-3-Clause"),
+    ("bsd 3 clause", "BSD-3-Clause"),
+    ("3-clause bsd", "BSD-3-Clause"),
+    ("3 clause bsd", "BSD-3-Clause"),
+    ("new bsd", "BSD-3-Clause"),
+    ("bsd-new", "BSD-3-Clause"),
+    ("modified bsd", "BSD-3-Clause"),
+    ("revised bsd", "BSD-3-Clause"),
+    ("bsd-2", "BSD-2-Clause"),
+    ("bsd 2", "BSD-2-Clause"),
+    ("bsd 2-clause", "BSD-2-Clause"),
+    ("bsd-2 clause", "BSD-2-Clause"),
+    ("bsd 2 clause", "BSD-2-Clause"),
+    ("2-clause bsd", "BSD-2-Clause"),
+    ("2 clause bsd", "BSD-2-Clause"),
+    ("simplified bsd", "BSD-2-Clause"),
+    ("freebsd", "BSD-2-Clause"),
+    ("apache 2", "Apache-2.0"),
+    ("apache v2", "Apache-2.0"),
+    ("apache license 2.0", "Apache-2.0"),
+    ("apache license, version 2.0", "Apache-2.0"),
+    ("apache license version 2.0", "Apache-2.0"),
+    ("apache software license 2.0", "Apache-2.0"),
+    ("asl 2.0", "Apache-2.0"),
+    ("gpl-2", "GPL-2.0-only"),
+    ("gpl 2", "GPL-2.0-only"),
+    ("gpl v2", "GPL-2.0-only"),
+    ("gpl-3", "GPL-3.0-only"),
+    ("gpl 3", "GPL-3.0-only"),
+    ("gpl v3", "GPL-3.0-only"),
+    ("lgplv2.1", "LGPL-2.1-only"),
+    ("lgpl v2.1", "LGPL-2.1-only"),
+    ("lgplv2.1+", "LGPL-2.1-or-later"),
+    ("lgpl v2.1+", "LGPL-2.1-or-later"),
+    ("lgplv3", "LGPL-3.0-only"),
+    ("lgpl v3", "LGPL-3.0-only"),
+    ("lgplv3+", "LGPL-3.0-or-later"),
+    ("lgpl v3+", "LGPL-3.0-or-later"),
+    ("mpl 2.0", "MPL-2.0"),
+    ("mpl-2", "MPL-2.0"),
+    ("mpl v2", "MPL-2.0"),
+    ("psf", "PSF-2.0"),
+    ("psfl", "PSF-2.0"),
+    ("python software foundation", "PSF-2.0"),
+    ("zlib/libpng", "Zlib"),
+    ("isc license (iscl)", "ISC"),
+    ("iscl", "ISC"),
+    ("expat", "MIT"),
+    ("mit/x11", "MIT"),
+    ("boost", "BSL-1.0"),
+    ("boost software", "BSL-1.0"),
+    ("boost software license 1.0", "BSL-1.0"),
+];
+
+/// Names that, as the whole string, could be more than one SPDX license (#7).
+const AMBIGUOUS: &[&str] = &[
+    "apache",
+    "apache software",
+    "bsd like",
+    "bsd-like",
+    "bsd-style",
+    "lgpl2",
+    "gpl2",
+    "gnu general public",
+    "gnu general public (gpl)",
+    "gnu lesser general public",
+    "gnu library or lesser general public (lgpl)",
+];
+
+/// `raw` folded for [`SPELLINGS`] and [`AMBIGUOUS`]: lower case, single spaces, no trailing ` license`.
+fn spelling_key(raw: &str) -> String {
+    let folded = raw.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    for word in [" license", " licence"] {
+        if let Some(stem) = folded.strip_suffix(word)
+            && !stem.is_empty()
+        {
+            return stem.to_string();
+        }
+    }
+    folded
+}
+
+/// The SPDX license the reviewed table gives `raw`, when it lists it.
+pub fn spelling(raw: &str) -> Option<&'static str> {
+    let key = spelling_key(raw);
+    SPELLINGS
+        .iter()
+        .find(|(spelling, _)| *spelling == key)
+        .map(|(_, id)| *id)
 }
 
 /// Interpret a raw license string.
@@ -78,10 +177,14 @@ pub fn normalize(raw: &str) -> License {
     {
         return License::Expression(id.to_string());
     }
+    if let Some(id) = spelling(trimmed) {
+        return License::Expression(id.to_string());
+    }
     // A bare family name (`LGPL`, `GPL`, `BSD`) names no version or clause count. The lenient
-    // parser would pick one (`LGPL-2.0-only`), which the package never stated, so it stays text.
-    if names_a_bare_family(trimmed) {
-        return License::Text(trimmed.to_string());
+    // parser would pick one (`LGPL-2.0-only`), which the package never stated, so it is left
+    // ambiguous rather than guessed.
+    if names_a_bare_family(trimmed) || AMBIGUOUS.contains(&spelling_key(trimmed).as_str()) {
+        return License::Ambiguous(trimmed.to_string());
     }
     if let Ok(expr) = spdx::Expression::parse_mode(trimmed, ParseMode::LAX) {
         return License::Expression(canonical(&expr));
@@ -132,8 +235,10 @@ pub fn rejection_reason(raw: &str) -> Option<String> {
     if trimmed.is_empty() {
         return Some("empty".into());
     }
-    if matches!(normalize(trimmed), License::Expression(_)) {
-        return None;
+    match normalize(trimmed) {
+        License::Expression(_) => return None,
+        License::Ambiguous(_) => return Some("it could be more than one SPDX license".into()),
+        License::Text(_) => {}
     }
     let err = spdx::Expression::parse_mode(trimmed, ParseMode::LAX).err()?;
     let offending = trimmed.get(err.span.clone()).unwrap_or("").trim();
@@ -246,7 +351,7 @@ mod tests {
     /// did not state; a spelling that does state one is normalized as before.
     #[test]
     fn a_bare_family_name_is_never_given_a_version() {
-        let text = |s: &str| License::Text(s.to_string());
+        let text = |s: &str| License::Ambiguous(s.to_string());
         let expression = |s: &str| License::Expression(s.to_string());
         for (raw, expected) in [
             ("LGPL", text("LGPL")),
@@ -257,6 +362,12 @@ mod tests {
             ("GNU GPL", text("GNU GPL")),
             ("BSD License", text("BSD License")),
             ("MIT OR GPL", text("MIT OR GPL")),
+            ("Apache", text("Apache")),
+            ("Apache License", text("Apache License")),
+            ("BSD Like", text("BSD Like")),
+            ("LGPL2", text("LGPL2")),
+            ("GNU General Public (GPL)", text("GNU General Public (GPL)")),
+            ("MIT and BSD", text("MIT and BSD")),
             ("GPLv3", expression("GPL-3.0-only")),
             ("GPLv2+", expression("GPL-2.0-or-later")),
             ("LGPL-2.1-or-later", expression("LGPL-2.1-or-later")),
@@ -335,6 +446,48 @@ mod tests {
         );
     }
 
+    /// The reviewed spellings, among them every one the example lockfiles hold that is not SPDX.
+    #[test]
+    fn common_spellings_read_as_their_spdx_license() {
+        for (raw, id) in [
+            ("BSD-3", "BSD-3-Clause"),
+            ("BSD 3-Clause", "BSD-3-Clause"),
+            ("3-clause BSD License", "BSD-3-Clause"),
+            ("New BSD License", "BSD-3-Clause"),
+            ("Simplified BSD", "BSD-2-Clause"),
+            ("BSD 2-Clause", "BSD-2-Clause"),
+            ("Apache License 2.0", "Apache-2.0"),
+            ("Apache License, Version 2.0", "Apache-2.0"),
+            ("Apache 2", "Apache-2.0"),
+            ("ASL 2.0", "Apache-2.0"),
+            ("GPL-3", "GPL-3.0-only"),
+            ("GPL v3", "GPL-3.0-only"),
+            ("LGPLv2.1", "LGPL-2.1-only"),
+            ("LGPLv3+", "LGPL-3.0-or-later"),
+            ("MPL 2.0", "MPL-2.0"),
+            ("MPL-2", "MPL-2.0"),
+            ("PSF", "PSF-2.0"),
+            ("PSF License", "PSF-2.0"),
+            ("Python Software Foundation License", "PSF-2.0"),
+            ("zlib/libpng", "Zlib"),
+            ("ISC License (ISCL)", "ISC"),
+            ("Expat", "MIT"),
+            ("MIT/X11", "MIT"),
+            ("Boost Software License", "BSL-1.0"),
+            ("  bsd   3-clause  ", "BSD-3-Clause"),
+        ] {
+            assert_eq!(normalize(raw), License::Expression(id.into()), "{raw}");
+        }
+        for (_, id) in SPELLINGS {
+            assert!(spdx::license_id(id).is_some(), "{id} is not an SPDX identifier");
+        }
+        assert_eq!(spelling("MIT"), None);
+        assert_eq!(
+            rejection_reason("BSD"),
+            Some("it could be more than one SPDX license".into())
+        );
+    }
+
     #[test]
     fn single_ids_are_recognized() {
         assert!(is_single_id("MIT"));
@@ -365,7 +518,7 @@ mod tests {
         );
         assert_eq!(
             normalize("GPL WITH nothing else"),
-            License::Text("GPL WITH nothing else".into())
+            License::Ambiguous("GPL WITH nothing else".into())
         );
         assert_eq!(
             rewrite_unknown_exceptions("X WITH AdditionRef-already"),
@@ -396,7 +549,7 @@ mod tests {
     #[test]
     fn unknown_text_is_passed_through_as_text() {
         assert_eq!(normalize("Proprietary"), License::Text("Proprietary".into()));
-        assert_eq!(normalize("PSF"), License::Text("PSF".into()));
+        assert_eq!(normalize("Public Domain"), License::Text("Public Domain".into()));
         assert_eq!(normalize("   "), License::Text(String::new()));
     }
 }

@@ -107,6 +107,7 @@ const LICENSES: &[&str] = &[
     "licenses.review",
     "licenses.not-allowed",
     "licenses.unknown",
+    "licenses.ambiguous",
 ];
 const ADVISORIES: &[&str] = &["advisories.vulnerable", "advisories.unknown", "advisories.unavailable"];
 const FRESHNESS: &[&str] = &[
@@ -398,6 +399,17 @@ pub const KEYS: &[Key] = &[
         default: "\"warn\"",
         required: false,
         rules: &["licenses.unknown"],
+        example: "\"error\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "licenses",
+        name: "ambiguous",
+        kind: "string",
+        values: "\"warn\", \"error\", \"allow\": what a license name that could be more than one SPDX license gets",
+        default: "\"warn\"",
+        required: false,
+        rules: &["licenses.ambiguous"],
         example: "\"error\"",
         merge: Merge::Stricter,
     },

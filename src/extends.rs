@@ -341,7 +341,9 @@ fn implicit(id: &str) -> Option<toml::Value> {
         | "lock.in-sync"
         | "freshness.archived"
         | "hygiene.conda-pypi-duplicate" => Some(toml::Value::Boolean(true)),
-        "licenses.unknown" | "advisories.unknown" | "freshness.unknown" => Some(toml::Value::String("warn".into())),
+        "licenses.unknown" | "licenses.ambiguous" | "advisories.unknown" | "freshness.unknown" => {
+            Some(toml::Value::String("warn".into()))
+        }
         "advisories.fail-on" => Some(toml::Value::String("high".into())),
         "advisories.known-exploited" | "python.older" => Some(toml::Value::String("error".into())),
         "python.newer" => Some(toml::Value::String("warn".into())),
@@ -426,6 +428,7 @@ fn looser(id: &str, new: &toml::Value, old: &toml::Value) -> Option<String> {
         }
         "python.version" => (new != old).then(|| format!("to {new} (it was {old})")),
         "licenses.unknown"
+        | "licenses.ambiguous"
         | "advisories.unknown"
         | "advisories.known-exploited"
         | "freshness.unknown"
@@ -628,6 +631,7 @@ mod tests {
             ),
             ("[licenses]\nallow = []\n", "accepts every license"),
             ("[licenses]\nunknown = \"allow\"\n", "to \"allow\" (it was \"warn\")"),
+            ("[licenses]\nambiguous = \"allow\"\n", "to \"allow\" (it was \"warn\")"),
             (
                 "[licenses]\nreview = [\"LGPL-3.0-only\"]\n",
                 "adds \"LGPL-3.0-only\" to [licenses] review",
