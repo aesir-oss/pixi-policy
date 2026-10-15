@@ -167,7 +167,8 @@ fn a_shared_policy_carries_its_vex_relative_to_itself() {
 fn a_vex_that_cannot_be_used_is_an_error() {
     let (text, code) = check(&[("pixi-policy.toml", POLICY)], "text");
     assert_eq!(code, 2, "{text}");
-    assert!(text.contains("cannot use the VEX security/vex.cdx.json"), "{text}");
+    let shown = Path::new("security").join("vex.cdx.json").display().to_string();
+    assert!(text.contains(&format!("cannot use the VEX {shown}")), "{text}");
     let (text, code) = check(
         &[
             ("pixi-policy.toml", POLICY),
