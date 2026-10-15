@@ -581,6 +581,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#how-a-license-string-is-read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a license string is read
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#moving-from-pixi-sboms-flags" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -853,6 +864,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#how-a-license-string-is-read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a license string is read
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#moving-from-pixi-sboms-flags" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -901,14 +923,15 @@
 
 <h1 id="license-policy-with-pixi-policy">License policy with pixi-policy<a class="headerlink" href="#license-policy-with-pixi-policy" title="Permanent link">&para;</a></h1>
 <p>pixi-policy's <code>[licenses]</code> table is the policy-file form of pixi-sbom's license gate (<code>--allow-license</code>,
-<code>--deny-license</code>, <code>--require-license</code>). Both tools evaluate a license with the same shared verdict, so a package that
-fails one fails the other.</p>
+<code>--deny-license</code>, <code>--require-license</code>). Both tools evaluate a license expression with the same verdict; pixi-policy also reads
+common non-SPDX spellings (see <a href="#how-a-license-string-is-read">How a license string is read</a>).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># pixi-policy.toml</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">[licenses]</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"MIT"</span><span class="p">,</span><span class="w"> </span><span class="s2">"BSD-3-Clause"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Apache-2.0"</span><span class="p">,</span><span class="w"> </span><span class="s2">"PSF-2.0"</span><span class="p">]</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">review</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"LGPL-*"</span><span class="p">]</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"GPL-3.0-*"</span><span class="p">,</span><span class="w"> </span><span class="s2">"AGPL-*"</span><span class="p">]</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"warn"</span><span class="w">   </span><span class="c1"># or "error", "allow"</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"warn"</span><span class="w">     </span><span class="c1"># or "error", "allow"</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">ambiguous</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"warn"</span><span class="w">   </span><span class="c1"># or "error", "allow"</span>
 </code></pre></div>
 <table>
 <thead>
@@ -939,10 +962,25 @@ fails one fails the other.</p>
 <td><code>unknown</code></td>
 <td>is missing, or is not an SPDX expression</td>
 </tr>
+<tr>
+<td><code>licenses.ambiguous</code></td>
+<td><code>ambiguous</code></td>
+<td>is a name that could be more than one SPDX license (<code>BSD</code>, <code>GPL</code>, <code>LGPL2</code>, <code>Apache</code>)</td>
+</tr>
 </tbody>
 </table>
 <p>Entries are SPDX identifiers, or patterns with <code>*</code> that are expanded against the SPDX license list (<code>LGPL-*</code> is every
 LGPL identifier). An <code>-or-later</code> entry accepts later versions of the same license, as in pixi-sbom.</p>
+<h2 id="how-a-license-string-is-read">How a license string is read<a class="headerlink" href="#how-a-license-string-is-read" title="Permanent link">&para;</a></h2>
+<p>A license that is an SPDX expression is used as it is. Common spellings that name one license are read as it from a
+reviewed table: <code>BSD 3-Clause</code>, <code>New BSD License</code> and <code>3-clause BSD License</code> are <code>BSD-3-Clause</code>; <code>Apache License 2.0</code>
+and <code>ASL 2.0</code> are <code>Apache-2.0</code>; <code>PSF</code> and <code>Python Software Foundation License</code> are <code>PSF-2.0</code>; <code>GPL-3</code> is
+<code>GPL-3.0-only</code>; <code>LGPLv3+</code> is <code>LGPL-3.0-or-later</code>; <code>Expat</code> and <code>MIT/X11</code> are <code>MIT</code>. A finding about such a package shows
+both, <code>license PSF-2.0 (pixi.lock says "PSF") needs a review</code>, so a reading can be checked.</p>
+<p>A name that does not say which license it is (<code>BSD</code>, <code>GPL</code>, <code>LGPL</code>, <code>LGPL2</code>, <code>BSD Like</code>, a bare <code>Apache</code>) is never
+guessed at: it is <code>licenses.ambiguous</code>. Find the license the package ships and <a href="../waivers/">waive</a> the finding with it
+as the reason, or ask the package's maintainers to state an SPDX license.</p>
+<p>pixi-sbom's gate does not read this table yet, so a package spelt this way can pass one and be reported by the other.</p>
 <h2 id="moving-from-pixi-sboms-flags">Moving from pixi-sbom's flags<a class="headerlink" href="#moving-from-pixi-sboms-flags" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
