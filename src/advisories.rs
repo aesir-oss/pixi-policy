@@ -873,9 +873,14 @@ fn merge(records: &[Record]) -> (Vec<Advisory>, Vec<usize>) {
             .filter(|name| **name != id)
             .cloned()
             .collect();
-        let summary = std::iter::once(lead)
-            .chain(members.iter().copied())
-            .find_map(|i| records[i].summary.clone().filter(|s| !s.trim().is_empty()));
+        let summary = std::iter::once(lead).chain(members.iter().copied()).find_map(|i| {
+            records[i]
+                .summary
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+        });
         let level = members
             .iter()
             .map(|&i| records[i].level().0)
@@ -931,7 +936,7 @@ mod tests {
 
     const BATCH: &str = r#"{"results":[{"vulns":[{"id":"GHSA-1","modified":"2026-01-02T03:04:05.123456Z"},
         {"id":"PYSEC-1","modified":"2026-01-02T03:04:05Z"}]}]}"#;
-    const GHSA: &str = r#"{"id":"GHSA-1","aliases":["CVE-2026-1"],"summary":"bad","modified":"2026-01-02T03:04:05.123456789Z",
+    const GHSA: &str = r#"{"id":"GHSA-1","aliases":["CVE-2026-1"],"summary":" bad\n","modified":"2026-01-02T03:04:05.123456789Z",
         "severity":[{"type":"CVSS_V3","score":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}],
         "affected":[{"package":{"purl":"pkg:pypi/demo"},"ranges":[{"type":"ECOSYSTEM","events":[{"introduced":"0"},{"fixed":"1.5"},{"fixed":"2.1"}]}]}],
         "database_specific":{"severity":"MODERATE"}}"#;
