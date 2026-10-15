@@ -440,6 +440,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../github-action/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Action
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../rules/" class="md-nav__link">
         
   
@@ -521,6 +548,60 @@
   
   
     <li class="md-nav__item">
+      <a href="../advisories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known vulnerabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../freshness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Freshness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../waivers/" class="md-nav__link">
         
   
@@ -529,6 +610,33 @@
     
   
     Waivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing a policy
   
 
     
@@ -931,6 +1039,14 @@
 <td>the JSON report's schema, published with the docs</td>
 </tr>
 <tr>
+<td><code>actions/pixi-policy/</code></td>
+<td>the GitHub Action, copied to <code>aesir-oss/pixi-policy-action</code> on each release</td>
+</tr>
+<tr>
+<td><code>pre-commit-mirror/</code></td>
+<td>the pre-commit hook, rendered into <code>aesir-oss/pixi-policy-pre-commit</code> on each final</td>
+</tr>
+<tr>
 <td><code>tests/</code></td>
 <td>end-to-end tests of the binary, with fixtures and schemas</td>
 </tr>
@@ -965,6 +1081,19 @@ provenance, publishes the GitHub release, and uploads the wheels: to TestPyPI fo
   aesir-oss/pixi-ext-contrib and link there.</li>
 <li>Every release candidate goes through a field test of the published files before a final is cut.</li>
 </ul>
+<p>The same run fills two generated repositories with the release App, which must be installed on both:</p>
+<ul>
+<li><code>aesir-oss/pixi-policy-action</code> gets <code>actions/pixi-policy/</code> on every release, tagged <code>vX.Y.Z</code>. A final also moves
+  <code>vX</code> when it is the newest release of its major, and gets a GitHub release, marked Latest when <code>vX</code> moved: the
+  Marketplace lists the action from releases, not tags.</li>
+<li><code>aesir-oss/pixi-policy-pre-commit</code> gets the hook rendered for the version, tagged <code>vX.Y.Z</code>, on finals only and after
+  the PyPI upload, since the hook installs the wheel from PyPI.</li>
+</ul>
+<p>The Marketplace listing itself is a manual step, once: GitHub has no API for it. On the first final's release in
+<code>aesir-oss/pixi-policy-action</code>, choose <strong>Edit</strong>, tick <strong>Publish this Action to the GitHub Marketplace</strong> (an
+aesir-oss owner may first have to accept the Marketplace Developer Agreement), pick the categories <strong>Security</strong> and
+<strong>Continuous integration</strong>, and update the release. The listing is
+<a href="https://github.com/marketplace/actions/pixi-policy">marketplace/actions/pixi-policy</a>.</p>
 
 
 

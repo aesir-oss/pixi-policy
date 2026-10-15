@@ -529,6 +529,33 @@
   
   
     <li class="md-nav__item">
+      <a href="github-action/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Action
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="rules/" class="md-nav__link">
         
   
@@ -610,6 +637,60 @@
   
   
     <li class="md-nav__item">
+      <a href="advisories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known vulnerabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="freshness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Freshness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="waivers/" class="md-nav__link">
         
   
@@ -618,6 +699,33 @@
     
   
     Waivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="extends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing a policy
   
 
     
@@ -842,8 +950,10 @@ CI can stop the merge.</p>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pixi<span class="w"> </span>policy<span class="w">          </span><span class="c1"># check it (the same as `pixi policy check`)</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pixi<span class="w"> </span>policy<span class="w"> </span>explain<span class="w">  </span><span class="c1"># every rule; `pixi policy explain &lt;RULE&gt;` for one, with its keys</span>
 </code></pre></div>
-<p>pixi-policy reads three files and nothing else: it needs no server, no database and no network, and every check runs
-offline. It is a single binary that pixi runs as <code>pixi policy</code>.</p>
+<p>pixi-policy reads three files and needs no server and no database. It uses the network only for a shared policy
+<a href="extends/#extending-a-url">extended by URL</a>, <a href="advisories/">known vulnerabilities</a> and <a href="freshness/">freshness</a>,
+and caches all three, so a check runs offline once they are cached; a policy with none of them never uses it. It is a
+single binary that pixi runs as <code>pixi policy</code>.</p>
 <h2 id="what-it-checks">What it checks<a class="headerlink" href="#what-it-checks" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -868,6 +978,16 @@ offline. It is a single binary that pixi runs as <code>pixi policy</code>.</p>
 <td><a href="licenses/">Licenses</a></td>
 <td><code>licenses.deny</code>, <code>licenses.review</code>, <code>licenses.not-allowed</code>, <code>licenses.unknown</code></td>
 <td>every package can be used under the licenses the policy allows</td>
+</tr>
+<tr>
+<td><a href="advisories/">Advisories</a></td>
+<td><code>advisories.vulnerable</code>, <code>advisories.unknown</code>, <code>advisories.unavailable</code></td>
+<td>no package has a known vulnerability at or above the policy's severity, known exploited or likely to be exploited</td>
+</tr>
+<tr>
+<td><a href="freshness/">Freshness</a></td>
+<td><code>freshness.build-age</code>, <code>freshness.majors-behind</code>, <code>freshness.archived</code>, <code>freshness.unknown</code>, <code>freshness.unavailable</code></td>
+<td>no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock</td>
 </tr>
 <tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>
@@ -933,14 +1053,15 @@ conda-forge package, for <code>pixi global install</code>, is planned
 </tr>
 <tr>
 <td>2</td>
-<td>The policy, the manifest or the lockfile could not be read</td>
+<td>The policy, the manifest or the lockfile could not be read, or the policy loosens a base it extends</td>
 </tr>
 </tbody>
 </table>
 <h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="getting-started/">Getting started</a>: from <code>pixi policy init</code> to a policy that fails the build</li>
-<li><a href="ci/">In development and CI</a>: a pixi task, a pre-commit hook and a GitHub Actions step</li>
+<li><a href="ci/">In development and CI</a>: a pixi task, a pre-commit hook and the GitHub Action</li>
+<li><a href="extends/">Sharing a policy</a>: one base policy for many workspaces, which each may tighten</li>
 <li><a href="output/">Output formats</a>: text, JSON and SARIF</li>
 </ul>
 
