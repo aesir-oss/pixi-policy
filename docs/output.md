@@ -55,7 +55,8 @@ and a summary.
 }
 ```
 
-The schema is [pixi-policy-report.schema.json](schemas/pixi-policy-report.schema.json). Fields may be added within
+The schema is [pixi-policy-report.schema.json](schemas/pixi-policy-report.schema.json). For the packages themselves
+rather than the findings, as input for another policy engine, see [Facts for OPA and Rego](rego.md). Fields may be added within
 `version` 1; renaming or removing one raises the version.
 
 ## SARIF

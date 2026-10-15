@@ -18,6 +18,9 @@ It reads three files and needs no server and no database. The network is used on
 URL, known vulnerabilities (`[advisories]`) and freshness (`[freshness]`), all cached, so a check runs offline once
 they are cached.
 
+`pixi policy facts` writes what pixi.lock says about every environment as JSON, for organizations that keep their
+policy in OPA and Rego ([an example](examples/rego/pixi.rego)).
+
 ## What it checks
 
 | Family | Checks that |

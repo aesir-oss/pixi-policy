@@ -11,6 +11,7 @@ pub mod cli;
 pub mod cvss;
 pub mod explain;
 pub mod extends;
+pub mod facts;
 pub mod fetch;
 pub mod freshness;
 pub mod init;
