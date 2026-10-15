@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://aesir-oss.github.io/pixi-policy/latest/development/">
       
       
-        <link rel="prev" href="../output/">
+        <link rel="prev" href="../rego/">
       
       
         <link rel="next" href="../security/">
@@ -680,6 +680,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../rego/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facts for OPA and Rego
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -994,6 +1021,10 @@
 <td><code>-e docs docs-serve</code>, <code>-e docs docs-build</code></td>
 <td>this site, served with live reload or built strictly</td>
 </tr>
+<tr>
+<td><code>-e rego rego-test</code></td>
+<td><code>opa test</code> on <a href="../rego/">the Rego example</a> against <code>pixi policy facts</code> of an example workspace</td>
+</tr>
 </tbody>
 </table>
 <p><code>pixi run bootstrap</code> installs the pre-commit hooks once per clone.</p>
@@ -1035,8 +1066,12 @@
 <td><code>explain</code>, waivers that expire, <code>init</code></td>
 </tr>
 <tr>
+<td><code>src/vex.rs</code>, <code>src/facts.rs</code></td>
+<td>VEX statements for <code>[advisories]</code>; <code>pixi policy facts</code></td>
+</tr>
+<tr>
 <td><code>schemas/</code></td>
-<td>the JSON report's schema, published with the docs</td>
+<td>the JSON report's and the facts' schemas, published with the docs</td>
 </tr>
 <tr>
 <td><code>actions/pixi-policy/</code></td>
@@ -1053,6 +1088,10 @@
 <tr>
 <td><code>examples/projects/pixi/</code></td>
 <td>19 real pixi workspaces the tests and the field test run against</td>
+</tr>
+<tr>
+<td><code>examples/rego/</code></td>
+<td>built-in rules written in Rego over <code>pixi policy facts</code>, with <code>opa test</code> tests</td>
 </tr>
 <tr>
 <td><code>docs/</code>, <code>mkdocs.yml</code></td>
@@ -1129,7 +1168,7 @@ aesir-oss owner may first have to accept the Marketplace Developer Agreement), p
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../output/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Output formats">
+          <a href="../rego/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Facts for OPA and Rego">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1139,7 +1178,7 @@ aesir-oss owner may first have to accept the Marketplace Developer Agreement), p
                 Previous
               </span>
               <div class="md-ellipsis">
-                Output formats
+                Facts for OPA and Rego
               </div>
             </div>
           </a>
