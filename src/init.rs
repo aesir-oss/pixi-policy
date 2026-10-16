@@ -1,8 +1,10 @@
 //! `pixi policy init` (#68): a starting policy the workspace passes today, from its pixi.lock and manifest. The
 //! channels and indexes in use become the allowed ones, the licenses seen become `allow`, and the hygiene rules are
-//! on except where the manifest would fail them, which the policy says in a comment. It never overwrites a file.
+//! on except where the manifest would fail them, which the policy says in a comment. Since #53 it also proposes
+//! `[python]` from the Python the environments resolve, `[hygiene]`, the workspace's own `exclude-newer` cooldown, and
+//! `[advisories]` and `[freshness]` commented out, since they use the network. It never overwrites a file.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::io::Write as _;
 use std::path::Path;
@@ -44,6 +46,10 @@ pub struct InUse {
     pub path: bool,
     /// SPDX licensees the shared verdict accepts, one per identifier seen.
     pub licenses: BTreeSet<String>,
+    /// The Python minors the environments resolve, each with the environments on it.
+    pub pythons: BTreeMap<(u64, u64), BTreeSet<String>>,
+    /// PyPI packages a conda package in the same environment provides, by pixi.lock's own purls.
+    pub duplicates: usize,
 }
 
 /// A channel as the policy would write it: its name when the name alone matches it, its URL otherwise.
@@ -78,9 +84,22 @@ fn licensees(expression: &str) -> Vec<String> {
 /// What the workspace uses, read from every environment and platform of `lock`.
 pub fn in_use(lock: &LockFile, wheels: Option<&crate::wheel::Data>) -> Result<InUse, CheckError> {
     let mut used = InUse::default();
+    let hygiene = crate::policy::Policy::parse("[hygiene]\n", "init").expect("a fixed policy parses");
+    let duplicates = crate::rules::hygiene::rules(None);
     for environment in lockfile::environment_names(lock) {
         for platform in lockfile::platform_names(lock, &environment)? {
-            for fact in lockfile::read(lock, &environment, Some(&platform))?.packages {
+            let facts = lockfile::read(lock, &environment, Some(&platform))?;
+            used.duplicates += duplicates
+                .iter()
+                .map(|rule| rule.check(&hygiene, &facts).len())
+                .sum::<usize>();
+            for fact in facts.packages {
+                if matches!(fact.kind, Kind::CondaBinary | Kind::CondaSource)
+                    && fact.name == "python"
+                    && let Some(minor) = fact.version.as_deref().and_then(crate::rules::python::minor)
+                {
+                    used.pythons.entry(minor).or_default().insert(environment.clone());
+                }
                 match origin(&fact) {
                     Origin::Channel(url) => drop(used.channels.insert(channel_entry(&url))),
                     Origin::Index(url) => drop(used.indexes.insert(url.trim_end_matches('/').to_string())),
@@ -155,10 +174,44 @@ pub fn propose(used: &InUse, manifest: &Manifest) -> String {
     let _ = writeln!(out, "\n[licenses]");
     let _ = writeln!(
         out,
-        "# Every license the conda packages declare today. pixi.lock records no PyPI licenses."
+        "# Every license the packages declare today: pixi.lock's, and the PyPI wheels' METADATA it could read."
     );
     let _ = writeln!(out, "allow = {}", list(used.licenses.iter().cloned()));
     let _ = writeln!(out, "unknown = \"warn\"");
+    let _ = writeln!(
+        out,
+        "\n# Known vulnerabilities and freshness use the network; turn them on when it is there.\n\
+         # [advisories]  # fails on high and critical advisories and known exploited ones\n\
+         # [freshness]\n# max-build-age-days = 730\n# max-majors-behind = 1"
+    );
+    match used.duplicates {
+        0 => {
+            let _ = writeln!(out, "\n[hygiene]  # no PyPI package duplicates a conda package today");
+        }
+        n => {
+            let _ = writeln!(
+                out,
+                "\n[hygiene]\nconda-pypi-duplicate = false  # {} today; remove them, then this",
+                plural(
+                    n,
+                    "PyPI package duplicates a conda one",
+                    "PyPI packages duplicate conda ones"
+                )
+            );
+        }
+    }
+    if let Some((&(major, minor), _)) = used.pythons.iter().next_back() {
+        let _ = writeln!(out, "\n[python]\nversion = \"{major}.{minor}\"");
+        let behind: Vec<String> = used
+            .pythons
+            .iter()
+            .filter(|(version, _)| **version != (major, minor))
+            .map(|((ma, mi), envs)| format!("{} on {ma}.{mi}", envs.iter().cloned().collect::<Vec<_>>().join(", ")))
+            .collect();
+        if !behind.is_empty() {
+            let _ = writeln!(out, "older = \"warn\"  # {} today", behind.join("; "));
+        }
+    }
     let _ = writeln!(out, "\n[manifest]");
     let wildcards = manifest
         .dependencies
@@ -185,6 +238,27 @@ pub fn propose(used: &InUse, manifest: &Manifest) -> String {
     }
     if let Some((platforms, _)) = &manifest.platforms {
         let _ = writeln!(out, "required-platforms = {}", list(platforms.iter().cloned()));
+    }
+    let cooldown = manifest
+        .exclude_newer
+        .workspace
+        .as_ref()
+        .and_then(|(value, _)| crate::rules::manifest::duration(value))
+        .map(|seconds| (seconds / 86_400.0).floor() as u32)
+        .filter(|days| *days >= 1);
+    match cooldown {
+        Some(days) => {
+            let _ = writeln!(
+                out,
+                "min-exclude-newer-days = {days}  # the workspace's exclude-newer today"
+            );
+        }
+        None => {
+            let _ = writeln!(
+                out,
+                "# min-exclude-newer-days = 7  # with exclude-newer = \"7d\" in the workspace, a cooldown for new releases"
+            );
+        }
     }
     let _ = writeln!(out, "\n[lock]  # present, complete and in-sync are all on");
     out
@@ -233,6 +307,21 @@ mod tests {
         assert_eq!(used.indexes.len(), 3);
         assert!(used.git && used.url && used.path);
         assert!(used.licenses.contains("Zlib"), "{:?}", used.licenses);
+        let python = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/python/pixi.lock");
+        let used = in_use(&crate::check::load_lockfile(&python).unwrap(), None).unwrap();
+        assert_eq!(
+            used.pythons.keys().copied().collect::<Vec<_>>(),
+            [(3, 12), (3, 13), (3, 14)]
+        );
+        assert_eq!(used.pythons[&(3, 12)].iter().collect::<Vec<_>>(), ["old"]);
+        let hygiene = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/hygiene/pixi.lock");
+        assert_eq!(
+            in_use(&crate::check::load_lockfile(&hygiene).unwrap(), None)
+                .unwrap()
+                .duplicates,
+            1,
+            "msgpack, by its purl"
+        );
     }
 
     #[test]
@@ -272,6 +361,45 @@ mod tests {
         assert!(!text.contains("allowed-indexes"), "{text}");
         let many = list((0..5).map(|i| format!("x{i}")));
         assert!(many.starts_with("[\n  \"x0\",\n"), "{many}");
+    }
+
+    #[test]
+    fn the_newer_tables_are_proposed_so_the_workspace_passes() {
+        let mut used = InUse::default();
+        used.pythons.insert((3, 14), ["default".to_string()].into());
+        used.pythons
+            .insert((3, 12), ["legacy".to_string(), "old".to_string()].into());
+        used.duplicates = 2;
+        let manifest = Manifest::parse("[workspace]\nplatforms = []\nexclude-newer = \"14d\"\n", false).unwrap();
+        let text = propose(&used, &manifest);
+        assert!(
+            text.contains("\n[python]\nversion = \"3.14\"\nolder = \"warn\"  # legacy, old on 3.12 today\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("conda-pypi-duplicate = false  # 2 PyPI packages duplicate conda ones today"),
+            "{text}"
+        );
+        assert!(
+            text.contains("min-exclude-newer-days = 14  # the workspace's exclude-newer today"),
+            "{text}"
+        );
+        assert!(
+            text.contains("# [advisories]") && text.contains("# [freshness]"),
+            "{text}"
+        );
+        let policy = crate::policy::Policy::parse(&text, "p.toml").unwrap();
+        assert_eq!(policy.python.unwrap().older(), crate::policy::Action::Warn);
+
+        let plain = propose(&InUse::default(), &Manifest::parse("[workspace]\n", false).unwrap());
+        assert!(!plain.contains("\n[python]"), "no Python, no [python]: {plain}");
+        assert!(plain.contains("[hygiene]  # no PyPI package duplicates"), "{plain}");
+        assert!(plain.contains("# min-exclude-newer-days = 7"), "{plain}");
+        let dated = Manifest::parse("[workspace]\nexclude-newer = \"2026-01-01\"\n", false).unwrap();
+        assert!(
+            propose(&InUse::default(), &dated).contains("# min-exclude-newer-days = 7"),
+            "a date is not a duration"
+        );
     }
 
     #[test]

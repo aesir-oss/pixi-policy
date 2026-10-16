@@ -10,7 +10,9 @@ pixi policy init
 ```
 
 `init` writes `pixi-policy.toml` beside `pixi.toml` from what the workspace uses today: the channels and indexes its
-packages come from, every license in `pixi.lock`, and its platforms. It never overwrites an existing file; pass
+packages come from, every license its packages declare (pixi.lock's, and the PyPI wheels' it can read), its platforms,
+the Python its environments resolve, and its own `exclude-newer` cooldown when it sets one. `[advisories]` and
+`[freshness]` are written commented out, since they use the network. It never overwrites an existing file; pass
 `--policy <file>` to write somewhere else.
 
 ```toml
@@ -26,12 +28,24 @@ allow-path = false
 deny = []  # e.g. { name = "pycrypto", reason = "unmaintained", use-instead = "pycryptodome" }
 
 [licenses]
-# Every license the conda packages declare today (shortened here). pixi.lock records no PyPI licenses.
+# Every license the packages declare today: pixi.lock's, and the PyPI wheels' METADATA it could read. (Shortened here.)
 allow = ["Apache-2.0", "BSD-3-Clause", "MIT", "PSF-2.0"]
 unknown = "warn"
 
+# Known vulnerabilities and freshness use the network; turn them on when it is there.
+# [advisories]  # fails on high and critical advisories and known exploited ones
+# [freshness]
+# max-build-age-days = 730
+# max-majors-behind = 1
+
+[hygiene]  # no PyPI package duplicates a conda package today
+
+[python]
+version = "3.12"
+
 [manifest]
 required-platforms = ["linux-64", "osx-arm64", "win-64"]
+# min-exclude-newer-days = 7  # with exclude-newer = "7d" in the workspace, a cooldown for new releases
 
 [lock]  # present, complete and in-sync are all on
 ```
