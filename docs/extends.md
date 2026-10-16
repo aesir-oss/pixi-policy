@@ -35,8 +35,10 @@ extends = [
   `main` is not pinned, and an unpinned URL is an error. With a `sha256`, any URL works, http included, and content
   with another sha256 is refused.
 - A URL is fetched the first time it is needed and cached; after that the check reads the cache and needs no network.
-  The cache is in `~/.cache/pixi-policy` on Linux (or `$XDG_CACHE_HOME/pixi-policy`), `~/Library/Caches/pixi-policy`
-  on macOS and `%LOCALAPPDATA%\pixi-policy` on Windows. `PIXI_POLICY_CACHE_DIR` moves it, for example into a CI cache.
+  The cache is `pixi-policy/` in pixi's cache directory, beside pixi-sbom's: `$PIXI_CACHE_DIR` or `$RATTLER_CACHE_DIR`
+  when set, otherwise `~/.cache/rattler/cache` on Linux (or `$XDG_CACHE_HOME/rattler/cache`),
+  `~/Library/Caches/rattler/cache` on macOS and `%LOCALAPPDATA%\rattler\cache` on Windows. `PIXI_POLICY_CACHE_DIR`
+  moves it, for example into a CI cache.
 - `PIXI_POLICY_OFFLINE=1` forbids the network: a base that is not cached is then an error instead of a fetch.
 - The fetch uses the system's certificate store, and a proxy from the first of `ALL_PROXY`, `HTTPS_PROXY` and
   `HTTP_PROXY` that is set (in upper or lower case), skipping the hosts in `NO_PROXY`.
