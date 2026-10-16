@@ -63,8 +63,9 @@ fn glob(pattern: &str, text: &str) -> bool {
 pub struct Compiled {
     /// `allow` (with `review`, when `allow` is given) and `deny`: the gate's verdict.
     gate: Lists,
-    /// `review` as a deny list: denied here means the package needs a review license.
-    review: Lists,
+    /// `allow` alone, with `review` denied beside `deny`: failing here but passing the gate means the only way to use
+    /// the package is under a review license (#60).
+    without_review: Lists,
     unknown: Unknown,
     ambiguous: Unknown,
 }
@@ -74,16 +75,19 @@ impl Compiled {
     pub fn new(licenses: &Licenses) -> Result<Self, String> {
         let deny = expand(&licenses.deny)?;
         let review = expand(&licenses.review)?;
-        let mut allow = expand(&licenses.allow)?;
+        let allow_alone = expand(&licenses.allow)?;
+        let mut allow = allow_alone.clone();
         if !allow.is_empty() {
             allow.extend(review.iter().cloned());
         }
+        let mut deny_and_review = deny.clone();
+        deny_and_review.extend(review.iter().cloned());
         let invalid = |err: crate::license_policy::LicenseeError| {
             format!("{:?} is not an SPDX license identifier ({})", err.text, err.reason)
         };
         Ok(Self {
             gate: Lists::new(&allow, &deny).map_err(invalid)?,
-            review: Lists::new(&[], &review).map_err(invalid)?,
+            without_review: Lists::new(&allow_alone, &deny_and_review).map_err(invalid)?,
             unknown: licenses.unknown,
             ambiguous: licenses.ambiguous,
         })
@@ -110,7 +114,10 @@ impl Compiled {
         if let Some(reason) = self.gate.evaluate(&expression) {
             return Some(Verdict::Fails(reason, expression));
         }
-        (self.review.evaluate(&expression) == Some(Reason::Denied)).then_some(Verdict::Review(expression))
+        self.without_review
+            .evaluate(&expression)
+            .is_some()
+            .then_some(Verdict::Review(expression))
     }
 }
 
@@ -386,6 +393,45 @@ mod tests {
             assert!(got.len() <= 1, "{got:?}");
             assert_eq!(reason, case.expected, "{}: {}", case.expression, case.why);
         }
+    }
+
+    /// #60: an `OR` that the policy accepts only through its review option needs a review; one with an allowed option
+    /// does not.
+    #[test]
+    fn an_or_whose_only_acceptable_option_is_a_review_license_needs_a_review() {
+        let packages = || {
+            vec![
+                fact("packaging", Some("Apache-2.0 OR BSD-2-Clause"), Kind::CondaBinary),
+                fact("either", Some("MIT OR Apache-2.0"), Kind::CondaBinary),
+                fact("plain", Some("Apache-2.0"), Kind::CondaBinary),
+            ]
+        };
+        let with_allow = findings("[licenses]\nallow = [\"MIT\"]\nreview = [\"Apache-2.0\"]\n", packages());
+        assert_eq!(
+            with_allow,
+            [
+                ("licenses.review", Severity::Warning, "packaging".to_string()),
+                ("licenses.review", Severity::Warning, "plain".to_string()),
+            ]
+        );
+        // Without an allow list, the other option must be neither denied nor under review.
+        let deny_only = findings(
+            "[licenses]\ndeny = [\"BSD-2-Clause\"]\nreview = [\"Apache-2.0\"]\n",
+            packages(),
+        );
+        assert_eq!(
+            deny_only,
+            [
+                ("licenses.review", Severity::Warning, "packaging".to_string()),
+                ("licenses.review", Severity::Warning, "plain".to_string()),
+            ]
+        );
+        assert!(
+            findings("[licenses]\nreview = [\"Apache-2.0\"]\n", packages())
+                .iter()
+                .all(|f| f.2 == "plain"),
+            "BSD-2-Clause is acceptable without an allow list, so only plain needs a review"
+        );
     }
 
     #[test]
