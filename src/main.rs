@@ -84,7 +84,11 @@ fn run(args: &Args) -> miette::Result<i32> {
             outcome.findings.extend(unavailable);
             outcome.findings.extend(stale);
             outcome.findings.extend(unmapped);
-            if policy.manifest.is_some() || policy.lock.is_some() {
+            let requires_python = policy
+                .python
+                .as_ref()
+                .is_some_and(|p| p.requires_python.unwrap_or(false));
+            if policy.manifest.is_some() || policy.lock.is_some() || requires_python {
                 let manifest = Manifest::load(&workspace.manifest)?;
                 check::run_manifest(&mut outcome, &manifest, &policy, &rules);
                 let lock_findings = pixi_policy::rules::lock::check(

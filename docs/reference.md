@@ -98,9 +98,10 @@ A table. When it is left out: no python rule runs.
 
 | Key | Type | Allowed values | Default | Required | When extended | Rules |
 |---|---|---|---|---|---|---|
-| `[python] version` | string | a minor version, "3.14": the Python every environment runs; any patch release of it matches | none | yes | may only be stricter, unless overridable | [`python.older`](rules.md#python-older), [`python.newer`](rules.md#python-newer) |
+| `[python] version` | string | a minor version, "3.14": the Python every environment runs; any patch release of it matches | none | yes | may only be stricter, unless overridable | [`python.older`](rules.md#python-older), [`python.newer`](rules.md#python-newer), [`python.requires-python`](rules.md#python-requires-python) |
 | `[python] older` | string | "error", "warn", "allow": what an environment whose Python is an older minor version gets | "error" | no | may only be stricter, unless overridable | [`python.older`](rules.md#python-older) |
 | `[python] newer` | string | "warn", "error", "allow": what an environment whose Python is a newer minor version gets | "warn" | no | may only be stricter, unless overridable | [`python.newer`](rules.md#python-newer) |
+| `[python] requires-python` | boolean | true, false: the pyproject's [project] requires-python must not admit an older minor than version, and must admit version | false | no | may only be stricter, unless overridable | [`python.requires-python`](rules.md#python-requires-python) |
 
 ## `[manifest]` {#manifest}
 

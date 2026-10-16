@@ -52,6 +52,16 @@ pub struct Manifest {
     pub environments: Vec<(String, Vec<String>)>,
     /// The platforms a feature narrows its environments to, when it sets any.
     pub feature_platforms: Vec<(String, Vec<String>)>,
+    /// `[project] requires-python` of the workspace's pyproject.toml (the manifest itself, or one beside pixi.toml),
+    /// with its line (#56).
+    pub requires_python: Option<(String, u32)>,
+}
+
+/// `[project] requires-python` in a pyproject.toml's `text`, with its line.
+fn requires_python(text: &str) -> Option<(String, u32)> {
+    let document = DeTable::parse(text).ok()?;
+    let value = get(table(document.get_ref(), "project")?, "requires-python")?;
+    Some((value.get_ref().as_str()?.to_string(), line_of(text, value.span().start)))
 }
 
 fn strings(value: &DeValue<'_>) -> Vec<String> {
@@ -90,12 +100,14 @@ impl Manifest {
     pub fn parse(text: &str, pyproject: bool) -> Result<Self, String> {
         let document = DeTable::parse(text).map_err(|err| err.to_string())?;
         let root = document.get_ref();
+        let python = pyproject.then(|| requires_python(text)).flatten();
         let root = if pyproject {
             match table(root, "tool").and_then(|tool| table(tool, "pixi")) {
                 Some(pixi) => pixi,
                 None => {
                     return Ok(Self {
                         pyproject,
+                        requires_python: python,
                         ..Self::default()
                     });
                 }
@@ -105,6 +117,7 @@ impl Manifest {
         };
         let mut manifest = Self {
             pyproject,
+            requires_python: python,
             ..Self::default()
         };
         manifest.collect(text, root, "");
@@ -166,7 +179,11 @@ impl Manifest {
         };
         let text = std::fs::read_to_string(path).map_err(|err| error(err.to_string()))?;
         let pyproject = path.file_name().is_some_and(|name| name == "pyproject.toml");
-        Self::parse(&text, pyproject).map_err(error)
+        let mut manifest = Self::parse(&text, pyproject).map_err(error)?;
+        if !pyproject && let Ok(beside) = std::fs::read_to_string(path.with_file_name("pyproject.toml")) {
+            manifest.requires_python = requires_python(&beside);
+        }
+        Ok(manifest)
     }
 
     /// Every environment the workspace defines, `default` first, with the platforms it is solved for: the workspace's,
@@ -224,6 +241,31 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn requires_python_is_read_from_the_pyproject() {
+        let text = "[project]\nname = \"x\"\nrequires-python = \">=3.12\"\n\n[tool.pixi.workspace]\nplatforms = []\n";
+        assert_eq!(
+            Manifest::parse(text, true).unwrap().requires_python,
+            Some((">=3.12".into(), 3))
+        );
+        let bare = "[project]\nrequires-python = \">=3.14\"\n";
+        assert_eq!(
+            Manifest::parse(bare, true).unwrap().requires_python,
+            Some((">=3.14".into(), 2)),
+            "without [tool.pixi] too"
+        );
+        assert_eq!(Manifest::parse("[workspace]\n", false).unwrap().requires_python, None);
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("pixi.toml"), "[workspace]\nplatforms = []\n").unwrap();
+        std::fs::write(dir.path().join("pyproject.toml"), bare).unwrap();
+        let beside = Manifest::load(&dir.path().join("pixi.toml")).unwrap();
+        assert_eq!(
+            beside.requires_python,
+            Some((">=3.14".into(), 2)),
+            "a pyproject.toml beside pixi.toml"
+        );
+    }
 
     const MANIFEST: &str = r#"[workspace]
 name = "w"

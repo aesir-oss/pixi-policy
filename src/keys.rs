@@ -118,7 +118,7 @@ const FRESHNESS: &[&str] = &[
     "freshness.unavailable",
 ];
 const HYGIENE: &[&str] = &["hygiene.conda-pypi-duplicate", "hygiene.unavailable"];
-const PYTHON: &[&str] = &["python.older", "python.newer"];
+const PYTHON: &[&str] = &["python.older", "python.newer", "python.requires-python"];
 const MANIFEST: &[&str] = &[
     "manifest.wildcard-spec",
     "manifest.python-pinned",
@@ -632,6 +632,18 @@ pub const KEYS: &[Key] = &[
         required: false,
         rules: &["python.newer"],
         example: "\"error\"",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "python",
+        name: "requires-python",
+        kind: "boolean",
+        values: "true, false: the pyproject's [project] requires-python must not admit an older minor than version, \
+                 and must admit version",
+        default: "false",
+        required: false,
+        rules: &["python.requires-python"],
+        example: "true",
         merge: Merge::Stricter,
     },
     Key {

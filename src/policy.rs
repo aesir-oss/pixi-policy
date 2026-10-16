@@ -291,6 +291,8 @@ pub struct PythonRules {
     pub older: Option<Action>,
     /// What an environment whose Python is above the standard gets (default warn).
     pub newer: Option<Action>,
+    /// The pyproject's `requires-python` must start at the standard and admit it (default false, #56).
+    pub requires_python: Option<bool>,
 }
 
 impl PythonRules {

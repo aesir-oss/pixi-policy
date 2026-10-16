@@ -27,6 +27,7 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`freshness.unavailable`](#freshness-unavailable) | The channel or PyPI data cannot be read, so no package could be checked for freshness |
 | [`python.older`](#python-older) | No environment runs a Python older than the policy's standard |
 | [`python.newer`](#python-newer) | No environment runs a Python newer than the policy's standard |
+| [`python.requires-python`](#python-requires-python) | The pyproject's requires-python starts at the policy's standard Python and admits it |
 | [`hygiene.conda-pypi-duplicate`](#hygiene-conda-pypi-duplicate) | No PyPI package is one a conda package in the same environment provides |
 | [`hygiene.unavailable`](#hygiene-unavailable) | conda-forge's PyPI mapping cannot be read, so some conda packages were not compared |
 | [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
@@ -316,6 +317,20 @@ newer = "error"
 ```
 
 Keys: [`[python] version`](reference.md#python), [`[python] newer`](reference.md#python).
+
+## `python.requires-python` {#python-requires-python}
+
+The pyproject's requires-python starts at the policy's standard Python and admits it.
+
+Keys: [python] version and requires-python = true (false by default, since a library may support older Pythons on purpose). Reads [project] requires-python from the workspace's pyproject.toml, the manifest itself or one beside pixi.toml, and fails when it admits a Python minor older than the standard (>=3.12 with version = "3.14") or does not admit the standard at all (<3.14). Nothing is checked without a pyproject.toml or without requires-python.
+
+```toml
+[python]
+version = "3.14"
+requires-python = true
+```
+
+Keys: [`[python] version`](reference.md#python), [`[python] requires-python`](reference.md#python).
 
 ## `hygiene.conda-pypi-duplicate` {#hygiene-conda-pypi-duplicate}
 
