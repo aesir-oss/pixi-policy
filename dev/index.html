@@ -1028,8 +1028,8 @@ single binary that pixi runs as <code>pixi policy</code>.</p>
 </tr>
 <tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>
-<td><code>manifest.wildcard-spec</code>, <code>manifest.python-pinned</code>, <code>manifest.required-platforms</code></td>
-<td><code>pixi.toml</code> gives no <code>*</code> specs, pins Python to a minor version and lists the required platforms</td>
+<td><code>manifest.wildcard-spec</code>, <code>manifest.python-pinned</code>, <code>manifest.required-platforms</code>, <code>manifest.exclude-newer</code></td>
+<td><code>pixi.toml</code> gives no <code>*</code> specs, pins Python to a minor version, lists the required platforms and keeps new releases out for a cooldown (<code>exclude-newer</code>)</td>
 </tr>
 <tr>
 <td><a href="rules/#lock-present">Lock</a></td>
