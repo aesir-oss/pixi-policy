@@ -239,11 +239,18 @@ pub fn propose(used: &InUse, manifest: &Manifest) -> String {
     if let Some((platforms, _)) = &manifest.platforms {
         let _ = writeln!(out, "required-platforms = {}", list(platforms.iter().cloned()));
     }
-    let cooldown = manifest
-        .exclude_newer
+    // The shortest cooldown in use, overrides included, so the workspace passes what is proposed; only durations count,
+    // since a date's cooldown changes by the day.
+    let place = &manifest.exclude_newer;
+    let values = place
         .workspace
-        .as_ref()
-        .and_then(|(value, _)| crate::rules::manifest::duration(value))
+        .iter()
+        .map(|(value, _)| value)
+        .chain(place.overrides.iter().map(|(_, _, value, _)| value));
+    let days: Option<Vec<f64>> = values.map(|value| crate::rules::manifest::duration(value)).collect();
+    let cooldown = days
+        .filter(|_| place.workspace.is_some())
+        .and_then(|days| days.into_iter().reduce(f64::min))
         .map(|seconds| (seconds / 86_400.0).floor() as u32)
         .filter(|days| *days >= 1);
     match cooldown {
@@ -399,6 +406,17 @@ mod tests {
         assert!(
             propose(&InUse::default(), &dated).contains("# min-exclude-newer-days = 7"),
             "a date is not a duration"
+        );
+        let overridden = |text: &str| propose(&InUse::default(), &Manifest::parse(text, false).unwrap());
+        assert!(
+            overridden("[workspace]\nexclude-newer = \"14d\"\n\n[pypi-exclude-newer]\ntorch = \"3d\"\n")
+                .contains("min-exclude-newer-days = 3  #"),
+            "the shortest override"
+        );
+        assert!(
+            overridden("[workspace]\nexclude-newer = \"14d\"\n\n[exclude-newer]\nflask = \"0d\"\n")
+                .contains("# min-exclude-newer-days = 7"),
+            "an override under a day leaves it commented"
         );
     }
 
