@@ -1025,11 +1025,11 @@ packages come from, every license in <code>pixi.lock</code>, and its platforms. 
 <h2 id="2-check-it">2. Check it<a class="headerlink" href="#2-check-it" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pixi<span class="w"> </span>policy
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>warning[licenses.unknown] watchdog 6.0.0: has no license in pixi.lock (it never records PyPI licenses)
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  --&gt; pixi.lock: environment "docs", win-64
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  = help: PyPI licenses are read from the package's files in pixi-policy 0.2.0; until then set [licenses] unknown = "allow" to stop these
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>warning[licenses.unknown] python-dateutil 2.9.0.post0: license "Dual License" in its METADATA is not an SPDX expression (unknown term: 'Dual')
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  --&gt; pixi.lock: environment "docs", linux-64
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  = help: find the license the package ships and waive this with it as the reason, or set [licenses] unknown = "allow" to stop these
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>0 errors, 155 warnings, 0 waived in 1644 packages across 30 environment-platform pairs
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>0 errors, 10 warnings, 0 waived in 645 packages across 10 environment-platform pairs
 </code></pre></div>
 <p>Each finding names its rule, the package, where it was found and how to fix it. Errors fail the check (exit code 1);
 warnings are reported and do not. Commit <code>pixi-policy.toml</code> once the check passes.</p>

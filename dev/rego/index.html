@@ -910,8 +910,9 @@ give OPA what pixi-policy knows about a workspace, rather than learn a second po
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">pixi policy facts --output facts.json</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">opa eval --input facts.json --data policy.rego "data.pixi.policy.deny"</span>
 </code></pre></div>
-<p><code>pixi policy facts</code> reads <code>pixi.lock</code> only, offline, and writes every environment and platform it locks with their
-packages. The shape is <a href="../schemas/pixi-policy-facts.schema.json">pixi-policy-facts.schema.json</a>, versioned like the
+<p><code>pixi policy facts</code> reads <code>pixi.lock</code>, and for PyPI wheels from pypi.org their licenses as the
+<a href="../licenses/#what-pixi-policy-reads">license rules</a> do (cached, offline from the cache), and writes every environment
+and platform it locks with their packages. The shape is <a href="../schemas/pixi-policy-facts.schema.json">pixi-policy-facts.schema.json</a>, versioned like the
 <a href="../output/#json">JSON report</a>: fields may be added, and a renamed or removed field raises <code>version</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -929,7 +930,7 @@ packages. The shape is <a href="../schemas/pixi-policy-facts.schema.json">pixi-p
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">          </span><span class="nt">"purl"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pkg:conda/readline@8.3?build=hd6e31c0_1&amp;channel=conda-forge&amp;subdir=linux-64&amp;type=conda"</span><span class="p">,</span>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">          </span><span class="nt">"provides_pypi"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">          </span><span class="nt">"origin"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"channel"</span><span class="p">,</span><span class="w"> </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://conda.anaconda.org/conda-forge/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"channel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"conda-forge"</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">          </span><span class="nt">"license"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"declared"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GPL-3.0-only"</span><span class="p">,</span><span class="w"> </span><span class="nt">"spdx"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GPL-3.0-only"</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"spdx"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">          </span><span class="nt">"license"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"declared"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GPL-3.0-only"</span><span class="p">,</span><span class="w"> </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pixi.lock"</span><span class="p">,</span><span class="w"> </span><span class="nt">"spdx"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GPL-3.0-only"</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"spdx"</span><span class="w"> </span><span class="p">},</span>
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">          </span><span class="nt">"build"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hd6e31c0_1"</span><span class="p">,</span>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">          </span><span class="nt">"build_number"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">          </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1787033801</span><span class="p">,</span>
@@ -967,8 +968,12 @@ packages. The shape is <a href="../schemas/pixi-policy-facts.schema.json">pixi-p
 <td>the SPDX expression pixi-policy reads the declared license as, through its <a href="../licenses/#how-a-license-string-is-read">table of spellings</a></td>
 </tr>
 <tr>
+<td><code>license.source</code></td>
+<td><code>pixi.lock</code>, <code>wheel</code> (a PyPI wheel's METADATA) or <code>null</code> when there is none</td>
+</tr>
+<tr>
 <td><code>license.status</code></td>
-<td><code>spdx</code>, <code>text</code> (not an SPDX expression), <code>ambiguous</code> or <code>missing</code> (pixi.lock records no PyPI licenses)</td>
+<td><code>spdx</code>, <code>text</code> (not an SPDX expression), <code>ambiguous</code> or <code>missing</code></td>
 </tr>
 </tbody>
 </table>

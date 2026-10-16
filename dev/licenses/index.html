@@ -1048,9 +1048,15 @@ as the reason, or ask the package's maintainers to state an SPDX license.</p>
 </tbody>
 </table>
 <h2 id="what-pixi-policy-reads">What pixi-policy reads<a class="headerlink" href="#what-pixi-policy-reads" title="Permanent link">&para;</a></h2>
-<p>Licenses come from <code>pixi.lock</code> only, offline. It records them for conda packages and never for PyPI ones, so every PyPI
-package is <code>licenses.unknown</code> until pixi-policy 0.2.0 reads license files; set <code>unknown = "allow"</code> to stop those
-warnings meanwhile. pixi-sbom's gate also covers npm packages it reads from a <code>package-lock.json</code> (and licenses it
+<p>Conda licenses come from <code>pixi.lock</code>, offline. It records none for PyPI packages, so for a wheel from pypi.org
+pixi-policy reads the wheel's <code>METADATA</code>: its <code>License-Expression</code> (PEP 639), else a short <code>License</code> field, else a
+single <code>License ::</code> trove classifier that names one license (<code>License :: OSI Approved :: MIT License</code> is MIT; several
+classifiers, or <code>BSD License</code> alone, are <code>licenses.ambiguous</code>). It fetches only the end of the wheel with HTTP range
+requests, not the whole file, and caches what it read by the wheel's sha256, so the next run, or an offline one
+(<code>PIXI_POLICY_OFFLINE</code>), reads the cache. <code>PIXI_POLICY_WHEEL_URL</code> replaces <code>https://files.pythonhosted.org</code> with a
+mirror.</p>
+<p>A source distribution, a wheel from another index, and a package from a URL, git or a path are not read: each is
+<code>licenses.unknown</code>, and the finding says why. So is a wheel whose <code>METADATA</code> cannot be read. pixi-sbom's gate also covers npm packages it reads from a <code>package-lock.json</code> (and licenses it
 fetches with <code>--fetch-licenses</code>); pixi-policy checks the packages in <code>pixi.lock</code>.</p>
 
 
