@@ -12,6 +12,7 @@ exits non-zero so CI can stop the merge.
 pixi policy init     # write a policy the workspace passes today
 pixi policy          # check it (the same as `pixi policy check`)
 pixi policy explain  # every rule; `pixi policy explain <RULE>` for one, with its keys and defaults
+pixi policy lock     # pixi lock, then check the new lockfile before anything is installed
 ```
 
 It reads three files and needs no server and no database. The network is used only for a shared policy extended by
