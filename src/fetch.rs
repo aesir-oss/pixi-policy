@@ -27,26 +27,37 @@ pub struct Settings {
 }
 
 impl Settings {
-    /// From the environment: `PIXI_POLICY_CACHE_DIR` or the platform's cache directory, and `PIXI_POLICY_OFFLINE`.
+    /// From the environment: `PIXI_POLICY_CACHE_DIR`, or `pixi-policy/` in pixi's cache directory (#58), and
+    /// `PIXI_POLICY_OFFLINE`.
     pub fn from_env() -> Self {
-        let var = |name: &str| std::env::var_os(name).filter(|value| !value.is_empty());
-        let cache = var("PIXI_POLICY_CACHE_DIR").map(PathBuf::from).or_else(|| {
-            let base = if cfg!(windows) {
-                var("LOCALAPPDATA").map(PathBuf::from)
-            } else if cfg!(target_os = "macos") {
-                var("HOME").map(|home| PathBuf::from(home).join("Library/Caches"))
-            } else {
-                var("XDG_CACHE_HOME")
-                    .map(PathBuf::from)
-                    .or_else(|| var("HOME").map(|home| PathBuf::from(home).join(".cache")))
-            };
-            base.map(|base| base.join("pixi-policy"))
-        });
+        Self::from_vars(|name| std::env::var_os(name))
+    }
+
+    fn from_vars(var: impl Fn(&str) -> Option<std::ffi::OsString>) -> Self {
+        let var = |name: &str| var(name).filter(|value| !value.is_empty());
+        let cache = var("PIXI_POLICY_CACHE_DIR")
+            .map(PathBuf::from)
+            .or_else(|| pixi_cache_dir(&|name| var(name).map(PathBuf::from)).map(|dir| dir.join("pixi-policy")));
         Self {
             cache,
             offline: var("PIXI_POLICY_OFFLINE").is_some_and(|value| value != "0"),
         }
     }
+}
+
+/// pixi's cache directory, resolved the way pixi resolves it: `PIXI_CACHE_DIR`, then `RATTLER_CACHE_DIR`, then the
+/// platform cache directory's `rattler/cache`. pixi-sbom keeps its cache there too.
+fn pixi_cache_dir(var: &dyn Fn(&str) -> Option<PathBuf>) -> Option<PathBuf> {
+    var("PIXI_CACHE_DIR").or_else(|| var("RATTLER_CACHE_DIR")).or_else(|| {
+        let platform = if cfg!(windows) {
+            var("LOCALAPPDATA")
+        } else if cfg!(target_os = "macos") {
+            var("HOME").map(|home| home.join("Library").join("Caches"))
+        } else {
+            var("XDG_CACHE_HOME").or_else(|| var("HOME").map(|home| home.join(".cache")))
+        };
+        platform.map(|base| base.join("rattler").join("cache"))
+    })
 }
 
 /// The sha256 of `bytes`, in lower-case hex.
@@ -191,6 +202,40 @@ pub mod tests {
     use std::net::TcpListener;
 
     use super::*;
+
+    #[test]
+    fn the_cache_is_beside_pixis() {
+        let settings = |vars: &[(&str, &str)]| {
+            let vars: Vec<(String, String)> = vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            Settings::from_vars(|name| {
+                vars.iter()
+                    .find(|(key, _)| key == name)
+                    .map(|(_, value)| std::ffi::OsString::from(value))
+            })
+        };
+        let cache = |vars: &[(&str, &str)]| settings(vars).cache;
+        assert_eq!(
+            cache(&[("PIXI_POLICY_CACHE_DIR", "/ci"), ("PIXI_CACHE_DIR", "/pixi")]),
+            Some(PathBuf::from("/ci"))
+        );
+        assert_eq!(
+            cache(&[("PIXI_CACHE_DIR", "/pixi"), ("RATTLER_CACHE_DIR", "/rattler")]),
+            Some(Path::new("/pixi").join("pixi-policy"))
+        );
+        assert_eq!(
+            cache(&[("RATTLER_CACHE_DIR", "/rattler"), ("PIXI_POLICY_CACHE_DIR", "")]),
+            Some(Path::new("/rattler").join("pixi-policy"))
+        );
+        let home = if cfg!(windows) { "LOCALAPPDATA" } else { "HOME" };
+        let platform = cache(&[(home, "/home/u")]).unwrap();
+        assert!(
+            platform.ends_with(Path::new("rattler").join("cache").join("pixi-policy")),
+            "{platform:?}"
+        );
+        assert_eq!(cache(&[]), None);
+        assert!(settings(&[("PIXI_POLICY_OFFLINE", "1")]).offline);
+        assert!(!settings(&[("PIXI_POLICY_OFFLINE", "0")]).offline);
+    }
 
     /// Serve `body` at every path, `times` times, on a local port; the URL of `/base.toml` there.
     pub fn serve(body: &'static str, times: usize) -> (String, std::thread::JoinHandle<Vec<String>>) {
