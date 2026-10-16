@@ -19,5 +19,5 @@ not tags. Action names are unique on the Marketplace.
 **How to apply:** check the name `pixi-policy` is free on the Marketplace before the first listing. Ticking "Publish
 this Action to the GitHub Marketplace" is a manual step on the first final's release (no API); after that the
 workflow-created release keeps the listing current (confirmed for pixi-sbom at 1.14.0). pixi-policy's listing was
-made by hand on v0.2.0; the field-test checklist's last step checks the next final shows up without it. Never resolve
+made by hand on v0.2.0, and v0.3.0 appeared on it without manual editing. Never resolve
 `releases/latest` in the Action; name the tag. Related: [[releases]], [[roadmap]].
