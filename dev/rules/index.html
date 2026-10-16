@@ -1656,11 +1656,11 @@
 </tr>
 <tr>
 <td><a href="#freshness-build-age"><code>freshness.build-age</code></a></td>
-<td>A conda package was built longer ago than max-build-age-days</td>
+<td>A package was built, or uploaded to PyPI, longer ago than max-build-age-days</td>
 </tr>
 <tr>
 <td><a href="#freshness-majors-behind"><code>freshness.majors-behind</code></a></td>
-<td>A conda package is more major versions behind its channel's newest than allowed</td>
+<td>A package is more major versions behind its channel's or PyPI's newest than allowed</td>
 </tr>
 <tr>
 <td><a href="#freshness-archived"><code>freshness.archived</code></a></td>
@@ -1668,11 +1668,11 @@
 </tr>
 <tr>
 <td><a href="#freshness-unknown"><code>freshness.unknown</code></a></td>
-<td>The channel data says nothing about a conda package a freshness rule checks</td>
+<td>The channel or PyPI data says nothing about a package a freshness rule checks</td>
 </tr>
 <tr>
 <td><a href="#freshness-unavailable"><code>freshness.unavailable</code></a></td>
-<td>The channel data cannot be read, so no package could be checked for freshness</td>
+<td>The channel or PyPI data cannot be read, so no package could be checked for freshness</td>
 </tr>
 <tr>
 <td><a href="#python-older"><code>python.older</code></a></td>
@@ -1831,19 +1831,19 @@
 </code></pre></div>
 <p>Keys: .</p>
 <h2 id="freshness-build-age"><code>freshness.build-age</code><a class="headerlink" href="#freshness-build-age" title="Permanent link">&para;</a></h2>
-<p>A conda package was built longer ago than max-build-age-days.</p>
-<p>Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the limit, by the build time its record in pixi.lock states: no network. A package with no build time is freshness.unknown.</p>
+<p>A package was built, or uploaded to PyPI, longer ago than max-build-age-days.</p>
+<p>Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the limit, by the build time its record in pixi.lock states: no network. With pypi (on by default), a PyPI package from pypi.org fails when the file pixi.lock locks was uploaded longer ago, by PyPI's JSON API. A package with no build or upload time is freshness.unknown.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[freshness]</span>
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">max-build-age-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">730</span>
 </code></pre></div>
-<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-build-age-days</code></a>.</p>
+<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-build-age-days</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>.</p>
 <h2 id="freshness-majors-behind"><code>freshness.majors-behind</code><a class="headerlink" href="#freshness-majors-behind" title="Permanent link">&para;</a></h2>
-<p>A conda package is more major versions behind its channel's newest than allowed.</p>
-<p>Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the leading number) is more than the limit behind the newest release in the repodata of the channel and subdir pixi.lock names for it, so a mirror is judged by its own contents. Prereleases do not count as newest. PyPI packages are not checked.</p>
+<p>A package is more major versions behind its channel's or PyPI's newest than allowed.</p>
+<p>Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the leading number) is more than the limit behind the newest release in the repodata of the channel and subdir pixi.lock names for it, so a mirror is judged by its own contents. With pypi (on by default), a PyPI package from pypi.org is compared with the newest release PyPI lists. Prereleases, and yanked PyPI releases, do not count as newest.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">[freshness]</span>
 <a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">max-majors-behind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
 </code></pre></div>
-<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>.</p>
+<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>.</p>
 <h2 id="freshness-archived"><code>freshness.archived</code><a class="headerlink" href="#freshness-archived" title="Permanent link">&para;</a></h2>
 <p>A conda-forge package comes from an archived feedstock.</p>
 <p>Key: [freshness] archived (on once [freshness] exists). Fails a conda-forge package when every feedstock that builds it is archived, by the conda-forge bot's feedstock list, which can trail an archival on GitHub by a bot cycle (hours).</p>
@@ -1852,18 +1852,18 @@
 </code></pre></div>
 <p>Keys: <a href="../reference/#freshness"><code>[freshness] archived</code></a>.</p>
 <h2 id="freshness-unknown"><code>freshness.unknown</code><a class="headerlink" href="#freshness-unknown" title="Permanent link">&para;</a></h2>
-<p>The channel data says nothing about a conda package a freshness rule checks.</p>
-<p>Key: [freshness] unknown = "warn" (default), "error" or "allow": what a conda package gets when a freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version to compare, or no feedstock known to build it.</p>
+<p>The channel or PyPI data says nothing about a package a freshness rule checks.</p>
+<p>Key: [freshness] unknown = "warn" (default), "error" or "allow": what a package gets when a freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version to compare, no feedstock known to build it, or a PyPI package from somewhere other than pypi.org or whose locked file PyPI does not list.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[freshness]</span>
 <a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"error"</span>
 </code></pre></div>
-<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-build-age-days</code></a>, <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>, <a href="../reference/#freshness"><code>[freshness] unknown</code></a>.</p>
+<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-build-age-days</code></a>, <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>, <a href="../reference/#freshness"><code>[freshness] unknown</code></a>.</p>
 <h2 id="freshness-unavailable"><code>freshness.unavailable</code><a class="headerlink" href="#freshness-unavailable" title="Permanent link">&para;</a></h2>
-<p>The channel data cannot be read, so no package could be checked for freshness.</p>
-<p>Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.</p>
+<p>The channel or PyPI data cannot be read, so no package could be checked for freshness.</p>
+<p>Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[freshness]</span>
 </code></pre></div>
-<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>.</p>
+<p>Keys: <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>.</p>
 <h2 id="python-older"><code>python.older</code><a class="headerlink" href="#python-older" title="Permanent link">&para;</a></h2>
 <p>No environment runs a Python older than the policy's standard.</p>
 <p>Keys: [python] version, the standard minor version, and older = "error" (default), "warn" or "allow". Reports an environment whose Python, as pixi.lock resolves it for each platform, is an older minor version than the standard. Every patch release of the standard matches it; an environment without Python is not checked.</p>

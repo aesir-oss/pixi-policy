@@ -1546,6 +1546,15 @@
 <td><a href="../rules/#freshness-archived"><code>freshness.archived</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
 </tr>
 <tr>
+<td><code>[freshness] pypi</code></td>
+<td>boolean</td>
+<td>true, false: PyPI packages from pypi.org are checked too, by the locked file's upload time and the newest release PyPI lists</td>
+<td>true once the table exists; without the table the rule is off</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-build-age"><code>freshness.build-age</code></a>, <a href="../rules/#freshness-majors-behind"><code>freshness.majors-behind</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
+</tr>
+<tr>
 <td><code>[freshness] unknown</code></td>
 <td>string</td>
 <td>"warn", "error", "allow": what a package gets when the data says nothing about it</td>
