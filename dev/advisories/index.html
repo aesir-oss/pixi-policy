@@ -991,8 +991,10 @@ advisory and its CVE, and the help names the version that fixes it:</p>
 <li><a href="https://osv.dev">OSV</a> for the advisories (GitHub's, the PyPI advisory database's and the rest), with their
   severity from the database's rating or the CVSS v3 vector, whichever is worse. Records about the same vulnerability,
   such as a GHSA and a PYSEC entry sharing a CVE, are one advisory.</li>
-<li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA's KEV catalog</a> for <code>known-exploited</code>. Being known
-  exploited does not change an advisory's severity; it is its own switch.</li>
+<li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA's KEV catalog</a> for <code>known-exploited</code>. With
+  <code>known-exploited = "error"</code> (the default), a known exploited advisory counts as critical, so it fails whatever
+  <code>fail-on</code> is, and the message keeps its own rating: <code>critical severity (rated medium), known exploited</code>. With
+  <code>"warn"</code> or <code>"allow"</code> its rating is left alone. An EPSS score does not change a rating.</li>
 <li><a href="https://www.first.org/epss/">FIRST's EPSS scores</a> for <code>epss</code>, asked for only when <code>epss</code> is set. An advisory with
   several CVEs takes the highest score.</li>
 </ul>
