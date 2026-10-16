@@ -996,6 +996,10 @@ common non-SPDX spellings (see <a href="#how-a-license-string-is-read">How a lic
 </tr>
 </tbody>
 </table>
+<p>An <code>OR</code> expression offers a choice, so a package passes when one option is acceptable: <code>MIT OR GPL-3.0-only</code> passes a
+policy that denies GPL-3.0-only. It needs a review when its only acceptable options are <code>review</code> licenses:
+<code>Apache-2.0 OR BSD-2-Clause</code> with <code>allow = ["MIT"]</code> and <code>review = ["Apache-2.0"]</code> is <code>licenses.review</code>, since
+BSD-2-Clause is not allowed.</p>
 <p>Entries are SPDX identifiers, or patterns with <code>*</code> that are expanded against the SPDX license list (<code>LGPL-*</code> is every
 LGPL identifier). An <code>-or-later</code> entry accepts later versions of the same license, as in pixi-sbom.</p>
 <h2 id="how-a-license-string-is-read">How a license string is read<a class="headerlink" href="#how-a-license-string-is-read" title="Permanent link">&para;</a></h2>
