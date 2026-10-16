@@ -977,8 +977,10 @@ that workspace:</p>
   <code>main</code> is not pinned, and an unpinned URL is an error. With a <code>sha256</code>, any URL works, http included, and content
   with another sha256 is refused.</li>
 <li>A URL is fetched the first time it is needed and cached; after that the check reads the cache and needs no network.
-  The cache is in <code>~/.cache/pixi-policy</code> on Linux (or <code>$XDG_CACHE_HOME/pixi-policy</code>), <code>~/Library/Caches/pixi-policy</code>
-  on macOS and <code>%LOCALAPPDATA%\pixi-policy</code> on Windows. <code>PIXI_POLICY_CACHE_DIR</code> moves it, for example into a CI cache.</li>
+  The cache is <code>pixi-policy/</code> in pixi's cache directory, beside pixi-sbom's: <code>$PIXI_CACHE_DIR</code> or <code>$RATTLER_CACHE_DIR</code>
+  when set, otherwise <code>~/.cache/rattler/cache</code> on Linux (or <code>$XDG_CACHE_HOME/rattler/cache</code>),
+  <code>~/Library/Caches/rattler/cache</code> on macOS and <code>%LOCALAPPDATA%\rattler\cache</code> on Windows. <code>PIXI_POLICY_CACHE_DIR</code>
+  moves it, for example into a CI cache.</li>
 <li><code>PIXI_POLICY_OFFLINE=1</code> forbids the network: a base that is not cached is then an error instead of a fetch.</li>
 <li>The fetch uses the system's certificate store, and a proxy from the first of <code>ALL_PROXY</code>, <code>HTTPS_PROXY</code> and
   <code>HTTP_PROXY</code> that is set (in upper or lower case), skipping the hosts in <code>NO_PROXY</code>.</li>
