@@ -785,6 +785,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../rego/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facts for OPA and Rego
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../development/" class="md-nav__link">
         
   
@@ -972,7 +999,9 @@ a reviewed pull request that says exactly what is no longer allowed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pixi<span class="w"> </span>policy<span class="w"> </span>init
 </code></pre></div>
 <p><code>init</code> writes <code>pixi-policy.toml</code> beside <code>pixi.toml</code> from what the workspace uses today: the channels and indexes its
-packages come from, every license in <code>pixi.lock</code>, and its platforms. It never overwrites an existing file; pass
+packages come from, every license its packages declare (pixi.lock's, and the PyPI wheels' it can read), its platforms,
+the Python its environments resolve, and its own <code>exclude-newer</code> cooldown when it sets one. <code>[advisories]</code> and
+<code>[freshness]</code> are written commented out, since they use the network. It never overwrites an existing file; pass
 <code>--policy &lt;file&gt;</code> to write somewhere else.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># pixi-policy.toml, written by `pixi policy init` from what this workspace uses today.</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">[sources]</span>
@@ -986,23 +1015,35 @@ packages come from, every license in <code>pixi.lock</code>, and its platforms. 
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span><span class="w">  </span><span class="c1"># e.g. { name = "pycrypto", reason = "unmaintained", use-instead = "pycryptodome" }</span>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
 <a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">[licenses]</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Every license the conda packages declare today (shortened here). pixi.lock records no PyPI licenses.</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Every license the packages declare today: pixi.lock's, and the PyPI wheels' METADATA it could read. (Shortened here.)</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"Apache-2.0"</span><span class="p">,</span><span class="w"> </span><span class="s2">"BSD-3-Clause"</span><span class="p">,</span><span class="w"> </span><span class="s2">"MIT"</span><span class="p">,</span><span class="w"> </span><span class="s2">"PSF-2.0"</span><span class="p">]</span>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"warn"</span>
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="k">[manifest]</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"win-64"</span><span class="p">]</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="k">[lock]</span><span class="w">  </span><span class="c1"># present, complete and in-sync are all on</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># Known vulnerabilities and freshness use the network; turn them on when it is there.</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1"># [advisories]  # fails on high and critical advisories and known exploited ones</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># [freshness]</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># max-build-age-days = 730</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="c1"># max-majors-behind = 1</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="k">[hygiene]</span><span class="w">  </span><span class="c1"># no PyPI package duplicates a conda package today</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="k">[python]</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"3.12"</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="k">[manifest]</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="n">required-platforms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"linux-64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"osx-arm64"</span><span class="p">,</span><span class="w"> </span><span class="s2">"win-64"</span><span class="p">]</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="c1"># min-exclude-newer-days = 7  # with exclude-newer = "7d" in the workspace, a cooldown for new releases</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="k">[lock]</span><span class="w">  </span><span class="c1"># present, complete and in-sync are all on</span>
 </code></pre></div>
 <h2 id="2-check-it">2. Check it<a class="headerlink" href="#2-check-it" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pixi<span class="w"> </span>policy
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>warning[licenses.unknown] watchdog 6.0.0: has no license in pixi.lock (it never records PyPI licenses)
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  --&gt; pixi.lock: environment "docs", win-64
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  = help: PyPI licenses are read from the package's files in pixi-policy 0.2.0; until then set [licenses] unknown = "allow" to stop these
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>warning[licenses.unknown] python-dateutil 2.9.0.post0: license "Dual License" in its METADATA is not an SPDX expression (unknown term: 'Dual')
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  --&gt; pixi.lock: environment "docs", linux-64
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  = help: find the license the package ships and waive this with it as the reason, or set [licenses] unknown = "allow" to stop these
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>0 errors, 155 warnings, 0 waived in 1644 packages across 30 environment-platform pairs
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>0 errors, 10 warnings, 0 waived in 645 packages across 10 environment-platform pairs
 </code></pre></div>
 <p>Each finding names its rule, the package, where it was found and how to fix it. Errors fail the check (exit code 1);
 warnings are reported and do not. Commit <code>pixi-policy.toml</code> once the check passes.</p>

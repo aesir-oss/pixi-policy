@@ -631,6 +631,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [hygiene]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [python]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -840,6 +862,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../rego/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facts for OPA and Rego
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../development/" class="md-nav__link">
         
   
@@ -1018,6 +1067,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [hygiene]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [python]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1093,15 +1164,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>freshness</code></td>
-<td>table</td>
-<td>the keys below</td>
-<td>absent: no freshness rule runs, and nothing is fetched</td>
-<td>no</td>
-<td>–</td>
-<td><a href="../rules/#freshness-build-age"><code>freshness.build-age</code></a>, <a href="../rules/#freshness-majors-behind"><code>freshness.majors-behind</code></a>, <a href="../rules/#freshness-archived"><code>freshness.archived</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
-</tr>
 <tr>
 <td><code>max-waiver-days</code></td>
 <td>integer</td>
@@ -1359,6 +1421,15 @@
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#licenses-unknown"><code>licenses.unknown</code></a></td>
 </tr>
+<tr>
+<td><code>[licenses] ambiguous</code></td>
+<td>string</td>
+<td>"warn", "error", "allow": what a license name that could be more than one SPDX license gets</td>
+<td>"warn"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#licenses-ambiguous"><code>licenses.ambiguous</code></a></td>
+</tr>
 </tbody>
 </table>
 <h2 id="advisories"><code>[advisories]</code><a class="headerlink" href="#advisories" title="Permanent link">&para;</a></h2>
@@ -1388,7 +1459,7 @@
 <tr>
 <td><code>[advisories] known-exploited</code></td>
 <td>string</td>
-<td>"error", "warn", "allow": what an advisory in CISA's Known Exploited Vulnerabilities catalog gets, whatever its severity</td>
+<td>"error", "warn", "allow": what an advisory in CISA's Known Exploited Vulnerabilities catalog gets, whatever its severity; with "error" it counts as critical</td>
 <td>"error" once the table exists</td>
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
@@ -1419,6 +1490,15 @@
 <td>"prefix"</td>
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#advisories-vulnerable"><code>advisories.vulnerable</code></a>, <a href="../rules/#advisories-unknown"><code>advisories.unknown</code></a></td>
+</tr>
+<tr>
+<td><code>[advisories] vex</code></td>
+<td>list of strings</td>
+<td>CycloneDX or OpenVEX JSON files, by a path relative to the policy that names them or a pinned https URL: an advisory a statement marks not_affected, false_positive or resolved for a package is waived with it</td>
+<td>[]</td>
+<td>no</td>
+<td>adds up</td>
 <td><a href="../rules/#advisories-vulnerable"><code>advisories.vulnerable</code></a>, <a href="../rules/#advisories-unknown"><code>advisories.unknown</code></a></td>
 </tr>
 </tbody>
@@ -1466,6 +1546,15 @@
 <td><a href="../rules/#freshness-archived"><code>freshness.archived</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
 </tr>
 <tr>
+<td><code>[freshness] pypi</code></td>
+<td>boolean</td>
+<td>true, false: PyPI packages from pypi.org are checked too, by the locked file's upload time and the newest release PyPI lists</td>
+<td>true once the table exists; without the table the rule is off</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#freshness-build-age"><code>freshness.build-age</code></a>, <a href="../rules/#freshness-majors-behind"><code>freshness.majors-behind</code></a>, <a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a>, <a href="../rules/#freshness-unavailable"><code>freshness.unavailable</code></a></td>
+</tr>
+<tr>
 <td><code>[freshness] unknown</code></td>
 <td>string</td>
 <td>"warn", "error", "allow": what a package gets when the data says nothing about it</td>
@@ -1473,6 +1562,85 @@
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#freshness-unknown"><code>freshness.unknown</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="hygiene"><code>[hygiene]</code><a class="headerlink" href="#hygiene" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: no hygiene rule runs.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[hygiene] conda-pypi-duplicate</code></td>
+<td>boolean</td>
+<td>true, false: a PyPI package a conda package in the same environment already provides fails</td>
+<td>true once the table exists; without the table the rule is off</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#hygiene-conda-pypi-duplicate"><code>hygiene.conda-pypi-duplicate</code></a>, <a href="../rules/#hygiene-unavailable"><code>hygiene.unavailable</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="python"><code>[python]</code><a class="headerlink" href="#python" title="Permanent link">&para;</a></h2>
+<p>A table. When it is left out: no python rule runs.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Allowed values</th>
+<th>Default</th>
+<th>Required</th>
+<th>When extended</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[python] version</code></td>
+<td>string</td>
+<td>a minor version, "3.14": the Python every environment runs; any patch release of it matches</td>
+<td>none</td>
+<td>yes</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-older"><code>python.older</code></a>, <a href="../rules/#python-newer"><code>python.newer</code></a>, <a href="../rules/#python-requires-python"><code>python.requires-python</code></a></td>
+</tr>
+<tr>
+<td><code>[python] older</code></td>
+<td>string</td>
+<td>"error", "warn", "allow": what an environment whose Python is an older minor version gets</td>
+<td>"error"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-older"><code>python.older</code></a></td>
+</tr>
+<tr>
+<td><code>[python] newer</code></td>
+<td>string</td>
+<td>"warn", "error", "allow": what an environment whose Python is a newer minor version gets</td>
+<td>"warn"</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-newer"><code>python.newer</code></a></td>
+</tr>
+<tr>
+<td><code>[python] requires-python</code></td>
+<td>boolean</td>
+<td>true, false: the pyproject's [project] requires-python must not admit an older minor than version, and must admit version</td>
+<td>false</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-requires-python"><code>python.requires-python</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1517,6 +1685,15 @@
 <td>no</td>
 <td>adds up</td>
 <td><a href="../rules/#manifest-required-platforms"><code>manifest.required-platforms</code></a></td>
+</tr>
+<tr>
+<td><code>[manifest] min-exclude-newer-days</code></td>
+<td>integer</td>
+<td>0 or more: the shortest cooldown the workspace's exclude-newer, and each per-package override, may give</td>
+<td>not set: exclude-newer is not checked</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#manifest-exclude-newer"><code>manifest.exclude-newer</code></a></td>
 </tr>
 </tbody>
 </table>

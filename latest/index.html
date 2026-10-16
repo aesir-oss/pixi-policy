@@ -772,6 +772,33 @@
   
   
     <li class="md-nav__item">
+      <a href="rego/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facts for OPA and Rego
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="development/" class="md-nav__link">
         
   
@@ -976,7 +1003,7 @@ single binary that pixi runs as <code>pixi policy</code>.</p>
 </tr>
 <tr>
 <td><a href="licenses/">Licenses</a></td>
-<td><code>licenses.deny</code>, <code>licenses.review</code>, <code>licenses.not-allowed</code>, <code>licenses.unknown</code></td>
+<td><code>licenses.deny</code>, <code>licenses.review</code>, <code>licenses.not-allowed</code>, <code>licenses.unknown</code>, <code>licenses.ambiguous</code></td>
 <td>every package can be used under the licenses the policy allows</td>
 </tr>
 <tr>
@@ -990,9 +1017,19 @@ single binary that pixi runs as <code>pixi policy</code>.</p>
 <td>no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock</td>
 </tr>
 <tr>
+<td><a href="rules/#hygiene-conda-pypi-duplicate">Hygiene</a></td>
+<td><code>hygiene.conda-pypi-duplicate</code>, <code>hygiene.unavailable</code></td>
+<td>no PyPI package is one a conda package in the same environment already provides</td>
+</tr>
+<tr>
+<td><a href="rules/#python-older">Python</a></td>
+<td><code>python.older</code>, <code>python.newer</code>, <code>python.requires-python</code></td>
+<td>every environment runs the policy's standard Python minor version (any patch release of it), and the pyproject's requires-python starts there</td>
+</tr>
+<tr>
 <td><a href="rules/#manifest-wildcard-spec">Manifest</a></td>
-<td><code>manifest.wildcard-spec</code>, <code>manifest.python-pinned</code>, <code>manifest.required-platforms</code></td>
-<td><code>pixi.toml</code> gives no <code>*</code> specs, pins Python to a minor version and lists the required platforms</td>
+<td><code>manifest.wildcard-spec</code>, <code>manifest.python-pinned</code>, <code>manifest.required-platforms</code>, <code>manifest.exclude-newer</code></td>
+<td><code>pixi.toml</code> gives no <code>*</code> specs, pins Python to a minor version, lists the required platforms and keeps new releases out for a cooldown (<code>exclude-newer</code>)</td>
 </tr>
 <tr>
 <td><a href="rules/#lock-present">Lock</a></td>

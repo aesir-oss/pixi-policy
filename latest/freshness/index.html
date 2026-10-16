@@ -668,6 +668,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pypi-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyPI packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#caching-offline-use-and-mirrors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -755,6 +766,33 @@
     
   
     Output formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rego/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facts for OPA and Rego
   
 
     
@@ -908,6 +946,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pypi-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyPI packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#caching-offline-use-and-mirrors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -944,19 +993,21 @@
 
 
 <h1 id="freshness">Freshness<a class="headerlink" href="#freshness" title="Permanent link">&para;</a></h1>
-<p><code>[freshness]</code> fails a workspace that locks conda packages that are years old, far behind their newest release, or no
+<p><code>[freshness]</code> fails a workspace that locks packages that are years old, far behind their newest release, or no
 longer maintained:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[freshness]</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">max-build-age-days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">730</span><span class="w">   </span><span class="c1"># a build older than two years fails</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">max-majors-behind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w">      </span><span class="c1"># a package two or more major versions behind its channel's newest fails</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">archived</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">            </span><span class="c1"># a conda-forge package whose feedstock is archived fails (on once the table exists)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">pypi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">                </span><span class="c1"># PyPI packages are checked too (on once the table exists)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>error[freshness.majors-behind] setuptools 59.8.0: 25 major versions behind 84.0.0, the newest in conda-forge, more than max-majors-behind (1)
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  --&gt; pixi.lock: environment "default", linux-64
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  = help: upgrade it, or waive it while the upgrade is planned
 </code></pre></div>
 <p>The keys are in the <a href="../reference/#freshness">reference</a>, the rules in the
-<a href="../rules/#freshness-build-age">rule catalog</a>. Only conda packages are checked; PyPI packages are not.</p>
+<a href="../rules/#freshness-build-age">rule catalog</a>. PyPI packages are checked against pypi.org; see
+<a href="#pypi-packages">PyPI packages</a>.</p>
 <h2 id="build-age">Build age<a class="headerlink" href="#build-age" title="Permanent link">&para;</a></h2>
 <p><code>max-build-age-days</code> reads the build time each conda package's record in pixi.lock states, so it needs no network. A
 package whose record has no build time is reported as <code>freshness.unknown</code>.</p>
@@ -993,14 +1044,29 @@ unarchived on GitHub likewise keeps failing until the list and the cache catch u
 <p>A package more than one feedstock builds counts as archived only when all of them are, since the lockfile does not say
 which one built it (<code>libzlib</code> comes from <code>zlib</code> or <code>zlib-ng</code>). A package no feedstock is known to build is
 <code>freshness.unknown</code>. Packages from other channels are not checked.</p>
+<h2 id="pypi-packages">PyPI packages<a class="headerlink" href="#pypi-packages" title="Permanent link">&para;</a></h2>
+<p>With <code>pypi</code> (on once the table exists), <code>max-build-age-days</code> and <code>max-majors-behind</code> apply to PyPI packages from
+pypi.org too, from <a href="https://docs.pypi.org/api/json/">PyPI's JSON API</a>, one request per project:</p>
+<ul>
+<li>Build age is when the exact file pixi.lock locks (matched by its sha256) was uploaded to PyPI. A file PyPI does not
+  list is <code>freshness.unknown</code>.</li>
+<li>The newest release is the newest PyPI lists by PEP 440 that is neither a prerelease nor yanked.</li>
+<li>A package from another index, a URL, git or a path is <code>freshness.unknown</code>, as is a name PyPI has no project for.</li>
+</ul>
+<p><code>pypi = false</code> leaves PyPI packages out, as pixi-policy 0.2.0 did. <code>archived</code> is about conda-forge feedstocks and does
+not apply to PyPI. Nothing is fetched from PyPI unless one of the two limits is set.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>error[freshness.majors-behind] pytest 7.0.0: 2 major versions behind 9.1.1, the newest on PyPI, more than max-majors-behind (0)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  --&gt; pixi.lock: environment "test", linux-64
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  = help: upgrade it, or waive it while the upgrade is planned
+</code></pre></div>
 <h2 id="caching-offline-use-and-mirrors">Caching, offline use and mirrors<a class="headerlink" href="#caching-offline-use-and-mirrors" title="Permanent link">&para;</a></h2>
 <p>Answers are cached beside the <a href="../extends/#extending-a-url">extended policies</a>: the shard index, a channel's whole
-repodata reduced to the newest version of each package, and the feedstock lists for a day, shards for good (they are
-named by their content's hash). When a download fails, a stale copy stands in.</p>
+repodata reduced to the newest version of each package, each PyPI project reduced to its newest release and upload
+times, and the feedstock lists for a day, shards for good (they are named by their content's hash). When a download fails, a stale copy stands in.</p>
 <p>When the data cannot be read at all, because the network is down and nothing is cached or <code>PIXI_POLICY_OFFLINE</code> is
 set with an empty cache, <code>freshness.unavailable</code> fails the check; build ages are still judged, since they need no
 data. To run offline in CI, run once online and keep <code>PIXI_POLICY_CACHE_DIR</code> in the CI cache.</p>
-<p>Repodata always comes from each package's own channel. The feedstock lists can come from mirrors:</p>
+<p>Repodata always comes from each package's own channel. The feedstock lists and PyPI's JSON API can come from mirrors:</p>
 <table>
 <thead>
 <tr>
@@ -1016,6 +1082,10 @@ data. To run offline in CI, run once online and keep <code>PIXI_POLICY_CACHE_DIR
 <tr>
 <td><code>PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL</code></td>
 <td><code>https://raw.githubusercontent.com/conda-forge/feedstock-outputs/single-file/feedstock-outputs.json</code></td>
+</tr>
+<tr>
+<td><code>PIXI_POLICY_PYPI_URL</code></td>
+<td><code>https://pypi.org</code> (<code>/pypi/&lt;name&gt;/json</code> below it)</td>
 </tr>
 </tbody>
 </table>
