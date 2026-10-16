@@ -23,6 +23,7 @@ pub mod manifest;
 pub mod pipe;
 pub mod policy;
 pub mod purl;
+pub mod relock;
 pub mod report;
 pub mod rules;
 pub mod style;

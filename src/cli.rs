@@ -39,6 +39,18 @@ pub struct Args {
 pub enum Command {
     /// Check every environment and platform in pixi.lock against the policy (what `pixi policy` alone does).
     Check,
+    /// Run `pixi lock`, then check the pixi.lock it writes; with --install, install once the check passes.
+    Lock {
+        /// When the check fails, put the pixi.lock from before back instead of keeping the new one.
+        #[arg(long)]
+        restore: bool,
+        /// When the check passes, run `pixi install --frozen`.
+        #[arg(long)]
+        install: bool,
+        /// Arguments for `pixi lock`, after `--`.
+        #[arg(last = true, value_name = "PIXI_LOCK_ARGS")]
+        pixi_args: Vec<String>,
+    },
     /// Write a starting pixi-policy.toml (or --policy FILE) that the workspace passes today; never overwrites.
     Init,
     /// Print the policy; with --resolved, with every policy it extends merged in and where each value comes from.

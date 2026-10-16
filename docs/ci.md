@@ -33,6 +33,24 @@ lint = { features = ["lint"], solve-group = "default" }
 `pixi run policy` then runs the same version for everyone. Extra arguments pass through:
 `pixi run policy --format json`.
 
+## Checking before you install
+
+`pixi lock` cannot run anything after it solves, so `pixi policy lock` does the three steps in one:
+
+```console
+pixi policy lock             # pixi lock, then check the new pixi.lock
+pixi policy lock --install   # and pixi install --frozen once the check passes
+pixi policy lock --restore   # and put the old pixi.lock back if the check fails
+pixi policy lock -- --no-install   # arguments after -- go to pixi lock
+```
+
+By default a failing check leaves the new `pixi.lock` in place to look at, and exits 1 with the report; `--restore`
+puts the one from before back. Nothing is installed after a failing check.
+
+It is a convenience, not a gate: `pixi install`, `pixi run`, `pixi add` and the other commands that lock re-lock an
+out-of-sync workspace without asking pixi-policy. The pre-commit hook and CI below are what keep a failing lockfile
+out of the repository.
+
 ## A pre-commit hook
 
 The published hook runs the check whenever `pixi.toml`, `pixi.lock`, `pyproject.toml` or `pixi-policy.toml` changes,
