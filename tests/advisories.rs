@@ -139,3 +139,50 @@ fn without_the_table_nothing_is_looked_up() {
     check("", Some(empty.path()), "text").code(0);
     assert!(std::fs::read_dir(empty.path()).unwrap().next().is_none());
 }
+
+/// Copy `from` into `to`, recursively.
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+#[test]
+fn a_known_exploited_advisory_counts_as_critical_and_keeps_its_rating() {
+    // The recorded cache with a catalog that lists jinja2's medium CVE-2024-34064, which CISA's does not: made up for
+    // this test.
+    let cache = tempfile::tempdir().unwrap();
+    copy_dir(&fixture().join("cache"), cache.path());
+    std::fs::write(
+        cache.path().join("advisories/kev.json"),
+        r#"{"title": "test", "count": 1, "vulnerabilities": [{"cveID": "CVE-2024-34064"}]}"#,
+    )
+    .unwrap();
+    let output = check("[advisories]\nfail-on = \"critical\"\n", Some(cache.path()), "json")
+        .get_output()
+        .stdout
+        .clone();
+    let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    let found = findings(&report, "advisories.vulnerable");
+    assert_eq!(
+        found.len(),
+        1,
+        "only the known exploited one reaches fail-on: {found:#?}"
+    );
+    assert_eq!(found[0]["severity"], "error");
+    assert!(
+        found[0]["message"]
+            .as_str()
+            .unwrap()
+            .starts_with("GHSA-h75v-3vvj-5mfj (CVE-2024-34064), critical severity (rated medium), known exploited"),
+        "{}",
+        found[0]["message"]
+    );
+}

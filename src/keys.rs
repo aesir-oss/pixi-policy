@@ -440,7 +440,7 @@ pub const KEYS: &[Key] = &[
         name: "known-exploited",
         kind: "string",
         values: "\"error\", \"warn\", \"allow\": what an advisory in CISA's Known Exploited Vulnerabilities catalog \
-                 gets, whatever its severity",
+                 gets, whatever its severity; with \"error\" it counts as critical",
         default: "\"error\" once the table exists",
         required: false,
         rules: &["advisories.vulnerable"],

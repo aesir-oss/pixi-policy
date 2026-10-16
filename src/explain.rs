@@ -85,7 +85,8 @@ const DETAILS: &[(&str, &str)] = &[
         "advisories.vulnerable",
         "Keys: [advisories] fail-on (default \"high\"), known-exploited (default \"error\") and epss (not set by \
          default). A package fails for each advisory at or above fail-on, in CISA's Known Exploited Vulnerabilities \
-         catalog, or with an EPSS score at or above epss. Advisories are OSV's, as pixi-sbom --vulns reads them; a \
+         catalog, or with an EPSS score at or above epss. With known-exploited = \"error\", a known exploited \
+         advisory counts as critical, its own rating kept in the message. Advisories are OSV's, as pixi-sbom --vulns reads them; a \
          conda package is looked up by its PyPI identity (pypi-mapping). The help names the version that fixes it. \
          Waive one advisory with a waiver's advisory key, or take it out with a VEX statement from a file [advisories] \
          vex names (CycloneDX or OpenVEX: not_affected, false_positive and resolved are waived with it).\n\n[advisories]\nfail-on = \"high\"\nknown-exploited = \
