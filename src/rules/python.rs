@@ -34,7 +34,7 @@ pub fn rules() -> Vec<Box<dyn Rule>> {
 }
 
 /// The major and minor version of a Python version string: `3.14.0rc1` is (3, 14).
-fn minor(version: &str) -> Option<(u64, u64)> {
+pub(crate) fn minor(version: &str) -> Option<(u64, u64)> {
     let mut parts = version.split('.');
     let major = parts.next()?.parse().ok()?;
     let minor: String = parts.next()?.chars().take_while(char::is_ascii_digit).collect();

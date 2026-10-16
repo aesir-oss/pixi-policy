@@ -91,7 +91,7 @@ const UNITS: &[(&str, f64)] = &[
 ];
 
 /// A humantime duration (`7d`, `1h30m`, `2 weeks`) in seconds.
-fn duration(text: &str) -> Option<f64> {
+pub(crate) fn duration(text: &str) -> Option<f64> {
     let mut rest = text.trim();
     let mut total = 0.0;
     if rest.is_empty() {
