@@ -1613,7 +1613,7 @@
 <td>none</td>
 <td>yes</td>
 <td>may only be stricter, unless overridable</td>
-<td><a href="../rules/#python-older"><code>python.older</code></a>, <a href="../rules/#python-newer"><code>python.newer</code></a></td>
+<td><a href="../rules/#python-older"><code>python.older</code></a>, <a href="../rules/#python-newer"><code>python.newer</code></a>, <a href="../rules/#python-requires-python"><code>python.requires-python</code></a></td>
 </tr>
 <tr>
 <td><code>[python] older</code></td>
@@ -1632,6 +1632,15 @@
 <td>no</td>
 <td>may only be stricter, unless overridable</td>
 <td><a href="../rules/#python-newer"><code>python.newer</code></a></td>
+</tr>
+<tr>
+<td><code>[python] requires-python</code></td>
+<td>boolean</td>
+<td>true, false: the pyproject's [project] requires-python must not admit an older minor than version, and must admit version</td>
+<td>false</td>
+<td>no</td>
+<td>may only be stricter, unless overridable</td>
+<td><a href="../rules/#python-requires-python"><code>python.requires-python</code></a></td>
 </tr>
 </tbody>
 </table>
