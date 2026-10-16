@@ -112,6 +112,7 @@ A table. When it is left out: no manifest rule runs.
 | `[manifest] wildcard-spec` | boolean | true, false | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`manifest.wildcard-spec`](rules.md#manifest-wildcard-spec) |
 | `[manifest] python-pinned` | boolean | true, false | true once the table exists; without the table the rule is off | no | may only be stricter, unless overridable | [`manifest.python-pinned`](rules.md#manifest-python-pinned) |
 | `[manifest] required-platforms` | list of strings | pixi platform names ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64", …) | not set: no platform is required | no | adds up | [`manifest.required-platforms`](rules.md#manifest-required-platforms) |
+| `[manifest] min-exclude-newer-days` | integer | 0 or more: the shortest cooldown the workspace's exclude-newer, and each per-package override, may give | not set: exclude-newer is not checked | no | may only be stricter, unless overridable | [`manifest.exclude-newer`](rules.md#manifest-exclude-newer) |
 
 ## `[lock]` {#lock}
 

@@ -123,6 +123,7 @@ const MANIFEST: &[&str] = &[
     "manifest.wildcard-spec",
     "manifest.python-pinned",
     "manifest.required-platforms",
+    "manifest.exclude-newer",
 ];
 const LOCK: &[&str] = &["lock.present", "lock.complete", "lock.in-sync"];
 const WAIVER_MATCH: &[&str] = &["waivers.unused"];
@@ -689,6 +690,17 @@ pub const KEYS: &[Key] = &[
         rules: &["manifest.required-platforms"],
         example: "[\"linux-64\", \"osx-arm64\"]",
         merge: Merge::Grows,
+    },
+    Key {
+        table: "manifest",
+        name: "min-exclude-newer-days",
+        kind: "integer",
+        values: "0 or more: the shortest cooldown the workspace's exclude-newer, and each per-package override, may give",
+        default: "not set: exclude-newer is not checked",
+        required: false,
+        rules: &["manifest.exclude-newer"],
+        example: "7",
+        merge: Merge::Stricter,
     },
     Key {
         table: "",

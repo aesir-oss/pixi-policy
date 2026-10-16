@@ -349,6 +349,8 @@ pub struct ManifestRules {
     pub python_pinned: Option<bool>,
     /// Platforms the workspace must list.
     pub required_platforms: Option<Vec<String>>,
+    /// The shortest cooldown `exclude-newer` may give, in days (#55).
+    pub min_exclude_newer_days: Option<u32>,
 }
 
 /// `[lock]`: pixi.lock hygiene. Every rule is on once the table exists, like `[manifest]` (#64, #65).

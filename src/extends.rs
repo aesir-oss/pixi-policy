@@ -465,6 +465,10 @@ fn looser(id: &str, new: &toml::Value, old: &toml::Value) -> Option<String> {
         "advisories.pypi-mapping" => {
             (new.as_str() == Some("lock") && old.as_str() == Some("prefix")).then(|| format!("to {new} (it was {old})"))
         }
+        "manifest.min-exclude-newer-days" => {
+            let days = |value: &toml::Value| value.as_integer().unwrap_or(0);
+            (days(new) < days(old)).then(|| format!("to {new} (it was {old})"))
+        }
         "freshness.max-build-age-days" | "freshness.max-majors-behind" => {
             let limit = |value: &toml::Value| value.as_integer().unwrap_or(i64::MAX);
             (limit(new) > limit(old)).then(|| format!("to {new} (it was {old})"))

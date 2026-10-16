@@ -193,6 +193,15 @@ const DETAILS: &[(&str, &str)] = &[
          \n\n[manifest]\nrequired-platforms = [\"linux-64\", \"osx-arm64\"]",
     ),
     (
+        "manifest.exclude-newer",
+        "Key: [manifest] min-exclude-newer-days (not set by default). Fails a workspace that sets no exclude-newer, or \
+         one whose cooldown is shorter: a duration (\"7d\", \"1h30m\", as pixi reads them) shorter than the minimum, \
+         or a date or timestamp fewer days ago (a date means the start of the next day, UTC, as pixi reads it). A \
+         per-package override in [exclude-newer] or [pypi-exclude-newer] that is shorter is its own finding, at its \
+         line. Most malicious uploads are found and removed within days, and a cooldown keeps them out of a solve.\
+         \n\n[manifest]\nmin-exclude-newer-days = 7",
+    ),
+    (
         "lock.present",
         "Key: [lock] present (on once [lock] exists). Fails a workspace without a pixi.lock; without [lock], a \
          missing lockfile is an input error (exit 2) instead.\n\n[lock]\npresent = true",
