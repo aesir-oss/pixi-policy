@@ -28,7 +28,9 @@ pub mod rules;
 pub mod style;
 pub mod vex;
 pub mod waivers;
+pub mod wheel;
 pub mod workspace;
+pub mod zipread;
 
 /// Nothing failed the policy.
 pub const EXIT_OK: i32 = 0;

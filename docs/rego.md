@@ -8,8 +8,9 @@ pixi policy facts --output facts.json
 opa eval --input facts.json --data policy.rego "data.pixi.policy.deny"
 ```
 
-`pixi policy facts` reads `pixi.lock` only, offline, and writes every environment and platform it locks with their
-packages. The shape is [pixi-policy-facts.schema.json](schemas/pixi-policy-facts.schema.json), versioned like the
+`pixi policy facts` reads `pixi.lock`, and for PyPI wheels from pypi.org their licenses as the
+[license rules](licenses.md#what-pixi-policy-reads) do (cached, offline from the cache), and writes every environment
+and platform it locks with their packages. The shape is [pixi-policy-facts.schema.json](schemas/pixi-policy-facts.schema.json), versioned like the
 [JSON report](output.md#json): fields may be added, and a renamed or removed field raises `version`.
 
 ```json
@@ -29,7 +30,7 @@ packages. The shape is [pixi-policy-facts.schema.json](schemas/pixi-policy-facts
           "purl": "pkg:conda/readline@8.3?build=hd6e31c0_1&channel=conda-forge&subdir=linux-64&type=conda",
           "provides_pypi": [],
           "origin": { "type": "channel", "url": "https://conda.anaconda.org/conda-forge/", "channel": "conda-forge" },
-          "license": { "declared": "GPL-3.0-only", "spdx": "GPL-3.0-only", "status": "spdx" },
+          "license": { "declared": "GPL-3.0-only", "source": "pixi.lock", "spdx": "GPL-3.0-only", "status": "spdx" },
           "build": "hd6e31c0_1",
           "build_number": 1,
           "timestamp": 1787033801,
@@ -49,7 +50,8 @@ packages. The shape is [pixi-policy-facts.schema.json](schemas/pixi-policy-facts
 | `origin.type` | `channel`, `index`, `git`, `url` or `path`: where the package comes from, as the `sources.*` rules see it |
 | `provides_pypi` | the PyPI distributions pixi.lock states a conda package provides (conda `msgpack-python` provides `msgpack`) |
 | `license.spdx` | the SPDX expression pixi-policy reads the declared license as, through its [table of spellings](licenses.md#how-a-license-string-is-read) |
-| `license.status` | `spdx`, `text` (not an SPDX expression), `ambiguous` or `missing` (pixi.lock records no PyPI licenses) |
+| `license.source` | `pixi.lock`, `wheel` (a PyPI wheel's METADATA) or `null` when there is none |
+| `license.status` | `spdx`, `text` (not an SPDX expression), `ambiguous` or `missing` |
 
 ## An example
 

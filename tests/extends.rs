@@ -25,6 +25,8 @@ fn run(dir: &Path, args: &[&str]) -> (Option<i32>, String, String) {
     let output = Command::cargo_bin("pixi-policy")
         .unwrap()
         .env("NO_COLOR", "1")
+        .env("PIXI_POLICY_OFFLINE", "1")
+        .env("PIXI_POLICY_CACHE_DIR", dir.join("no-cache"))
         .current_dir(dir)
         .args(args)
         .output()

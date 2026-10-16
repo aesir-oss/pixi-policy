@@ -25,6 +25,7 @@ anstyle = "1.0.14"
 clap = { version = "4.6.7", features = ["derive", "string"] }
 comfy-table = { version = "8", default-features = false, features = ["tty"] }
 miette = { version = "7.6.0", features = ["fancy"] }
+miniz_oxide = "0.8.9"
 packageurl = "0.7.0"
 pep440_rs = "0.7.3"
 rattler_conda_types = { version = "0.53", default-features = false }

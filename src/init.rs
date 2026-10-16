@@ -76,7 +76,7 @@ fn licensees(expression: &str) -> Vec<String> {
 }
 
 /// What the workspace uses, read from every environment and platform of `lock`.
-pub fn in_use(lock: &LockFile) -> Result<InUse, CheckError> {
+pub fn in_use(lock: &LockFile, wheels: Option<&crate::wheel::Data>) -> Result<InUse, CheckError> {
     let mut used = InUse::default();
     for environment in lockfile::environment_names(lock) {
         for platform in lockfile::platform_names(lock, &environment)? {
@@ -88,9 +88,14 @@ pub fn in_use(lock: &LockFile) -> Result<InUse, CheckError> {
                     Origin::Url(_) => used.url = true,
                     Origin::Path(_) => used.path = true,
                 }
-                if fact.kind != Kind::Pypi
-                    && let Some(License::Expression(expression)) = fact.license.as_deref().map(license::normalize)
-                {
+                let declared = match fact.kind {
+                    Kind::Pypi => match wheels.and_then(|data| data.for_package(&fact)) {
+                        Some(crate::wheel::Answer::Declared(raw)) => Some(raw.clone()),
+                        _ => None,
+                    },
+                    _ => fact.license.clone(),
+                };
+                if let Some(License::Expression(expression)) = declared.as_deref().map(license::normalize) {
                     used.licenses.extend(licensees(&expression));
                 }
             }
@@ -219,7 +224,7 @@ mod tests {
     #[test]
     fn what_is_in_use_is_read_from_every_package() {
         let (lock, _) = sources_fixture();
-        let used = in_use(&lock).unwrap();
+        let used = in_use(&lock, None).unwrap();
         assert_eq!(
             used.channels.iter().map(String::as_str).collect::<Vec<_>>(),
             ["bioconda", "conda-forge", "https://conda.acme.internal/prod"],
@@ -243,7 +248,7 @@ mod tests {
     #[test]
     fn the_proposal_is_a_valid_policy_the_fixture_passes() {
         let (lock, manifest) = sources_fixture();
-        let text = propose(&in_use(&lock).unwrap(), &manifest);
+        let text = propose(&in_use(&lock, None).unwrap(), &manifest);
         let policy = crate::policy::Policy::parse(&text, "p.toml").unwrap();
         let outcome = crate::check::run(&lock, &policy, &crate::check::rules()).unwrap();
         assert!(!outcome.failed(), "{:?}\n{text}", outcome.findings);

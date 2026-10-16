@@ -3,12 +3,15 @@
 //! The verdict is the shared crate's (`crate::license_policy`, #59), the one pixi-sbom's license gate gives: `deny`
 //! and `allow` go to it exactly as the gate's `--deny-license` and `--allow-license` do. `review` licenses count as
 //! allowed and are reported as warnings. Patterns with `*` are expanded against the SPDX license list into plain
-//! identifiers first, so the verdict never sees a pattern. Licenses come from pixi.lock only, which records them for
-//! conda packages and never for PyPI ones; reading license files is pixi-policy 0.2.0's business.
+//! identifiers first, so the verdict never sees a pattern. Licenses come from pixi.lock, which records them for conda
+//! packages, and for PyPI wheels from pypi.org from the wheel's METADATA ([`crate::wheel`], #51).
+
+use std::sync::Arc;
 
 use crate::license::{self, License};
 use crate::license_policy::{Lists, Reason};
 use crate::lockfile::{Fact, Facts, Kind};
+use crate::wheel::{self, Answer};
 
 use crate::check::{File, Finding, Rule, Severity};
 use crate::policy::{Licenses, Policy, Unknown};
@@ -86,9 +89,17 @@ impl Compiled {
         })
     }
 
-    /// What the policy says about `fact`'s license.
+    /// What the policy says about `fact`'s license, as pixi.lock gives it.
     pub fn verdict(&self, fact: &Fact) -> Option<Verdict> {
-        let Some(raw) = fact.license.as_deref().filter(|raw| !raw.trim().is_empty()) else {
+        self.verdict_of(&declared(fact, None))
+    }
+
+    /// What the policy says about a license as `declared`.
+    fn verdict_of(&self, declared: &Declared) -> Option<Verdict> {
+        if declared.ambiguous.is_some() {
+            return Some(Verdict::Ambiguous);
+        }
+        let Some(raw) = declared.raw.as_deref() else {
             return Some(Verdict::Unknown(Reason::Missing));
         };
         let expression = match license::normalize(raw) {
@@ -116,10 +127,45 @@ pub enum Verdict {
     Ambiguous,
 }
 
-/// How a finding names `expression`: with what pixi.lock says when it was spelt otherwise (#7).
-fn named(expression: &str, fact: &Fact) -> String {
-    match fact.license.as_deref().map(str::trim) {
-        Some(raw) if raw != expression => format!("{expression} (pixi.lock says {raw:?})"),
+/// A package's license as the rules see it: pixi.lock's, or for a PyPI wheel its METADATA's.
+#[derive(Debug, Default)]
+struct Declared {
+    raw: Option<String>,
+    /// Where `raw` comes from: `pixi.lock` or `its METADATA`.
+    source: &'static str,
+    /// Why there is none, when the wheel says why.
+    note: Option<String>,
+    /// Why it could be more than one license, when its METADATA's classifiers say so.
+    ambiguous: Option<String>,
+}
+
+fn declared(fact: &Fact, wheels: Option<&wheel::Data>) -> Declared {
+    if let Some(raw) = fact.license.as_deref().map(str::trim).filter(|raw| !raw.is_empty()) {
+        return Declared {
+            raw: Some(raw.to_string()),
+            source: "pixi.lock",
+            ..Declared::default()
+        };
+    }
+    let mut out = Declared {
+        source: "its METADATA",
+        ..Declared::default()
+    };
+    match wheels.and_then(|data| data.for_package(fact)) {
+        Some(Answer::Declared(raw)) => out.raw = Some(raw.trim().to_string()),
+        Some(Answer::Ambiguous(why)) => out.ambiguous = Some(why.clone()),
+        Some(Answer::Nothing) => out.note = Some("its METADATA states no license".into()),
+        Some(Answer::NotRead(why)) => out.note = Some(why.clone()),
+        Some(Answer::Failed(why)) => out.note = Some(format!("its METADATA could not be read: {why}")),
+        None => {}
+    }
+    out
+}
+
+/// How a finding names `expression`: with what its source says when it was spelt otherwise (#7).
+fn named(expression: &str, declared: &Declared) -> String {
+    match declared.raw.as_deref() {
+        Some(raw) if raw != expression => format!("{expression} ({} says {raw:?})", declared.source),
         _ => expression.to_string(),
     }
 }
@@ -143,10 +189,11 @@ enum Which {
 
 struct LicenseRule {
     which: Which,
+    wheels: Option<Arc<wheel::Data>>,
 }
 
-/// The five `licenses.*` rules.
-pub fn rules() -> Vec<Box<dyn Rule>> {
+/// The five `licenses.*` rules, PyPI packages judged by `wheels`, their wheels' licenses.
+pub fn rules(wheels: Option<Arc<wheel::Data>>) -> Vec<Box<dyn Rule>> {
     [
         Which::Deny,
         Which::Review,
@@ -155,20 +202,34 @@ pub fn rules() -> Vec<Box<dyn Rule>> {
         Which::Ambiguous,
     ]
     .into_iter()
-    .map(|which| Box::new(LicenseRule { which }) as Box<dyn Rule>)
+    .map(|which| {
+        Box::new(LicenseRule {
+            which,
+            wheels: wheels.clone(),
+        }) as Box<dyn Rule>
+    })
     .collect()
 }
 
 impl LicenseRule {
     /// The finding's severity, message and help for `verdict`, when it is this rule's.
-    fn speak(&self, verdict: Verdict, compiled: &Compiled, fact: &Fact) -> Option<(Severity, String, String)> {
+    fn speak(
+        &self,
+        verdict: Verdict,
+        compiled: &Compiled,
+        fact: &Fact,
+        declared: &Declared,
+    ) -> Option<(Severity, String, String)> {
         match (self.which, verdict) {
             (Which::Ambiguous, Verdict::Ambiguous) => Some((
                 severity(compiled.ambiguous)?,
-                format!(
-                    "license {:?} could be more than one SPDX license",
-                    fact.license.as_deref().unwrap_or("").trim()
-                ),
+                match &declared.ambiguous {
+                    Some(why) => format!("its METADATA gives {why}, which could be more than one SPDX license"),
+                    None => format!(
+                        "license {:?} could be more than one SPDX license",
+                        declared.raw.as_deref().unwrap_or("")
+                    ),
+                },
                 "find the license the package ships and waive this with it as the reason, or ask its maintainers to \
                  state an SPDX license; [licenses] ambiguous sets what this gets"
                     .into(),
@@ -177,7 +238,7 @@ impl LicenseRule {
                 Severity::Error,
                 format!(
                     "license {} cannot be satisfied without a denied license",
-                    named(&expression, fact)
+                    named(&expression, declared)
                 ),
                 "replace the package, or take the license off [licenses] deny".into(),
             )),
@@ -185,30 +246,35 @@ impl LicenseRule {
                 Severity::Error,
                 format!(
                     "license {} cannot be satisfied with the allowed licenses",
-                    named(&expression, fact)
+                    named(&expression, declared)
                 ),
                 "replace the package, or add the license to [licenses] allow".into(),
             )),
             (Which::Review, Verdict::Review(expression)) => Some((
                 Severity::Warning,
-                format!("license {} needs a review", named(&expression, fact)),
+                format!("license {} needs a review", named(&expression, declared)),
                 "have the license reviewed; once approved, move it from [licenses] review to allow".into(),
             )),
             (Which::Unknown, Verdict::Unknown(reason)) => {
                 let severity = severity(compiled.unknown)?;
-                let raw = fact.license.as_deref().unwrap_or("").trim();
-                let message = match (reason, fact.kind) {
-                    (Reason::Missing, Kind::Pypi) => {
+                let raw = declared.raw.as_deref().unwrap_or("");
+                let from = match declared.source {
+                    "pixi.lock" => String::new(),
+                    source => format!(" in {source}"),
+                };
+                let message = match (reason, fact.kind, &declared.note) {
+                    (Reason::Missing, Kind::Pypi, Some(note)) => format!("has no license pixi-policy can read: {note}"),
+                    (Reason::Missing, Kind::Pypi, None) => {
                         "has no license in pixi.lock (it never records PyPI licenses)".into()
                     }
-                    (Reason::Missing, _) => "declares no license".into(),
+                    (Reason::Missing, ..) => "declares no license".into(),
                     _ => match license::rejection_reason(raw) {
-                        Some(why) => format!("license {raw:?} is not an SPDX expression ({why})"),
-                        None => format!("license {raw:?} is not an SPDX expression"),
+                        Some(why) => format!("license {raw:?}{from} is not an SPDX expression ({why})"),
+                        None => format!("license {raw:?}{from} is not an SPDX expression"),
                     },
                 };
                 let help = if fact.kind == Kind::Pypi {
-                    "PyPI licenses are read from the package's files in pixi-policy 0.2.0; until then set [licenses] \
+                    "find the license the package ships and waive this with it as the reason, or set [licenses] \
                      unknown = \"allow\" to stop these"
                 } else {
                     "ask the package's maintainers for an SPDX license, or set [licenses] unknown to \"warn\" or \"allow\""
@@ -249,7 +315,9 @@ impl Rule for LicenseRule {
             .packages
             .iter()
             .filter_map(|fact| {
-                let (severity, message, help) = self.speak(compiled.verdict(fact)?, &compiled, fact)?;
+                let declared = declared(fact, self.wheels.as_deref());
+                let (severity, message, help) =
+                    self.speak(compiled.verdict_of(&declared)?, &compiled, fact, &declared)?;
                 Some(Finding {
                     rule: self.id(),
                     severity,
@@ -292,7 +360,7 @@ mod tests {
             platform: "linux-64".into(),
             packages,
         };
-        rules()
+        rules(None)
             .iter()
             .flat_map(|rule| rule.check(&policy, &facts))
             .map(|f| (f.rule, f.severity, f.package.unwrap()))
@@ -372,7 +440,10 @@ mod tests {
             platform: "linux-64".into(),
             packages: packages(),
         };
-        let unknown = LicenseRule { which: Which::Unknown };
+        let unknown = LicenseRule {
+            which: Which::Unknown,
+            wheels: None,
+        };
         let messages: Vec<String> = unknown.check(&policy, &facts).into_iter().map(|f| f.message).collect();
         assert_eq!(messages[0], "declares no license");
         assert!(
@@ -383,6 +454,83 @@ mod tests {
         assert_eq!(
             messages[3],
             "has no license in pixi.lock (it never records PyPI licenses)"
+        );
+    }
+
+    #[test]
+    fn a_pypi_package_is_judged_by_its_wheel() {
+        let wheel = |name: &str, sha: &str| {
+            let mut fact = fact(name, None, Kind::Pypi);
+            fact.sha256 = Some(sha.into());
+            fact
+        };
+        let mut data = wheel::Data::default();
+        for (sha, answer) in [
+            ("1", Answer::Declared("GPL-3.0-only".into())),
+            ("2", Answer::Declared("BSD 3-Clause".into())),
+            (
+                "3",
+                Answer::Ambiguous("2 license classifiers (MIT License; BSD License)".into()),
+            ),
+            ("4", Answer::Nothing),
+            (
+                "5",
+                Answer::NotRead("it is a source distribution, whose license pixi-policy does not read".into()),
+            ),
+            ("6", Answer::Failed("timed out".into())),
+        ] {
+            data.insert(sha, answer);
+        }
+        let data = Some(Arc::new(data));
+        let packages = ["gpl", "bsd", "both", "none", "sdist", "down", "unlooked"]
+            .iter()
+            .enumerate()
+            .map(|(i, name)| wheel(name, &(i + 1).to_string()))
+            .collect::<Vec<_>>();
+        let policy = Policy::parse(
+            "[licenses]\nreview = [\"BSD-3-Clause\"]\ndeny = [\"GPL-3.0-only\"]\n",
+            "p.toml",
+        )
+        .unwrap();
+        let facts = Facts {
+            environment: "default".into(),
+            platform: "linux-64".into(),
+            packages,
+        };
+        let found: Vec<(&str, String, String)> = rules(data)
+            .iter()
+            .flat_map(|rule| rule.check(&policy, &facts))
+            .map(|f| (f.rule, f.package.unwrap(), f.message))
+            .collect();
+        let message = |name: &str| {
+            found
+                .iter()
+                .find(|(_, package, _)| package == name)
+                .map(|(rule, _, message)| format!("{rule}: {message}"))
+                .unwrap()
+        };
+        assert_eq!(
+            message("gpl"),
+            "licenses.deny: license GPL-3.0-only cannot be satisfied without a denied license"
+        );
+        assert_eq!(
+            message("bsd"),
+            "licenses.review: license BSD-3-Clause (its METADATA says \"BSD 3-Clause\") needs a review"
+        );
+        assert_eq!(
+            message("both"),
+            "licenses.ambiguous: its METADATA gives 2 license classifiers (MIT License; BSD License), which could be \
+             more than one SPDX license"
+        );
+        assert_eq!(
+            message("none"),
+            "licenses.unknown: has no license pixi-policy can read: its METADATA states no license"
+        );
+        assert!(message("sdist").ends_with("source distribution, whose license pixi-policy does not read"));
+        assert!(message("down").ends_with("its METADATA could not be read: timed out"));
+        assert_eq!(
+            message("unlooked"),
+            "licenses.unknown: has no license in pixi.lock (it never records PyPI licenses)"
         );
     }
 
@@ -437,7 +585,7 @@ mod tests {
             platform: "linux-64".into(),
             packages: packages(),
         };
-        let messages: Vec<String> = rules()
+        let messages: Vec<String> = rules(None)
             .iter()
             .flat_map(|rule| rule.check(&policy, &facts))
             .map(|f| f.message)
@@ -454,7 +602,7 @@ mod tests {
 
     #[test]
     fn every_rule_has_an_id_and_a_summary() {
-        let ids: Vec<&str> = rules().iter().map(|r| r.id()).collect();
+        let ids: Vec<&str> = rules(None).iter().map(|r| r.id()).collect();
         assert_eq!(
             ids,
             [
@@ -465,6 +613,6 @@ mod tests {
                 "licenses.ambiguous"
             ]
         );
-        assert!(rules().iter().all(|r| !r.summary().is_empty()));
+        assert!(rules(None).iter().all(|r| !r.summary().is_empty()));
     }
 }
