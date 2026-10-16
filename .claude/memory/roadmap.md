@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: "pixi-policy release history and what each milestone holds; 0.3.0 work all merged 2026-10-15, unreleased"
+description: "pixi-policy release history and what each milestone holds; 0.3.0 milestone empty 2026-10-16, rc.1 next"
 metadata:
   type: project
 ---
@@ -15,10 +15,13 @@ metadata:
   seven wheels built. #6 closed (conda-forge/pixi-policy-feedstock, all five platforms after its PR #1 added the ARM
   builds). #15 closed once the Marketplace listing existed; #17 closed when the feedstock's bot PR for 0.2.0 merged
   (the feedstock now has `bot.automerge: true`).
-- Milestone 0.3.0, every issue merged on 2026-10-15 and not yet released: #42 `[python]` standard version, #44
-  `[freshness]` missing from `keys::TABLES`, #11 `[hygiene]` conda/PyPI duplicates, #7 license spellings and
-  `licenses.ambiguous`, #10 VEX in `[advisories]`, #9 `pixi policy facts` with a Rego example (`-e rego`, opa). The
-  field-test checklist needs steps for these before 0.3.0-rc.1.
+- Milestone 0.3.0, every issue merged 2026-10-15/16, released from 0.3.0-rc.1 on: #42 `[python]` standard version,
+  #44 `[freshness]` missing from `keys::TABLES`, #11 `[hygiene]` conda/PyPI duplicates, #7 license spellings and
+  `licenses.ambiguous`, #10 VEX in `[advisories]`, #9 `pixi policy facts` with a Rego example (`-e rego`, opa); then
+  #58 the cache under pixi's cache dir, #51 PyPI licenses from wheel METADATA (miniz_oxide added), #52 PyPI freshness,
+  #57 KEV counts as critical, #56 `python.requires-python`, #55 `manifest.exclude-newer`, #54 `pixi policy lock`,
+  #53 `init` proposes the newer tables, #60 review verdict for `OR`. Steps 26 onward of the field-test checklist
+  cover them.
 - #8 provenance moved to 1.0.0: no channel serves CEP 27 `.sigs` yet, and the verifiers need aws-lc-rs (see the
   issue). Milestone 1.0.0 also holds #12 the stability contract.
 - #13 (RUSTSEC-2024-0449, `unsafe-libyaml` via rattler's `serde_yaml`) has no milestone: blocked on rattler; the
