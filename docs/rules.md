@@ -33,6 +33,7 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`manifest.wildcard-spec`](#manifest-wildcard-spec) | No dependency is given as `\*` |
 | [`manifest.python-pinned`](#manifest-python-pinned) | Python is constrained to one minor version or narrower |
 | [`manifest.required-platforms`](#manifest-required-platforms) | The workspace lists every platform the policy requires |
+| [`manifest.exclude-newer`](#manifest-exclude-newer) | exclude-newer keeps packages out for at least min-exclude-newer-days |
 | [`lock.present`](#lock-present) | The workspace has a pixi.lock |
 | [`lock.complete`](#lock-complete) | Every environment is locked for every platform it is solved for |
 | [`lock.in-sync`](#lock-in-sync) | pixi.lock still satisfies the manifest |
@@ -395,6 +396,19 @@ required-platforms = ["linux-64", "osx-arm64"]
 ```
 
 Keys: [`[manifest] required-platforms`](reference.md#manifest).
+
+## `manifest.exclude-newer` {#manifest-exclude-newer}
+
+exclude-newer keeps packages out for at least min-exclude-newer-days.
+
+Key: [manifest] min-exclude-newer-days (not set by default). Fails a workspace that sets no exclude-newer, or one whose cooldown is shorter: a duration ("7d", "1h30m", as pixi reads them) shorter than the minimum, or a date or timestamp fewer days ago (a date means the start of the next day, UTC, as pixi reads it). A per-package override in [exclude-newer] or [pypi-exclude-newer] that is shorter is its own finding, at its line. Most malicious uploads are found and removed within days, and a cooldown keeps them out of a solve.
+
+```toml
+[manifest]
+min-exclude-newer-days = 7
+```
+
+Keys: [`[manifest] min-exclude-newer-days`](reference.md#manifest).
 
 ## `lock.present` {#lock-present}
 

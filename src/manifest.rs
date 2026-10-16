@@ -52,9 +52,22 @@ pub struct Manifest {
     pub environments: Vec<(String, Vec<String>)>,
     /// The platforms a feature narrows its environments to, when it sets any.
     pub feature_platforms: Vec<(String, Vec<String>)>,
+    /// The workspace's `exclude-newer` and its line, or the line of the workspace table when it sets none (#55).
+    pub exclude_newer: ExcludeNewer,
     /// `[project] requires-python` of the workspace's pyproject.toml (the manifest itself, or one beside pixi.toml),
     /// with its line (#56).
     pub requires_python: Option<(String, u32)>,
+}
+
+/// The workspace's `exclude-newer` and its per-package overrides, as written (#55).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ExcludeNewer {
+    /// The workspace's value and its line.
+    pub workspace: Option<(String, u32)>,
+    /// The line of the workspace table, for a finding about a value it does not set.
+    pub table_line: u32,
+    /// `[exclude-newer]` (conda) and `[pypi-exclude-newer]` entries: the table, the package, the value and its line.
+    pub overrides: Vec<(&'static str, String, String, u32)>,
 }
 
 /// `[project] requires-python` in a pyproject.toml's `text`, with its line.
@@ -167,6 +180,36 @@ impl Manifest {
         if let Some(platforms) = workspace.and_then(|w| get(w, "platforms")) {
             manifest.platforms = Some((strings(platforms.get_ref()), line_of(text, platforms.span().start)));
         }
+        manifest.exclude_newer.workspace = workspace
+            .and_then(|w| get(w, "exclude-newer"))
+            .and_then(|value| Some((value.get_ref().as_str()?.to_string(), line_of(text, value.span().start))));
+        let header = if pyproject {
+            "[tool.pixi.workspace]"
+        } else {
+            "[workspace]"
+        };
+        manifest.exclude_newer.table_line = text
+            .lines()
+            .position(|line| line.trim() == header || (!pyproject && line.trim() == "[project]"))
+            .map_or(1, |at| u32::try_from(at + 1).unwrap_or(1));
+        for name in ["exclude-newer", "pypi-exclude-newer"] {
+            let label = if name == "exclude-newer" {
+                "exclude-newer"
+            } else {
+                "pypi-exclude-newer"
+            };
+            for (package, value) in table(root, name).into_iter().flat_map(DeTable::iter) {
+                if let Some(text_value) = value.get_ref().as_str() {
+                    manifest.exclude_newer.overrides.push((
+                        label,
+                        package.get_ref().to_string(),
+                        text_value.to_string(),
+                        line_of(text, value.span().start),
+                    ));
+                }
+            }
+        }
+        manifest.exclude_newer.overrides.sort_by_key(|entry| entry.3);
         Ok(manifest)
     }
 

@@ -32,7 +32,7 @@ policy in OPA and Rego ([an example](examples/rego/pixi.rego)).
 | `freshness` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
 | `hygiene` | no PyPI package is one a conda package in the same environment already provides |
 | `python` | every environment runs the policy's standard Python minor version (any patch release of it) |
-| `manifest` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
+| `manifest` | `pixi.toml` gives no `*` specs, pins Python to a minor version, lists the required platforms and keeps new releases out for a cooldown (`exclude-newer`) |
 | `lock` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | `waivers` | every exception has a reason and an end date, and still matches something |
 

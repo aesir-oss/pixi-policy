@@ -27,7 +27,7 @@ single binary that pixi runs as `pixi policy`.
 | [Freshness](freshness.md) | `freshness.build-age`, `freshness.majors-behind`, `freshness.archived`, `freshness.unknown`, `freshness.unavailable` | no conda package is too old a build, too many major versions behind its channel's newest, or from an archived conda-forge feedstock |
 | [Hygiene](rules.md#hygiene-conda-pypi-duplicate) | `hygiene.conda-pypi-duplicate`, `hygiene.unavailable` | no PyPI package is one a conda package in the same environment already provides |
 | [Python](rules.md#python-older) | `python.older`, `python.newer`, `python.requires-python` | every environment runs the policy's standard Python minor version (any patch release of it), and the pyproject's requires-python starts there |
-| [Manifest](rules.md#manifest-wildcard-spec) | `manifest.wildcard-spec`, `manifest.python-pinned`, `manifest.required-platforms` | `pixi.toml` gives no `*` specs, pins Python to a minor version and lists the required platforms |
+| [Manifest](rules.md#manifest-wildcard-spec) | `manifest.wildcard-spec`, `manifest.python-pinned`, `manifest.required-platforms`, `manifest.exclude-newer` | `pixi.toml` gives no `*` specs, pins Python to a minor version, lists the required platforms and keeps new releases out for a cooldown (`exclude-newer`) |
 | [Lock](rules.md#lock-present) | `lock.present`, `lock.complete`, `lock.in-sync` | `pixi.lock` exists, locks every environment for every platform, and still satisfies the manifest |
 | [Waivers](waivers.md) | `waivers.expired`, `waivers.unused`, `waivers.too-long` | every exception has a reason and an end date, and still matches something |
 
