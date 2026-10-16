@@ -103,3 +103,63 @@ fn a_waiver_lets_an_environment_through() {
     assert!(found.is_empty(), "{found:?}");
     assert_eq!(code, 0);
 }
+
+/// The `python.requires-python` findings for the fixture with a pyproject.toml beside pixi.toml (or none), as
+/// (line, message).
+fn requires_python(policy: &str, pyproject: Option<&str>) -> Vec<(u64, String)> {
+    let dir = tempfile::tempdir().unwrap();
+    for file in ["pixi.toml", "pixi.lock"] {
+        std::fs::copy(fixture().join(file), dir.path().join(file)).unwrap();
+    }
+    if let Some(text) = pyproject {
+        std::fs::write(dir.path().join("pyproject.toml"), text).unwrap();
+    }
+    std::fs::write(dir.path().join("pixi-policy.toml"), policy).unwrap();
+    let output = Command::cargo_bin("pixi-policy")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .current_dir(dir.path())
+        .args(["check", "--format", "json"])
+        .output()
+        .unwrap();
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    report["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["rule"] == "python.requires-python")
+        .map(|f| {
+            assert_eq!(f["file"], "pyproject.toml");
+            (f["line"].as_u64().unwrap(), f["message"].as_str().unwrap().to_string())
+        })
+        .collect()
+}
+
+#[test]
+fn requires_python_is_checked_only_when_asked() {
+    const ON: &str = "[python]\nversion = \"3.14\"\nolder = \"allow\"\nnewer = \"allow\"\nrequires-python = true\n";
+    let project = |spec: &str| format!("[project]\nname = \"x\"\nversion = \"1\"\nrequires-python = \"{spec}\"\n");
+    assert_eq!(
+        requires_python(ON, Some(&project(">=3.12"))),
+        [(
+            4,
+            "requires-python is \">=3.12\", which admits Python 3.13, older than the standard 3.14".to_string()
+        )]
+    );
+    assert_eq!(
+        requires_python(ON, Some(&project("<3.14"))).len(),
+        1,
+        "an upper bound below the standard"
+    );
+    assert!(requires_python(ON, Some(&project(">=3.14"))).is_empty());
+    assert!(
+        requires_python(ON, Some("[project]\nname = \"x\"\n")).is_empty(),
+        "no requires-python"
+    );
+    assert!(requires_python(ON, None).is_empty(), "no pyproject.toml");
+    let off = ON.replace("requires-python = true\n", "");
+    assert!(
+        requires_python(&off, Some(&project(">=3.12"))).is_empty(),
+        "off by default"
+    );
+}

@@ -169,6 +169,14 @@ const DETAILS: &[(&str, &str)] = &[
          checked.\n\n[python]\nversion = \"3.14\"\nnewer = \"error\"",
     ),
     (
+        "python.requires-python",
+        "Keys: [python] version and requires-python = true (false by default, since a library may support older \
+         Pythons on purpose). Reads [project] requires-python from the workspace's pyproject.toml, the manifest itself \
+         or one beside pixi.toml, and fails when it admits a Python minor older than the standard (>=3.12 with \
+         version = \"3.14\") or does not admit the standard at all (<3.14). Nothing is checked without a \
+         pyproject.toml or without requires-python.\n\n[python]\nversion = \"3.14\"\nrequires-python = true",
+    ),
+    (
         "manifest.wildcard-spec",
         "Key: [manifest] wildcard-spec (on once [manifest] exists). Fails a conda or PyPI dependency given as \"*\" \
          in any dependency table, at its line in the manifest.\n\n[manifest]\nwildcard-spec = true",
