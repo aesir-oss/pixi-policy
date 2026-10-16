@@ -4,6 +4,7 @@
 //! workspace without it, so the pre-commit hook and the Action stay what enforces the policy.
 
 use std::ffi::OsString;
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
@@ -63,7 +64,8 @@ pub fn run(
     if code != crate::EXIT_OK {
         if options.restore {
             restore(&workspace.lockfile, before.as_deref())?;
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr(),
                 "pixi policy lock: the check failed, so {} is back as it was",
                 workspace.lockfile.display()
             );

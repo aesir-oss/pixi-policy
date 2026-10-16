@@ -729,3 +729,20 @@ fn help_names_the_pixi_command() {
         .code(0)
         .stdout(contains("Usage: pixi policy").and(contains("--policy <FILE>")));
 }
+
+#[test]
+fn an_error_into_a_closed_pipe_still_exits_2() {
+    // #70: the reader of standard error is gone before pixi-policy writes its report.
+    let ws = workspace(Some(""));
+    for _ in 0..5 {
+        let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin("pixi-policy"))
+            .current_dir(ws.path())
+            .args(["--policy", "missing.toml"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        drop(child.stderr.take());
+        assert_eq!(child.wait().unwrap().code(), Some(2));
+    }
+}

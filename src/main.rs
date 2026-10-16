@@ -19,7 +19,8 @@ fn main() -> ExitCode {
     match run(&args) {
         Ok(code) => ExitCode::from(code as u8),
         Err(report) => {
-            eprintln!("{report:?}");
+            // Not eprintln!, which panics when standard error is a pipe whose reader has gone (#70).
+            let _ = writeln!(std::io::stderr(), "{report:?}");
             ExitCode::from(EXIT_ERROR as u8)
         }
     }
