@@ -28,8 +28,10 @@ The sources are the ones `pixi sbom --vulns` reads, read the same way, so both t
 - [OSV](https://osv.dev) for the advisories (GitHub's, the PyPI advisory database's and the rest), with their
   severity from the database's rating or the CVSS v3 vector, whichever is worse. Records about the same vulnerability,
   such as a GHSA and a PYSEC entry sharing a CVE, are one advisory.
-- [CISA's KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) for `known-exploited`. Being known
-  exploited does not change an advisory's severity; it is its own switch.
+- [CISA's KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) for `known-exploited`. With
+  `known-exploited = "error"` (the default), a known exploited advisory counts as critical, so it fails whatever
+  `fail-on` is, and the message keeps its own rating: `critical severity (rated medium), known exploited`. With
+  `"warn"` or `"allow"` its rating is left alone. An EPSS score does not change a rating.
 - [FIRST's EPSS scores](https://www.first.org/epss/) for `epss`, asked for only when `epss` is set. An advisory with
   several CVEs takes the highest score.
 

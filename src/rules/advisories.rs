@@ -40,12 +40,19 @@ pub fn rules(data: Option<Arc<Data>>) -> Vec<Box<dyn Rule>> {
         .collect()
 }
 
-/// What `settings` make of `advisory`: the rule, the severity and why.
+/// What `settings` make of `advisory`: the rule, the severity and why. A known exploited advisory counts as critical
+/// while `known-exploited` is "error", keeping its own rating in the message (#57).
 fn judge(settings: &Advisories, advisory: &Advisory) -> Option<(Which, Severity, Vec<String>)> {
     let mut reasons = Vec::new();
     let mut error = false;
-    if advisory.level >= settings.fail_on() {
-        reasons.push(format!("{} severity", advisory.level.name()));
+    let raised = advisory.known_exploited && settings.known_exploited() == Action::Error;
+    let level = if raised { Level::Critical } else { advisory.level };
+    if level >= settings.fail_on() {
+        reasons.push(match (raised, advisory.level) {
+            (true, Level::Critical) | (false, _) => format!("{} severity", level.name()),
+            (true, Level::Unknown) => "critical severity (unrated)".to_string(),
+            (true, rated) => format!("critical severity (rated {})", rated.name()),
+        });
         error = true;
     }
     if advisory.known_exploited && settings.known_exploited() != Action::Allow {
@@ -243,7 +250,34 @@ mod tests {
         );
         assert_eq!(
             judged(&defaults, advisory(Level::Low, true, Some(0.2))),
-            Some((Which::Vulnerable, Severity::Error, "known exploited".into()))
+            Some((
+                Which::Vulnerable,
+                Severity::Error,
+                "critical severity (rated low), known exploited".into()
+            ))
+        );
+        assert_eq!(
+            judged(&defaults, advisory(Level::Unknown, true, None)),
+            Some((
+                Which::Vulnerable,
+                Severity::Error,
+                "critical severity (unrated), known exploited".into()
+            ))
+        );
+        let strict = settings("fail-on = \"critical\"\n");
+        assert_eq!(
+            judged(&strict, advisory(Level::Critical, true, None)),
+            Some((
+                Which::Vulnerable,
+                Severity::Error,
+                "critical severity, known exploited".into()
+            )),
+            "a critical one is not raised"
+        );
+        assert_eq!(
+            judged(&strict, advisory(Level::Medium, false, Some(0.99))),
+            None,
+            "EPSS does not raise the rating, and is not set here"
         );
         let warn = settings("known-exploited = \"warn\"\nepss = 0.1\n");
         assert_eq!(
