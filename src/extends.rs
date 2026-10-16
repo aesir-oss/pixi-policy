@@ -382,6 +382,7 @@ fn implicit(id: &str) -> Option<toml::Value> {
         | "lock.complete"
         | "lock.in-sync"
         | "freshness.archived"
+        | "freshness.pypi"
         | "hygiene.conda-pypi-duplicate" => Some(toml::Value::Boolean(true)),
         "licenses.unknown" | "licenses.ambiguous" | "advisories.unknown" | "freshness.unknown" => {
             Some(toml::Value::String("warn".into()))

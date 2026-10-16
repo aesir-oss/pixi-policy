@@ -23,6 +23,9 @@ pub const FEEDSTOCKS_URL: &str =
 pub const OUTPUTS_URL: &str =
     "https://raw.githubusercontent.com/conda-forge/feedstock-outputs/single-file/feedstock-outputs.json";
 
+/// PyPI, whose JSON API gives each project's releases, files, upload times and yanked releases (#52).
+pub const PYPI_URL: &str = "https://pypi.org";
+
 /// How long an index, reduced repodata or a feedstock list is trusted: channels and the bot publish many times a day,
 /// and a release a day late is still caught tomorrow.
 const DAY: Duration = Duration::from_secs(24 * 60 * 60);
@@ -37,6 +40,8 @@ const MAX_DECOMPRESSED: u64 = 4 << 30;
 pub struct Endpoints {
     pub feedstocks: String,
     pub outputs: String,
+    /// PyPI's JSON API (#52).
+    pub pypi: String,
 }
 
 impl Default for Endpoints {
@@ -44,6 +49,7 @@ impl Default for Endpoints {
         Self {
             feedstocks: FEEDSTOCKS_URL.into(),
             outputs: OUTPUTS_URL.into(),
+            pypi: PYPI_URL.into(),
         }
     }
 }
@@ -60,6 +66,7 @@ impl Endpoints {
         Self {
             feedstocks: var("PIXI_POLICY_FEEDSTOCKS_URL", FEEDSTOCKS_URL),
             outputs: var("PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL", OUTPUTS_URL),
+            pypi: var("PIXI_POLICY_PYPI_URL", PYPI_URL),
         }
     }
 }
@@ -234,6 +241,96 @@ pub struct Lookup<'a> {
     pub now: SystemTime,
 }
 
+/// One PyPI project, reduced: its newest release and when each of its files was uploaded.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, Deserialize)]
+pub struct Project {
+    /// The newest release that is not a prerelease and not yanked; a prerelease when there is nothing else.
+    pub newest: Option<String>,
+    /// Each file's upload time, in seconds since 1970, by its sha256.
+    pub uploads: HashMap<String, i64>,
+}
+
+impl Project {
+    /// From PyPI's JSON API (`/pypi/<name>/json`).
+    pub fn from_json(bytes: &[u8]) -> Result<Self, String> {
+        #[derive(Deserialize)]
+        struct Digests {
+            sha256: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct File {
+            digests: Digests,
+            upload_time_iso_8601: Option<String>,
+            #[serde(default)]
+            yanked: bool,
+        }
+        #[derive(Deserialize)]
+        struct Api {
+            #[serde(default)]
+            releases: HashMap<String, Vec<File>>,
+        }
+        let api: Api = serde_json::from_slice(bytes).map_err(|err| err.to_string())?;
+        let mut uploads = HashMap::new();
+        let mut live = Vec::new();
+        for (version, files) in &api.releases {
+            for file in files {
+                if let (Some(sha), Some(time)) = (&file.digests.sha256, file.upload_time_iso_8601.as_deref())
+                    && let Some(seconds) = seconds(time)
+                {
+                    uploads.insert(sha.clone(), seconds);
+                }
+            }
+            if !files.is_empty() && files.iter().any(|file| !file.yanked) {
+                live.push(version.as_str());
+            }
+        }
+        Ok(Self {
+            newest: newest_pypi(live),
+            uploads,
+        })
+    }
+}
+
+/// `2024-03-05T12:34:56.123456Z` in seconds since 1970.
+fn seconds(time: &str) -> Option<i64> {
+    let mut ymd = time.get(..10)?.split('-').map(|part| part.parse::<u32>().ok());
+    let (year, month, day) = (ymd.next()??, ymd.next()??, ymd.next()??);
+    let date = crate::waivers::Date {
+        year: i32::try_from(year).ok()?,
+        month,
+        day,
+    };
+    let clock = time.get(11..19)?;
+    let mut parts = clock.split(':').map(|part| part.parse::<i64>().ok());
+    let (h, m, s) = (parts.next()??, parts.next()??, parts.next()??);
+    Some(date.days() * 86_400 + h * 3600 + m * 60 + s)
+}
+
+/// The newest of PyPI `versions` by PEP 440, leaving prereleases out unless there is nothing else.
+fn newest_pypi<'a>(versions: impl IntoIterator<Item = &'a str>) -> Option<String> {
+    let parsed: Vec<(pep440_rs::Version, &str)> = versions
+        .into_iter()
+        .filter_map(|v| v.parse::<pep440_rs::Version>().ok().map(|parsed| (parsed, v)))
+        .collect();
+    parsed
+        .iter()
+        .filter(|(version, _)| !version.any_prerelease())
+        .max_by(|a, b| a.0.cmp(&b.0))
+        .or_else(|| parsed.iter().max_by(|a, b| a.0.cmp(&b.0)))
+        .map(|(_, v)| (*v).to_string())
+}
+
+/// What PyPI says about each project looked up, by normalized name.
+#[derive(Debug, Default)]
+pub struct PypiReleases(pub(crate) HashMap<String, Project>);
+
+impl PypiReleases {
+    /// The project `name` (normalized), when PyPI has it.
+    pub fn project(&self, name: &str) -> Option<&Project> {
+        self.0.get(name)
+    }
+}
+
 /// Write a cache file; a cache that cannot be written only costs the next run a fetch.
 fn keep(path: &Path, bytes: &[u8]) {
     if let Err(err) = crate::fetch::store(path, bytes) {
@@ -309,6 +406,63 @@ impl Lookup<'_> {
             "conda-forge's feedstock outputs",
         )?;
         Feedstocks::parse(&feedstocks, &outputs)
+    }
+
+    /// What PyPI says about each of `names` (normalized), a few at a time; a project PyPI does not have is left out.
+    pub fn pypi(&self, names: &BTreeSet<String>) -> Result<PypiReleases, String> {
+        let names: Vec<&String> = names.iter().collect();
+        let workers = 8.min(names.len().max(1));
+        let chunk = names.len().div_ceil(workers).max(1);
+        let results: Vec<Result<Option<(String, Project)>, String>> = std::thread::scope(|scope| {
+            let handles: Vec<_> = names
+                .chunks(chunk)
+                .map(|part| scope.spawn(move || part.iter().map(|name| self.project(name)).collect::<Vec<_>>()))
+                .collect();
+            handles
+                .into_iter()
+                .flat_map(|handle| handle.join().expect("a lookup thread does not panic"))
+                .collect()
+        });
+        let mut out = HashMap::new();
+        for result in results {
+            if let Some((name, project)) = result? {
+                out.insert(name, project);
+            }
+        }
+        Ok(PypiReleases(out))
+    }
+
+    /// One project's newest release and upload times, kept reduced to that.
+    fn project(&self, name: &str) -> Result<Option<(String, Project)>, String> {
+        let file = self.file(&["pypi", &format!("{name}.json")]);
+        let fresh = |path: &Path| {
+            let age = std::fs::metadata(path).and_then(|meta| meta.modified()).ok()?;
+            (self.offline || self.now.duration_since(age).unwrap_or(Duration::ZERO) <= DAY)
+                .then(|| std::fs::read(path).ok())
+                .flatten()
+        };
+        if let Some(bytes) = file.as_deref().and_then(fresh)
+            && let Ok(project) = serde_json::from_slice::<Project>(&bytes)
+        {
+            return Ok(Some((name.to_string(), project)));
+        }
+        let what = format!("PyPI's release data for {name}");
+        if self.offline {
+            return Err(self.offline_error(&what));
+        }
+        let url = format!("{}/pypi/{name}/json", self.endpoints.pypi.trim_end_matches('/'));
+        let Some(bytes) = self
+            .client
+            .get(&url)
+            .map_err(|err| format!("cannot download {what} from {url}: {err}"))?
+        else {
+            return Ok(None);
+        };
+        let project = Project::from_json(&bytes).map_err(|err| format!("{url} is not PyPI's JSON API: {err}"))?;
+        if let Some(path) = &file {
+            keep(path, &serde_json::to_vec(&project).expect("a project serializes"));
+        }
+        Ok(Some((name.to_string(), project)))
     }
 
     /// The newest release of every key, channel and subdir at a time.
@@ -481,6 +635,28 @@ pub mod tests {
     use std::sync::Mutex;
 
     use super::*;
+
+    #[test]
+    fn pypis_json_is_reduced_to_the_newest_release_and_the_upload_times() {
+        let json = br#"{"releases": {
+            "1.0": [{"digests": {"sha256": "a"}, "upload_time_iso_8601": "2020-01-02T03:04:05.123Z"}],
+            "2.0": [{"digests": {"sha256": "b"}, "upload_time_iso_8601": "2021-01-01T00:00:00Z", "yanked": true}],
+            "1.5": [{"digests": {"sha256": "c"}, "upload_time_iso_8601": "2020-06-01T00:00:00Z"}],
+            "3.0rc1": [{"digests": {"sha256": "d"}, "upload_time_iso_8601": "2022-01-01T00:00:00Z"}],
+            "0.1": []
+        }}"#;
+        let project = Project::from_json(json).unwrap();
+        assert_eq!(
+            project.newest.as_deref(),
+            Some("1.5"),
+            "not yanked 2.0, not the prerelease"
+        );
+        assert_eq!(project.uploads["a"], 18_263 * 86_400 + 3 * 3600 + 4 * 60 + 5);
+        assert_eq!(project.uploads.len(), 4);
+        assert_eq!(newest_pypi(["1.0rc1", "1.0b2"]).as_deref(), Some("1.0rc1"));
+        assert_eq!(seconds("bad"), None);
+        assert!(Project::from_json(b"not json").is_err());
+    }
 
     /// Answers from a table of URL to bytes (a missing URL is a 404), and records the requests.
     #[derive(Default)]

@@ -2,8 +2,9 @@
 //! records; `majors-behind` compares the version with the newest release in the package's own channel; `archived`
 //! asks whether conda-forge has archived the feedstock that builds it. The channel data is [`crate::freshness`]'s,
 //! looked up once before the rules run. A package the data says nothing about is `freshness.unknown`, and data that
-//! cannot be read at all is `freshness.unavailable`, an error: missing data is never a pass (#2). PyPI packages are
-//! not checked.
+//! cannot be read at all is `freshness.unavailable`, an error: missing data is never a pass (#2). PyPI packages from
+//! pypi.org are checked the same way with `pypi` (#52): the upload time of the locked file, and the newest release
+//! PyPI lists.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -12,9 +13,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rattler_lock::LockFile;
 
 use crate::check::{File, Finding, Rule, Severity};
-use crate::freshness::{Client, Endpoints, Feedstock, Feedstocks, Key, Lookup, Releases, major};
+use crate::freshness::{Client, Endpoints, Feedstock, Feedstocks, Key, Lookup, PypiReleases, Releases, major};
 use crate::lockfile::{self, Fact, Facts, Kind};
 use crate::policy::{Freshness, Policy, Unknown};
+use crate::purl::normalize_pypi_name;
 use crate::waivers::Date;
 
 /// What the freshness rules judge: the time of the check, and the channel data the policy asked for.
@@ -24,6 +26,7 @@ pub struct Data {
     pub now: i64,
     pub releases: Option<Releases>,
     pub feedstocks: Option<Feedstocks>,
+    pub pypi: Option<PypiReleases>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,9 +78,98 @@ fn conda_forge(fact: &Fact) -> bool {
 /// What one package gets: the rule, the message and the help.
 type Said = (Which, String, &'static str);
 
+/// Why a PyPI package cannot be checked against pypi.org, if it cannot.
+fn off_pypi(fact: &Fact) -> Option<String> {
+    if fact.location_is_path || fact.location.starts_with("file:") {
+        return Some("it is installed from a local path".into());
+    }
+    if fact.location.starts_with("git+") {
+        return Some("it is built from a git repository".into());
+    }
+    match fact.index_host.as_deref() {
+        Some("pypi.org") => None,
+        Some(host) => Some(format!(
+            "it comes from {host}; pixi-policy reads PyPI release data from pypi.org only"
+        )),
+        None => Some("it is installed from a URL, not an index".into()),
+    }
+}
+
+/// What `settings` say about a PyPI package.
+fn judge_pypi(settings: &Freshness, data: &Data, fact: &Fact) -> Vec<Said> {
+    let mut out = Vec::new();
+    if !settings.pypi() || (settings.max_build_age_days.is_none() && settings.max_majors_behind.is_none()) {
+        return out;
+    }
+    if let Some(why) = off_pypi(fact) {
+        out.push((
+            Which::Unknown,
+            format!("{why}, so how old and how far behind it is is unknown"),
+            "waive it if it does not matter",
+        ));
+        return out;
+    }
+    let Some(releases) = &data.pypi else {
+        return out;
+    };
+    let Some(project) = releases.project(&normalize_pypi_name(&fact.name)) else {
+        out.push((
+            Which::Unknown,
+            "PyPI has no project by its name, so how old and how far behind it is is unknown".into(),
+            "check where it comes from, or waive it",
+        ));
+        return out;
+    };
+    if let Some(max) = settings.max_build_age_days {
+        match fact.sha256.as_ref().and_then(|sha| project.uploads.get(sha)) {
+            None => out.push((
+                Which::Unknown,
+                "PyPI lists no upload of the file pixi.lock locks, so its age is unknown".into(),
+                "relock it from pypi.org, or waive it",
+            )),
+            Some(&uploaded) => {
+                let days = (data.now - uploaded).div_euclid(86_400);
+                if days > i64::from(max) {
+                    out.push((
+                        Which::BuildAge,
+                        format!(
+                            "uploaded to PyPI {}, {days} days ago, more than max-build-age-days ({max})",
+                            Date::from_days(uploaded.div_euclid(86_400))
+                        ),
+                        "update it to a newer release, or waive it",
+                    ));
+                }
+            }
+        }
+    }
+    if let (Some(max), Some(newest)) = (settings.max_majors_behind, project.newest.as_deref()) {
+        let current = fact.version.as_deref().unwrap_or_default();
+        match (major(current), major(newest)) {
+            (Some(have), Some(top)) if top.saturating_sub(have) > u64::from(max) => out.push((
+                Which::MajorsBehind,
+                format!(
+                    "{} major versions behind {newest}, the newest on PyPI, more than max-majors-behind ({max})",
+                    top - have
+                ),
+                "upgrade it, or waive it while the upgrade is planned",
+            )),
+            (Some(_), Some(_)) => {}
+            _ => out.push((
+                Which::Unknown,
+                format!("cannot tell the major version of {current} or {newest}, so how far behind it is is unknown"),
+                "waive it if it does not matter",
+            )),
+        }
+    }
+    out
+}
+
 /// Everything `settings` say about `fact`.
 fn judge(settings: &Freshness, data: &Data, fact: &Fact) -> Vec<Said> {
     let mut out = Vec::new();
+    if fact.kind == Kind::Pypi {
+        return judge_pypi(settings, data, fact);
+    }
     if fact.kind != Kind::CondaBinary {
         return out;
     }
@@ -184,11 +276,15 @@ impl Rule for FreshnessRule {
 
     fn summary(&self) -> &'static str {
         match self.which {
-            Which::BuildAge => "A conda package was built longer ago than max-build-age-days",
-            Which::MajorsBehind => "A conda package is more major versions behind its channel's newest than allowed",
+            Which::BuildAge => "A package was built, or uploaded to PyPI, longer ago than max-build-age-days",
+            Which::MajorsBehind => {
+                "A package is more major versions behind its channel's or PyPI's newest than allowed"
+            }
             Which::Archived => "A conda-forge package comes from an archived feedstock",
-            Which::Unknown => "The channel data says nothing about a conda package a freshness rule checks",
-            Which::Unavailable => "The channel data cannot be read, so no package could be checked for freshness",
+            Which::Unknown => "The channel or PyPI data says nothing about a package a freshness rule checks",
+            Which::Unavailable => {
+                "The channel or PyPI data cannot be read, so no package could be checked for freshness"
+            }
         }
     }
 
@@ -241,9 +337,9 @@ pub fn unavailable(message: &str) -> Finding {
         line: None,
         message: format!("no package could be checked for freshness: {message}"),
         help: Some(
-            "check the network and proxy settings, or point PIXI_POLICY_FEEDSTOCKS_URL and \
-             PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL at mirrors; with PIXI_POLICY_OFFLINE, run once online first to fill the \
-             cache"
+            "check the network and proxy settings, or point PIXI_POLICY_FEEDSTOCKS_URL, \
+             PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL and PIXI_POLICY_PYPI_URL at mirrors; with PIXI_POLICY_OFFLINE, run once \
+             online first to fill the cache"
                 .into(),
         ),
         advisory: Vec::new(),
@@ -259,6 +355,7 @@ pub fn gather(lock: &LockFile, settings: &Freshness, lookup: &Lookup<'_>) -> (Da
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX));
     let mut data = Data { now, ..Data::default() };
     let mut keys = BTreeSet::new();
+    let mut projects = BTreeSet::new();
     let mut any_conda_forge = false;
     for environment in lockfile::environment_names(lock) {
         let Ok(platforms) = lockfile::platform_names(lock, &environment) else {
@@ -272,11 +369,23 @@ pub fn gather(lock: &LockFile, settings: &Freshness, lookup: &Lookup<'_>) -> (Da
                 keys.extend(key(fact).into_iter().flat_map(Releases::wanted));
                 any_conda_forge |= conda_forge(fact);
             }
+            for fact in facts.packages.iter().filter(|fact| fact.kind == Kind::Pypi) {
+                if off_pypi(fact).is_none() {
+                    projects.insert(normalize_pypi_name(&fact.name));
+                }
+            }
         }
     }
     if settings.max_majors_behind.is_some() {
         match lookup.releases(&keys) {
             Ok(releases) => data.releases = Some(releases),
+            Err(err) => return (data, Some(err)),
+        }
+    }
+    let limits = settings.max_build_age_days.is_some() || settings.max_majors_behind.is_some();
+    if settings.pypi() && limits && !projects.is_empty() {
+        match lookup.pypi(&projects) {
+            Ok(pypi) => data.pypi = Some(pypi),
             Err(err) => return (data, Some(err)),
         }
     }
@@ -331,6 +440,66 @@ mod tests {
     }
 
     #[test]
+    fn a_pypi_package_is_judged_by_its_upload_and_pypis_newest() {
+        let mut fact = facts().packages[0].clone();
+        fact.kind = Kind::Pypi;
+        fact.name = "Old_Thing".into();
+        fact.version = Some("1.2.0".into());
+        fact.sha256 = Some("aa".into());
+        fact.location = "https://files.pythonhosted.org/packages/old_thing-1.2.0-py3-none-any.whl".into();
+        fact.index_host = Some("pypi.org".into());
+        let project = crate::freshness::Project {
+            newest: Some("4.0.1".into()),
+            uploads: [("aa".to_string(), 10 * 86_400)].into(),
+        };
+        let data = Data {
+            now: 1000 * 86_400,
+            pypi: Some(PypiReleases([("old-thing".to_string(), project)].into())),
+            ..Data::default()
+        };
+        let found = said(
+            &settings("max-build-age-days = 365\nmax-majors-behind = 1\n"),
+            &data,
+            &fact,
+        );
+        assert_eq!(
+            found.iter().map(|(which, _)| *which).collect::<Vec<_>>(),
+            [Which::BuildAge, Which::MajorsBehind]
+        );
+        assert!(
+            found[0].1.starts_with("uploaded to PyPI 1970-01-11, 990 days ago"),
+            "{found:?}"
+        );
+        assert!(
+            found[1]
+                .1
+                .starts_with("3 major versions behind 4.0.1, the newest on PyPI"),
+            "{found:?}"
+        );
+        let mut relocked = fact.clone();
+        relocked.sha256 = Some("bb".into());
+        let found = said(&settings("max-build-age-days = 365\n"), &data, &relocked);
+        assert!(
+            matches!(found.as_slice(), [(Which::Unknown, m)] if m.contains("no upload of the file")),
+            "{found:?}"
+        );
+        let mut unheard = fact.clone();
+        unheard.name = "nobody".into();
+        let found = said(&settings("max-majors-behind = 1\n"), &data, &unheard);
+        assert!(
+            matches!(found.as_slice(), [(Which::Unknown, m)] if m.starts_with("PyPI has no project")),
+            "{found:?}"
+        );
+        let mut private = fact;
+        private.index_host = Some("pypi.acme.internal".into());
+        let found = said(&settings("max-majors-behind = 1\n"), &data, &private);
+        assert!(
+            matches!(found.as_slice(), [(Which::Unknown, m)] if m.contains("pypi.acme.internal")),
+            "{found:?}"
+        );
+    }
+
+    #[test]
     fn what_the_data_cannot_say_is_unknown() {
         let facts = facts();
         let jinja2 = facts.packages.iter().find(|p| p.name == "jinja2").unwrap();
@@ -338,6 +507,7 @@ mod tests {
             now: 0,
             releases: Some(Releases::default()),
             feedstocks: Some(Feedstocks::parse(r#"{"active":["x"]}"#, "{}").unwrap()),
+            pypi: None,
         };
         let mut undated = jinja2.clone();
         undated.timestamp = None;
@@ -372,12 +542,13 @@ mod tests {
     }
 
     #[test]
-    fn unknown_takes_its_severity_from_the_policy_and_pypi_is_never_judged() {
+    fn unknown_takes_its_severity_from_the_policy_and_pypi_can_be_left_out() {
         let facts = facts();
         let data = Arc::new(Data {
             now: 0,
             releases: None,
             feedstocks: Some(Feedstocks::parse(r#"{"active":["x"]}"#, "{}").unwrap()),
+            pypi: None,
         });
         let rule = |which| FreshnessRule {
             which,
@@ -396,7 +567,12 @@ mod tests {
         assert!(rule(Which::Archived).check(&Policy::default(), &facts).is_empty());
         let mut pypi = facts.packages[0].clone();
         pypi.kind = Kind::Pypi;
-        assert!(judge(&settings("max-build-age-days = 0\n"), &data, &pypi).is_empty());
+        assert!(judge(&settings("max-build-age-days = 0\npypi = false\n"), &data, &pypi).is_empty());
+        let off = judge(&settings("max-build-age-days = 0\n"), &data, &pypi);
+        assert!(
+            matches!(off.as_slice(), [(Which::Unknown, message, _)] if message.starts_with("it is installed from a URL")),
+            "{off:?}"
+        );
         for rule in rules(None) {
             assert!(rule.id().starts_with("freshness.") && !rule.summary().is_empty());
         }

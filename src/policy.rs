@@ -249,11 +249,17 @@ pub struct Freshness {
     pub archived: Option<bool>,
     /// What a package the data says nothing about gets (default warn).
     pub unknown: Option<Unknown>,
+    /// PyPI packages are checked too, against pypi.org (default true, #52).
+    pub pypi: Option<bool>,
 }
 
 impl Freshness {
     pub fn archived(&self) -> bool {
         self.archived.unwrap_or(true)
+    }
+
+    pub fn pypi(&self) -> bool {
+        self.pypi.unwrap_or(true)
     }
 
     pub fn unknown(&self) -> Unknown {

@@ -107,15 +107,17 @@ const DETAILS: &[(&str, &str)] = &[
     (
         "freshness.build-age",
         "Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the \
-         limit, by the build time its record in pixi.lock states: no network. A package with no build time is \
-         freshness.unknown.\n\n[freshness]\nmax-build-age-days = 730",
+         limit, by the build time its record in pixi.lock states: no network. With pypi (on by default), a PyPI \
+         package from pypi.org fails when the file pixi.lock locks was uploaded longer ago, by PyPI's JSON API. A \
+         package with no build or upload time is freshness.unknown.\n\n[freshness]\nmax-build-age-days = 730",
     ),
     (
         "freshness.majors-behind",
         "Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the \
          leading number) is more than the limit behind the newest release in the repodata of the channel and subdir \
-         pixi.lock names for it, so a mirror is judged by its own contents. Prereleases do not count as newest. PyPI \
-         packages are not checked.\n\n[freshness]\nmax-majors-behind = 1",
+         pixi.lock names for it, so a mirror is judged by its own contents. With pypi (on by default), a PyPI \
+         package from pypi.org is compared with the newest release PyPI lists. Prereleases, and yanked PyPI \
+         releases, do not count as newest.\n\n[freshness]\nmax-majors-behind = 1",
     ),
     (
         "freshness.archived",
@@ -125,13 +127,14 @@ const DETAILS: &[(&str, &str)] = &[
     ),
     (
         "freshness.unknown",
-        "Key: [freshness] unknown = \"warn\" (default), \"error\" or \"allow\": what a conda package gets when a \
+        "Key: [freshness] unknown = \"warn\" (default), \"error\" or \"allow\": what a package gets when a \
          freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version \
-         to compare, or no feedstock known to build it.\n\n[freshness]\nunknown = \"error\"",
+         to compare, no feedstock known to build it, or a PyPI package from somewhere other than pypi.org or whose \
+         locked file PyPI does not list.\n\n[freshness]\nunknown = \"error\"",
     ),
     (
         "freshness.unavailable",
-        "Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could not be read: the network is \
+        "Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is \
          down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than \
          pass packages it could not look at.\n\n[freshness]",
     ),
