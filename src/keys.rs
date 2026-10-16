@@ -542,6 +542,23 @@ pub const KEYS: &[Key] = &[
     },
     Key {
         table: "freshness",
+        name: "pypi",
+        kind: "boolean",
+        values: "true, false: PyPI packages from pypi.org are checked too, by the locked file's upload time and the \
+                 newest release PyPI lists",
+        default: WHEN_TABLE_EXISTS,
+        required: false,
+        rules: &[
+            "freshness.build-age",
+            "freshness.majors-behind",
+            "freshness.unknown",
+            "freshness.unavailable",
+        ],
+        example: "true",
+        merge: Merge::Stricter,
+    },
+    Key {
+        table: "freshness",
         name: "unknown",
         kind: "string",
         values: "\"warn\", \"error\", \"allow\": what a package gets when the data says nothing about it",

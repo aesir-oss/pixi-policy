@@ -1,6 +1,6 @@
 # Freshness
 
-`[freshness]` fails a workspace that locks conda packages that are years old, far behind their newest release, or no
+`[freshness]` fails a workspace that locks packages that are years old, far behind their newest release, or no
 longer maintained:
 
 ```toml
@@ -8,6 +8,7 @@ longer maintained:
 max-build-age-days = 730   # a build older than two years fails
 max-majors-behind = 1      # a package two or more major versions behind its channel's newest fails
 archived = true            # a conda-forge package whose feedstock is archived fails (on once the table exists)
+pypi = true                # PyPI packages are checked too (on once the table exists)
 ```
 
 ```text
@@ -17,7 +18,8 @@ error[freshness.majors-behind] setuptools 59.8.0: 25 major versions behind 84.0.
 ```
 
 The keys are in the [reference](reference.md#freshness), the rules in the
-[rule catalog](rules.md#freshness-build-age). Only conda packages are checked; PyPI packages are not.
+[rule catalog](rules.md#freshness-build-age). PyPI packages are checked against pypi.org; see
+[PyPI packages](#pypi-packages).
 
 ## Build age
 
@@ -60,21 +62,41 @@ A package more than one feedstock builds counts as archived only when all of the
 which one built it (`libzlib` comes from `zlib` or `zlib-ng`). A package no feedstock is known to build is
 `freshness.unknown`. Packages from other channels are not checked.
 
+## PyPI packages
+
+With `pypi` (on once the table exists), `max-build-age-days` and `max-majors-behind` apply to PyPI packages from
+pypi.org too, from [PyPI's JSON API](https://docs.pypi.org/api/json/), one request per project:
+
+- Build age is when the exact file pixi.lock locks (matched by its sha256) was uploaded to PyPI. A file PyPI does not
+  list is `freshness.unknown`.
+- The newest release is the newest PyPI lists by PEP 440 that is neither a prerelease nor yanked.
+- A package from another index, a URL, git or a path is `freshness.unknown`, as is a name PyPI has no project for.
+
+`pypi = false` leaves PyPI packages out, as pixi-policy 0.2.0 did. `archived` is about conda-forge feedstocks and does
+not apply to PyPI. Nothing is fetched from PyPI unless one of the two limits is set.
+
+```text
+error[freshness.majors-behind] pytest 7.0.0: 2 major versions behind 9.1.1, the newest on PyPI, more than max-majors-behind (0)
+  --> pixi.lock: environment "test", linux-64
+  = help: upgrade it, or waive it while the upgrade is planned
+```
+
 ## Caching, offline use and mirrors
 
 Answers are cached beside the [extended policies](extends.md#extending-a-url): the shard index, a channel's whole
-repodata reduced to the newest version of each package, and the feedstock lists for a day, shards for good (they are
-named by their content's hash). When a download fails, a stale copy stands in.
+repodata reduced to the newest version of each package, each PyPI project reduced to its newest release and upload
+times, and the feedstock lists for a day, shards for good (they are named by their content's hash). When a download fails, a stale copy stands in.
 
 When the data cannot be read at all, because the network is down and nothing is cached or `PIXI_POLICY_OFFLINE` is
 set with an empty cache, `freshness.unavailable` fails the check; build ages are still judged, since they need no
 data. To run offline in CI, run once online and keep `PIXI_POLICY_CACHE_DIR` in the CI cache.
 
-Repodata always comes from each package's own channel. The feedstock lists can come from mirrors:
+Repodata always comes from each package's own channel. The feedstock lists and PyPI's JSON API can come from mirrors:
 
 | Variable | Default |
 |---|---|
 | `PIXI_POLICY_FEEDSTOCKS_URL` | `https://raw.githubusercontent.com/regro/cf-graph-countyfair/master/all_feedstocks.json` |
 | `PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL` | `https://raw.githubusercontent.com/conda-forge/feedstock-outputs/single-file/feedstock-outputs.json` |
+| `PIXI_POLICY_PYPI_URL` | `https://pypi.org` (`/pypi/<name>/json` below it) |
 
 A [waiver](waivers.md) accepts a finding for one package, as for every rule.

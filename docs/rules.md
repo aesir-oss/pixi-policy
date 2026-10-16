@@ -20,11 +20,11 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`advisories.vulnerable`](#advisories-vulnerable) | A package has a known vulnerability at or above fail-on, known exploited, or above the EPSS threshold |
 | [`advisories.unknown`](#advisories-unknown) | A package has a known vulnerability whose severity no advisory gives |
 | [`advisories.unavailable`](#advisories-unavailable) | The advisory data cannot be read, so no package could be checked |
-| [`freshness.build-age`](#freshness-build-age) | A conda package was built longer ago than max-build-age-days |
-| [`freshness.majors-behind`](#freshness-majors-behind) | A conda package is more major versions behind its channel's newest than allowed |
+| [`freshness.build-age`](#freshness-build-age) | A package was built, or uploaded to PyPI, longer ago than max-build-age-days |
+| [`freshness.majors-behind`](#freshness-majors-behind) | A package is more major versions behind its channel's or PyPI's newest than allowed |
 | [`freshness.archived`](#freshness-archived) | A conda-forge package comes from an archived feedstock |
-| [`freshness.unknown`](#freshness-unknown) | The channel data says nothing about a conda package a freshness rule checks |
-| [`freshness.unavailable`](#freshness-unavailable) | The channel data cannot be read, so no package could be checked for freshness |
+| [`freshness.unknown`](#freshness-unknown) | The channel or PyPI data says nothing about a package a freshness rule checks |
+| [`freshness.unavailable`](#freshness-unavailable) | The channel or PyPI data cannot be read, so no package could be checked for freshness |
 | [`python.older`](#python-older) | No environment runs a Python older than the policy's standard |
 | [`python.newer`](#python-newer) | No environment runs a Python newer than the policy's standard |
 | [`hygiene.conda-pypi-duplicate`](#hygiene-conda-pypi-duplicate) | No PyPI package is one a conda package in the same environment provides |
@@ -227,29 +227,29 @@ Keys: .
 
 ## `freshness.build-age` {#freshness-build-age}
 
-A conda package was built longer ago than max-build-age-days.
+A package was built, or uploaded to PyPI, longer ago than max-build-age-days.
 
-Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the limit, by the build time its record in pixi.lock states: no network. A package with no build time is freshness.unknown.
+Key: [freshness] max-build-age-days (not set by default). Fails a conda package built more days ago than the limit, by the build time its record in pixi.lock states: no network. With pypi (on by default), a PyPI package from pypi.org fails when the file pixi.lock locks was uploaded longer ago, by PyPI's JSON API. A package with no build or upload time is freshness.unknown.
 
 ```toml
 [freshness]
 max-build-age-days = 730
 ```
 
-Keys: [`[freshness] max-build-age-days`](reference.md#freshness).
+Keys: [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] pypi`](reference.md#freshness).
 
 ## `freshness.majors-behind` {#freshness-majors-behind}
 
-A conda package is more major versions behind its channel's newest than allowed.
+A package is more major versions behind its channel's or PyPI's newest than allowed.
 
-Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the leading number) is more than the limit behind the newest release in the repodata of the channel and subdir pixi.lock names for it, so a mirror is judged by its own contents. Prereleases do not count as newest. PyPI packages are not checked.
+Key: [freshness] max-majors-behind (not set by default). Fails a conda package whose major version (the leading number) is more than the limit behind the newest release in the repodata of the channel and subdir pixi.lock names for it, so a mirror is judged by its own contents. With pypi (on by default), a PyPI package from pypi.org is compared with the newest release PyPI lists. Prereleases, and yanked PyPI releases, do not count as newest.
 
 ```toml
 [freshness]
 max-majors-behind = 1
 ```
 
-Keys: [`[freshness] max-majors-behind`](reference.md#freshness).
+Keys: [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] pypi`](reference.md#freshness).
 
 ## `freshness.archived` {#freshness-archived}
 
@@ -266,28 +266,28 @@ Keys: [`[freshness] archived`](reference.md#freshness).
 
 ## `freshness.unknown` {#freshness-unknown}
 
-The channel data says nothing about a conda package a freshness rule checks.
+The channel or PyPI data says nothing about a package a freshness rule checks.
 
-Key: [freshness] unknown = "warn" (default), "error" or "allow": what a conda package gets when a freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version to compare, or no feedstock known to build it.
+Key: [freshness] unknown = "warn" (default), "error" or "allow": what a package gets when a freshness rule cannot judge it: no build time in pixi.lock, not in its channel's repodata, no major version to compare, no feedstock known to build it, or a PyPI package from somewhere other than pypi.org or whose locked file PyPI does not list.
 
 ```toml
 [freshness]
 unknown = "error"
 ```
 
-Keys: [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] unknown`](reference.md#freshness).
+Keys: [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] pypi`](reference.md#freshness), [`[freshness] unknown`](reference.md#freshness).
 
 ## `freshness.unavailable` {#freshness-unavailable}
 
-The channel data cannot be read, so no package could be checked for freshness.
+The channel or PyPI data cannot be read, so no package could be checked for freshness.
 
-Key: [freshness]. The channel's repodata or conda-forge's feedstock lists could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.
+Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.
 
 ```toml
 [freshness]
 ```
 
-Keys: [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness).
+Keys: [`[freshness] max-majors-behind`](reference.md#freshness), [`[freshness] archived`](reference.md#freshness), [`[freshness] pypi`](reference.md#freshness).
 
 ## `python.older` {#python-older}
 
