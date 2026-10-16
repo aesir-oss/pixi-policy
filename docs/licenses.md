@@ -22,6 +22,11 @@ ambiguous = "warn"   # or "error", "allow"
 | `licenses.unknown` | `unknown` | is missing, or is not an SPDX expression |
 | `licenses.ambiguous` | `ambiguous` | is a name that could be more than one SPDX license (`BSD`, `GPL`, `LGPL2`, `Apache`) |
 
+An `OR` expression offers a choice, so a package passes when one option is acceptable: `MIT OR GPL-3.0-only` passes a
+policy that denies GPL-3.0-only. It needs a review when its only acceptable options are `review` licenses:
+`Apache-2.0 OR BSD-2-Clause` with `allow = ["MIT"]` and `review = ["Apache-2.0"]` is `licenses.review`, since
+BSD-2-Clause is not allowed.
+
 Entries are SPDX identifiers, or patterns with `*` that are expanded against the SPDX license list (`LGPL-*` is every
 LGPL identifier). An `-or-later` entry accepts later versions of the same license, as in pixi-sbom.
 

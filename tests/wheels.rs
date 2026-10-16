@@ -88,6 +88,23 @@ fn a_wheels_license_is_judged_like_a_conda_packages() {
 }
 
 #[test]
+fn an_or_accepted_only_through_review_needs_a_review() {
+    // #60: packaging's METADATA says Apache-2.0 OR BSD-2-Clause; BSD-2-Clause is not allowed, so it needs Apache-2.0.
+    let found = pypi_findings(&report(
+        "[licenses]\nallow = [\"MIT\"]\nreview = [\"Apache-2.0\"]\n",
+        &root().join("tests/fixtures/wheels/cache"),
+    ));
+    assert_eq!(
+        found,
+        [(
+            "licenses.review".to_string(),
+            "packaging".to_string(),
+            "license Apache-2.0 OR BSD-2-Clause needs a review".to_string()
+        )]
+    );
+}
+
+#[test]
 fn without_the_metadata_a_pypi_package_is_unknown_and_says_why() {
     let empty = tempfile::tempdir().unwrap();
     let found = pypi_findings(&report("[licenses]\n", empty.path()));
