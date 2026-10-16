@@ -19,9 +19,13 @@ fn workspace(policy: Option<&str>) -> tempfile::TempDir {
     dir
 }
 
+/// The binary, offline with an empty cache, so no test reads a wheel's license from PyPI.
 fn policy() -> Command {
     let mut cmd = Command::cargo_bin("pixi-policy").unwrap();
-    cmd.env("NO_COLOR", "1");
+    cmd.env("NO_COLOR", "1").env("PIXI_POLICY_OFFLINE", "1").env(
+        "PIXI_POLICY_CACHE_DIR",
+        std::env::temp_dir().join("pixi-policy-tests-no-cache"),
+    );
     cmd
 }
 

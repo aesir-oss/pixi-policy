@@ -163,7 +163,7 @@ Keys: [`[licenses] allow`](reference.md#licenses), [`[licenses] review`](referen
 
 Every package declares an SPDX license.
 
-Key: [licenses] unknown = "warn" (default), "error" or "allow": what a package with no license, or one that is not an SPDX expression, gets. pixi.lock records no PyPI licenses, so every PyPI package is unknown until pixi-policy reads license files.
+Key: [licenses] unknown = "warn" (default), "error" or "allow": what a package with no license, or one that is not an SPDX expression, gets. pixi.lock records no PyPI licenses; a wheel from pypi.org has its METADATA read (by range requests, cached by sha256), and a source distribution or a package from another index, a URL, git or a path stays unknown.
 
 ```toml
 [licenses]

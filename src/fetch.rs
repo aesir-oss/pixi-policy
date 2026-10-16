@@ -161,6 +161,60 @@ pub fn get_if_served(url: &str, max: u64) -> Result<Option<Vec<u8>>, String> {
     }
 }
 
+/// The last `count` bytes of `url` and its total size, by a suffix range request (#51). A server that answers with the
+/// whole file instead is refused, so an archive is never downloaded whole by accident.
+pub fn get_tail(url: &str, count: u64) -> Result<(u64, Vec<u8>), String> {
+    let response = match agent().get(url).header("Range", &format!("bytes=-{count}")).call() {
+        Ok(response) => response,
+        // Some CDNs answer 416 to a suffix longer than the file rather than send it whole.
+        Err(ureq::Error::StatusCode(416)) => {
+            let head = agent().head(url).call().map_err(|err| err.to_string())?;
+            let total = head
+                .headers()
+                .get("Content-Length")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.parse::<u64>().ok())
+                .ok_or("the server gives no Content-Length")?;
+            let bytes = if total == 0 {
+                Vec::new()
+            } else {
+                get_range(url, total.saturating_sub(count), total - 1)?
+            };
+            return Ok((total, bytes));
+        }
+        Err(err) => return Err(err.to_string()),
+    };
+    if response.status() != 206 {
+        return Err("the server does not answer range requests".into());
+    }
+    let total = response
+        .headers()
+        .get("Content-Range")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.rsplit('/').next())
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .ok_or("the server gives no Content-Range total")?;
+    Ok((total, read_body(response.into_body(), count)?))
+}
+
+/// Bytes `start` to `end` (inclusive) of `url`, by a range request.
+pub fn get_range(url: &str, start: u64, end: u64) -> Result<Vec<u8>, String> {
+    let response = agent()
+        .get(url)
+        .header("Range", &format!("bytes={start}-{end}"))
+        .call()
+        .map_err(|err| err.to_string())?;
+    if response.status() != 206 {
+        return Err("the server does not answer range requests".into());
+    }
+    let wanted = end - start + 1;
+    let bytes = read_body(response.into_body(), wanted)?;
+    if bytes.len() as u64 != wanted {
+        return Err("the server sent a short range".into());
+    }
+    Ok(bytes)
+}
+
 /// POST the JSON `body` to `url`, at most `max` bytes of the answer.
 pub fn post_json(url: &str, body: &str, max: u64) -> Result<Vec<u8>, String> {
     let response = agent()

@@ -22,7 +22,7 @@ fn pypi_name(purl: &str) -> Option<&str> {
     rest.split(['@', '?', '#']).next().filter(|name| !name.is_empty())
 }
 
-fn package(fact: &Fact) -> Value {
+fn package(fact: &Fact, wheels: Option<&crate::wheel::Data>) -> Value {
     let kind = match fact.kind {
         Kind::CondaBinary => "conda",
         Kind::CondaSource => "conda-source",
@@ -35,7 +35,17 @@ fn package(fact: &Fact) -> Value {
         Origin::Url(url) => ("url", url),
         Origin::Path(path) => ("path", path),
     };
-    let raw = fact.license.as_deref().map(str::trim).filter(|raw| !raw.is_empty());
+    let locked = fact.license.as_deref().map(str::trim).filter(|raw| !raw.is_empty());
+    let wheel = match wheels.and_then(|data| data.for_package(fact)) {
+        Some(crate::wheel::Answer::Declared(raw)) if locked.is_none() => Some(raw.trim()),
+        _ => None,
+    };
+    let raw = locked.or(wheel);
+    let source = match (locked, wheel) {
+        (Some(_), _) => Some("pixi.lock"),
+        (None, Some(_)) => Some("wheel"),
+        _ => None,
+    };
     let (spdx, status) = match raw.map(license::normalize) {
         None => (None, "missing"),
         Some(License::Expression(expression)) => (Some(expression), "spdx"),
@@ -54,7 +64,7 @@ fn package(fact: &Fact) -> Value {
             "url": url,
             "channel": fact.channel,
         },
-        "license": { "declared": raw, "spdx": spdx, "status": status },
+        "license": { "declared": raw, "source": source, "spdx": spdx, "status": status },
         "build": fact.build,
         "build_number": fact.build_number,
         "timestamp": fact.timestamp,
@@ -65,7 +75,13 @@ fn package(fact: &Fact) -> Value {
 }
 
 /// The facts of every environment and platform of `lock`; `manifest` and `lockfile` are shown as given.
-pub fn document(lock: &LockFile, manifest: &Path, lockfile_path: &Path, base: &Path) -> Result<Value, CheckError> {
+pub fn document(
+    lock: &LockFile,
+    wheels: Option<&crate::wheel::Data>,
+    manifest: &Path,
+    lockfile_path: &Path,
+    base: &Path,
+) -> Result<Value, CheckError> {
     let path = |p: &Path| crate::report::relative(p, base).0;
     let mut environments = Vec::new();
     for environment in lockfile::environment_names(lock) {
@@ -74,7 +90,7 @@ pub fn document(lock: &LockFile, manifest: &Path, lockfile_path: &Path, base: &P
             environments.push(json!({
                 "name": environment,
                 "platform": platform,
-                "packages": facts.packages.iter().map(package).collect::<Vec<_>>(),
+                "packages": facts.packages.iter().map(|fact| package(fact, wheels)).collect::<Vec<_>>(),
             }));
         }
     }
@@ -101,7 +117,14 @@ mod tests {
     fn every_package_has_its_origin_and_license_status() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources/pixi.lock");
         let lock = crate::check::load_lockfile(&path).unwrap();
-        let doc = document(&lock, Path::new("pixi.toml"), Path::new("pixi.lock"), Path::new(".")).unwrap();
+        let doc = document(
+            &lock,
+            None,
+            Path::new("pixi.toml"),
+            Path::new("pixi.lock"),
+            Path::new("."),
+        )
+        .unwrap();
         let types: std::collections::BTreeSet<&str> = doc["environments"]
             .as_array()
             .unwrap()

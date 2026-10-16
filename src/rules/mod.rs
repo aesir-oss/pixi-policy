@@ -16,18 +16,19 @@ use crate::check::Rule;
 
 /// Every rule, family by family.
 pub fn all() -> Vec<Box<dyn Rule>> {
-    with_data(None, None, None)
+    with_data(None, None, None, None)
 }
 
-/// Every rule, the `advisories.*`, `freshness.*` and `hygiene.*` ones judging the data looked up for them.
+/// Every rule, the `advisories.*`, `freshness.*`, `hygiene.*` and `licenses.*` ones judging the data looked up for them.
 pub fn with_data(
     advisories: Option<Arc<crate::advisories::Data>>,
     freshness: Option<Arc<freshness::Data>>,
     mapping: Option<Arc<crate::advisories::Mapping>>,
+    wheels: Option<Arc<crate::wheel::Data>>,
 ) -> Vec<Box<dyn Rule>> {
     let mut rules = sources::rules();
     rules.extend(bans::rules());
-    rules.extend(licenses::rules());
+    rules.extend(licenses::rules(wheels));
     rules.extend(advisories::rules(advisories));
     rules.extend(freshness::rules(freshness));
     rules.extend(python::rules());

@@ -43,11 +43,11 @@ pixi policy
 ```
 
 ```text
-warning[licenses.unknown] watchdog 6.0.0: has no license in pixi.lock (it never records PyPI licenses)
-  --> pixi.lock: environment "docs", win-64
-  = help: PyPI licenses are read from the package's files in pixi-policy 0.2.0; until then set [licenses] unknown = "allow" to stop these
+warning[licenses.unknown] python-dateutil 2.9.0.post0: license "Dual License" in its METADATA is not an SPDX expression (unknown term: 'Dual')
+  --> pixi.lock: environment "docs", linux-64
+  = help: find the license the package ships and waive this with it as the reason, or set [licenses] unknown = "allow" to stop these
 
-0 errors, 155 warnings, 0 waived in 1644 packages across 30 environment-platform pairs
+0 errors, 10 warnings, 0 waived in 645 packages across 10 environment-platform pairs
 ```
 
 Each finding names its rule, the package, where it was found and how to fix it. Errors fail the check (exit code 1);

@@ -1698,6 +1698,7 @@ dependencies = [
  "insta",
  "jsonschema",
  "miette",
+ "miniz_oxide",
  "packageurl",
  "pep440_rs",
  "predicates",

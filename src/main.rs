@@ -67,7 +67,13 @@ fn run(args: &Args) -> miette::Result<i32> {
                 Some(Err(message)) => (None, Some(pixi_policy::rules::hygiene::unavailable(&message))),
                 None => (None, None),
             };
-            let rules = pixi_policy::rules::with_data(data.clone(), freshness, mapping);
+            let wheels = lock.as_ref().filter(|_| policy.licenses.is_some()).map(|lock| {
+                std::sync::Arc::new(pixi_policy::wheel::gather(
+                    lock,
+                    &pixi_policy::fetch::Settings::from_env(),
+                ))
+            });
+            let rules = pixi_policy::rules::with_data(data.clone(), freshness, mapping, wheels);
             let mut outcome = match &lock {
                 Some(lock) => check::run(lock, &policy, &rules)?,
                 None => Outcome::default(),
@@ -123,7 +129,8 @@ fn run(args: &Args) -> miette::Result<i32> {
             }
             let lock = check::load_lockfile(&workspace.lockfile)?;
             let manifest = Manifest::load(&workspace.manifest)?;
-            let used = pixi_policy::init::in_use(&lock)?;
+            let wheels = pixi_policy::wheel::gather(&lock, &pixi_policy::fetch::Settings::from_env());
+            let used = pixi_policy::init::in_use(&lock, Some(&wheels))?;
             let path = workspace.policy_path(args.policy.as_deref());
             pixi_policy::init::write(&path, &pixi_policy::init::propose(&used, &manifest))?;
             let mut out = pixi_policy::pipe::stdout();
@@ -171,7 +178,9 @@ fn run(args: &Args) -> miette::Result<i32> {
                 return Err(workspace.no_lockfile().into());
             }
             let lock = check::load_lockfile(&workspace.lockfile)?;
-            let doc = pixi_policy::facts::document(&lock, &workspace.manifest, &workspace.lockfile, &cwd)?;
+            let wheels = pixi_policy::wheel::gather(&lock, &pixi_policy::fetch::Settings::from_env());
+            let doc =
+                pixi_policy::facts::document(&lock, Some(&wheels), &workspace.manifest, &workspace.lockfile, &cwd)?;
             let text = report::pretty(&doc);
             match &args.output {
                 Some(path) => std::fs::write(path, text)

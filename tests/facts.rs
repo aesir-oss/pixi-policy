@@ -14,6 +14,11 @@ fn run(args: &[&str], manifest: &Path) -> std::process::Output {
     Command::cargo_bin("pixi-policy")
         .unwrap()
         .env("NO_COLOR", "1")
+        .env("PIXI_POLICY_OFFLINE", "1")
+        .env(
+            "PIXI_POLICY_CACHE_DIR",
+            std::env::temp_dir().join("pixi-policy-tests-no-cache"),
+        )
         .arg("--manifest-path")
         .arg(manifest)
         .args(args)
