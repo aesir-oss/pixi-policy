@@ -23,6 +23,13 @@ shards, the package's subdir and noarch combined; plus the conda-forge bot's `al
 feedstock-outputs for archived feedstocks (chosen over the GitHub API: no token, no rate limit; it trails GitHub by a
 bot cycle, documented). Added `ruzstd` and `rmp-serde` (pure Rust) with approval. Fixture: `tests/fixtures/freshness/`.
 
+0.3.0 added more on the same agent: #10 VEX files by pinned URL through the extends cache; #51 `fetch::get_tail` and
+`get_range` with `src/zipread.rs` (pixi-sbom's, deflate by `miniz_oxide`, already in the tree via miette) to read a
+wheel's METADATA by range, cached at `<cache>/wheel-info/<sha256>/`; #52 PyPI's JSON API for freshness, cached a day
+reduced to the newest release and upload times. #58 moved the cache to `pixi-policy/` under pixi's cache directory
+(`PIXI_CACHE_DIR`, `RATTLER_CACHE_DIR`, then the platform cache's `rattler/cache`), beside pixi-sbom's. Tests that
+check with `[licenses]` run offline with an empty cache so they never reach PyPI.
+
 **Why:** pixi-sbom kept the "shared network stack" at the split, so this crate had none until #1.
 
 **How to apply:** `ring` is the first C dependency here. The release wheels build from the tag, so a dry run cannot
