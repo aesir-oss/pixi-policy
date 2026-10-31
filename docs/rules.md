@@ -24,7 +24,7 @@ Every rule `pixi policy check` runs, with the text `pixi policy explain <RULE>` 
 | [`freshness.majors-behind`](#freshness-majors-behind) | A package is more major versions behind its channel's or PyPI's newest than allowed |
 | [`freshness.archived`](#freshness-archived) | A conda-forge package comes from an archived feedstock |
 | [`freshness.unknown`](#freshness-unknown) | The channel or PyPI data says nothing about a package a freshness rule checks |
-| [`freshness.unavailable`](#freshness-unavailable) | The channel or PyPI data cannot be read, so no package could be checked for freshness |
+| [`freshness.unavailable`](#freshness-unavailable) | A source of channel, PyPI or feedstock data cannot be read, so the checks it feeds could not run |
 | [`python.older`](#python-older) | No environment runs a Python older than the policy's standard |
 | [`python.newer`](#python-newer) | No environment runs a Python newer than the policy's standard |
 | [`python.requires-python`](#python-requires-python) | The pyproject's requires-python starts at the policy's standard Python and admits it |
@@ -281,9 +281,9 @@ Keys: [`[freshness] max-build-age-days`](reference.md#freshness), [`[freshness] 
 
 ## `freshness.unavailable` {#freshness-unavailable}
 
-The channel or PyPI data cannot be read, so no package could be checked for freshness.
+A source of channel, PyPI or feedstock data cannot be read, so the checks it feeds could not run.
 
-Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.
+Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. Each source that could not be read gives one finding naming the checks it feeds; the checks the other sources feed still run. The check fails rather than pass packages it could not look at. `pixi policy doctor` asks each source whether it answers.
 
 ```toml
 [freshness]

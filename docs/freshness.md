@@ -87,9 +87,11 @@ Answers are cached beside the [extended policies](extends.md#extending-a-url): t
 repodata reduced to the newest version of each package, each PyPI project reduced to its newest release and upload
 times, and the feedstock lists for a day, shards for good (they are named by their content's hash). When a download fails, a stale copy stands in.
 
-When the data cannot be read at all, because the network is down and nothing is cached or `PIXI_POLICY_OFFLINE` is
-set with an empty cache, `freshness.unavailable` fails the check; build ages are still judged, since they need no
-data. To run offline in CI, run once online and keep `PIXI_POLICY_CACHE_DIR` in the CI cache.
+When a source cannot be read at all, because the network is down and nothing is cached or `PIXI_POLICY_OFFLINE` is
+set with an empty cache, `freshness.unavailable` fails the check, once for each source, naming the checks it feeds.
+The checks the other sources feed still run, and conda build ages are always judged, since they need only pixi.lock.
+`pixi policy doctor` says which source does not answer. To run offline in CI, run once online and keep
+`PIXI_POLICY_CACHE_DIR` in the CI cache.
 
 Repodata always comes from each package's own channel. The feedstock lists and PyPI's JSON API can come from mirrors:
 

@@ -136,8 +136,10 @@ const DETAILS: &[(&str, &str)] = &[
     (
         "freshness.unavailable",
         "Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is \
-         down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than \
-         pass packages it could not look at.\n\n[freshness]",
+         down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. Each source that could not \
+         be read gives one finding naming the checks it feeds; the checks the other sources feed still run. The check \
+         fails rather than pass packages it could not look at. `pixi policy doctor` asks each source whether it \
+         answers.\n\n[freshness]",
     ),
     (
         "hygiene.conda-pypi-duplicate",

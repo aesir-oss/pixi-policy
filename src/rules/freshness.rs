@@ -283,7 +283,7 @@ impl Rule for FreshnessRule {
             Which::Archived => "A conda-forge package comes from an archived feedstock",
             Which::Unknown => "The channel or PyPI data says nothing about a package a freshness rule checks",
             Which::Unavailable => {
-                "The channel or PyPI data cannot be read, so no package could be checked for freshness"
+                "A source of channel, PyPI or feedstock data cannot be read, so the checks it feeds could not run"
             }
         }
     }
@@ -324,8 +324,44 @@ impl Rule for FreshnessRule {
     }
 }
 
-/// The `freshness.unavailable` finding for a lookup that failed with `message`.
-pub fn unavailable(message: &str) -> Finding {
+/// A freshness source that could not be read (#84): what it feeds, and why.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Missing {
+    pub source: Source,
+    pub error: String,
+}
+
+/// The sources [`gather`] reads beyond pixi.lock.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    Repodata,
+    Pypi,
+    Feedstocks,
+}
+
+impl Source {
+    fn feeds(self) -> &'static str {
+        match self {
+            Source::Repodata => "how far conda packages are behind their channel's newest release (max-majors-behind)",
+            Source::Pypi => "PyPI packages' upload age and newest release",
+            Source::Feedstocks => "whether conda-forge packages come from archived feedstocks (archived)",
+        }
+    }
+
+    fn mirror(self) -> &'static str {
+        match self {
+            Source::Repodata => "",
+            Source::Pypi => ", or point PIXI_POLICY_PYPI_URL at a mirror",
+            Source::Feedstocks => {
+                ", or point PIXI_POLICY_FEEDSTOCKS_URL and PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL at mirrors"
+            }
+        }
+    }
+}
+
+/// The `freshness.unavailable` finding for a source that could not be read; the other checks still run.
+pub fn unavailable(missing: &Missing) -> Finding {
+    let source = missing.source;
     Finding {
         rule: "freshness.unavailable",
         severity: Severity::Error,
@@ -335,20 +371,19 @@ pub fn unavailable(message: &str) -> Finding {
         platform: String::new(),
         file: File::Lockfile,
         line: None,
-        message: format!("no package could be checked for freshness: {message}"),
-        help: Some(
-            "check the network and proxy settings, or point PIXI_POLICY_FEEDSTOCKS_URL, \
-             PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL and PIXI_POLICY_PYPI_URL at mirrors; with PIXI_POLICY_OFFLINE, run once \
-             online first to fill the cache"
-                .into(),
-        ),
+        message: format!("{} could not be checked: {}", source.feeds(), missing.error),
+        help: Some(format!(
+            "check the network and proxy settings (`pixi policy doctor` asks each source){}; with \
+             PIXI_POLICY_OFFLINE, run once online first to fill the cache",
+            source.mirror()
+        )),
         advisory: Vec::new(),
     }
 }
 
-/// Look up what `settings` need for every conda package of every environment of `lock`. On failure, the data the
-/// lockfile alone gives (build ages) and why the rest is missing.
-pub fn gather(lock: &LockFile, settings: &Freshness, lookup: &Lookup<'_>) -> (Data, Option<String>) {
+/// Look up what `settings` need for every package of every environment of `lock`: each source on its own, so one
+/// that cannot be read leaves the others' checks running (#84), with what is missing and why.
+pub fn gather(lock: &LockFile, settings: &Freshness, lookup: &Lookup<'_>) -> (Data, Vec<Missing>) {
     let now = lookup
         .now
         .duration_since(UNIX_EPOCH)
@@ -376,31 +411,33 @@ pub fn gather(lock: &LockFile, settings: &Freshness, lookup: &Lookup<'_>) -> (Da
             }
         }
     }
+    let mut missing = Vec::new();
+    let mut note = |source, error| missing.push(Missing { source, error });
     if settings.max_majors_behind.is_some() {
         match lookup.releases(&keys) {
             Ok(releases) => data.releases = Some(releases),
-            Err(err) => return (data, Some(err)),
+            Err(error) => note(Source::Repodata, error),
         }
     }
     let limits = settings.max_build_age_days.is_some() || settings.max_majors_behind.is_some();
     if settings.pypi() && limits && !projects.is_empty() {
         match lookup.pypi(&projects) {
             Ok(pypi) => data.pypi = Some(pypi),
-            Err(err) => return (data, Some(err)),
+            Err(error) => note(Source::Pypi, error),
         }
     }
     if settings.archived() && any_conda_forge {
         match lookup.feedstocks() {
             Ok(feedstocks) => data.feedstocks = Some(feedstocks),
-            Err(err) => return (data, Some(err)),
+            Err(error) => note(Source::Feedstocks, error),
         }
     }
-    (data, None)
+    (data, missing)
 }
 
 /// [`gather`] with the network, the cache and the mirrors the environment gives; `None` when the policy has no
 /// `[freshness]`.
-pub fn gather_from_env(lock: &LockFile, policy: &Policy) -> Option<(Data, Option<String>)> {
+pub fn gather_from_env(lock: &LockFile, policy: &Policy) -> Option<(Data, Vec<Missing>)> {
     let settings = policy.freshness.as_ref()?;
     let fetch = crate::fetch::Settings::from_env();
     let endpoints = Endpoints::from_env();
@@ -576,10 +613,18 @@ mod tests {
         for rule in rules(None) {
             assert!(rule.id().starts_with("freshness.") && !rule.summary().is_empty());
         }
-        let finding = unavailable("down");
+        let finding = unavailable(&Missing {
+            source: Source::Feedstocks,
+            error: "down".into(),
+        });
         assert_eq!(
             (finding.rule, finding.severity),
             ("freshness.unavailable", Severity::Error)
         );
+        assert_eq!(
+            finding.message,
+            "whether conda-forge packages come from archived feedstocks (archived) could not be checked: down"
+        );
+        assert!(finding.help.unwrap().contains("PIXI_POLICY_FEEDSTOCKS_URL"));
     }
 }
