@@ -146,15 +146,63 @@ fn download(url: &str) -> Result<Vec<u8>, String> {
 }
 
 fn agent() -> ureq::Agent {
+    agent_with(Duration::from_secs(30))
+}
+
+fn agent_with(timeout: Duration) -> ureq::Agent {
     let tls = ureq::tls::TlsConfig::builder()
         .root_certs(ureq::tls::RootCerts::PlatformVerifier)
         .build();
     ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(30)))
+        .timeout_global(Some(timeout))
         .user_agent(concat!("pixi-policy/", env!("CARGO_PKG_VERSION")))
         .tls_config(tls)
         .build()
         .into()
+}
+
+/// Why a request got no answer, for `pixi policy doctor` (#76): which layer failed, and the error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unanswered {
+    /// `DNS`, `proxy`, `TLS`, `timeout`, `connection` or `request`.
+    pub layer: &'static str,
+    pub error: String,
+}
+
+/// Ask `url` for an answer and read only its status: any status means the host answered, so only a transport failure
+/// is an error.
+pub fn probe(url: &str) -> Result<u16, Unanswered> {
+    match agent_with(Duration::from_secs(10)).get(url).call() {
+        Ok(response) => Ok(response.status().as_u16()),
+        Err(ureq::Error::StatusCode(status)) => Ok(status),
+        Err(err) => Err(Unanswered {
+            layer: layer(&err),
+            error: err.to_string(),
+        }),
+    }
+}
+
+fn layer(err: &ureq::Error) -> &'static str {
+    use ureq::Error;
+    match err {
+        Error::HostNotFound => "DNS",
+        Error::ConnectProxyFailed(_) | Error::InvalidProxyUrl => "proxy",
+        Error::Tls(_) | Error::Pem(_) | Error::Rustls(_) | Error::TlsRequired => "TLS",
+        Error::Timeout(_) => "timeout",
+        Error::Io(io) if io.kind() == std::io::ErrorKind::TimedOut => "timeout",
+        Error::Io(io) => {
+            let text = io.to_string().to_lowercase();
+            if text.contains("certificate") || text.contains("tls") {
+                "TLS"
+            } else if text.contains("lookup") || text.contains("resolve") || text.contains("name or service") {
+                "DNS"
+            } else {
+                "connection"
+            }
+        }
+        Error::ConnectionFailed => "connection",
+        _ => "request",
+    }
 }
 
 /// GET `url`, at most `max` bytes of it.
@@ -335,6 +383,49 @@ pub mod tests {
             seen
         });
         (format!("http://127.0.0.1:{port}/base.toml"), server)
+    }
+
+    #[test]
+    fn a_probe_reads_only_the_status_and_names_the_layer_that_failed() {
+        let (url, server) = serve("x", 2);
+        assert_eq!(probe(&url), Ok(200));
+        assert_eq!(probe(&url.replace("base.toml", "missing")), Ok(404));
+        server.join().unwrap();
+        let closed = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        let err = probe(&format!("http://127.0.0.1:{closed}/")).unwrap_err();
+        assert_eq!(err.layer, "connection", "{err:?}");
+
+        use ureq::Error;
+        let io = |kind, text: &str| Error::Io(std::io::Error::new(kind, text.to_string()));
+        let layers = [
+            Error::HostNotFound,
+            Error::ConnectProxyFailed("407".into()),
+            Error::Tls("handshake"),
+            Error::Timeout(ureq::Timeout::Global),
+            io(std::io::ErrorKind::TimedOut, "slow"),
+            io(
+                std::io::ErrorKind::InvalidData,
+                "invalid peer certificate: UnknownIssuer",
+            ),
+            io(std::io::ErrorKind::Other, "failed to lookup address information"),
+            io(std::io::ErrorKind::ConnectionRefused, "refused"),
+            Error::TooManyRedirects,
+        ]
+        .map(|err| layer(&err));
+        assert_eq!(
+            layers,
+            [
+                "DNS",
+                "proxy",
+                "TLS",
+                "timeout",
+                "timeout",
+                "TLS",
+                "DNS",
+                "connection",
+                "request"
+            ]
+        );
     }
 
     fn settings(dir: &Path, offline: bool) -> Settings {

@@ -156,6 +156,42 @@ schemas:   report 1, facts 1
 
 `overrides` lists every `PIXI_POLICY_*_URL` that moves an upstream to a mirror; a forgotten one is a common cause.
 
+`pixi policy doctor` goes further. After the same block, it asks each upstream the policy uses whether it answers
+(`--all` asks every one), says what the caches hold, and checks the workspace:
+
+```console
+$ pixi policy doctor
+...
+Upstreams (those the policy uses; --all for every one):
+  reachable OSV                 https://api.osv.dev: HTTP 404, 278 ms
+  failed    CISA KEV            https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json: TLS: invalid peer certificate: UnknownIssuer
+  ok        conda-PyPI mapping  https://conda-mapping.prefix.dev/compressed-v0/compressed_mapping.json: HTTP 200, 528 ms
+
+Caches in /Users/me/Library/Caches/rattler/cache/pixi-policy:
+  advisories   116 files, newest 3h ago
+  wheel-info   172 files, newest 2d ago
+
+Workspace /Users/me/src/app:
+  manifest  pixi.toml
+  lockfile  pixi.lock, format 6
+  policy    pixi-policy.toml
+  extends   https://raw.githubusercontent.com/acme/policies/v3/base.toml (pinned; cached)
+  in sync   yes
+
+1 problem: CISA KEV is unreachable (TLS).
+```
+
+- **Upstreams.** `ok` and `reachable` both mean the host answered; `reachable` is a status of 400 or more from a
+  service's base address, which is often not a page. A file that is not there (the KEV list, a VEX document, an
+  extended policy) is `failed`. A failure names the layer: `DNS`, `proxy`, `TLS`, `timeout` or `connection`. With
+  `PIXI_POLICY_OFFLINE`, nothing is asked and every upstream is `skipped`.
+- **Caches.** Offline, a check can only use what is here; a cache's age says how old the data a check judges is.
+- **Workspace.** `in sync` asks pixi, offline, whether pixi.lock still satisfies the manifest; when it does not,
+  `check` is judging packages the manifest no longer asks for. Without pixi on `PATH`, it is `unknown`.
+
+It exits 1 when an upstream the policy needs does not answer, pixi.lock is missing, unreadable or not current, or the
+policy cannot be read, and 0 otherwise. It needs no workspace: outside one, it asks every upstream.
+
 ## Who owns the policy
 
 Changing `pixi-policy.toml` changes what the workspace may contain, so review it like code: put it under

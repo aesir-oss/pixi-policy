@@ -197,14 +197,14 @@ fn could_not_check(why: &str) -> Finding {
 
 /// An exit status with `code`, for an answer pixi did not have to give.
 #[cfg(unix)]
-fn exit_status(code: i32) -> std::process::ExitStatus {
+pub(crate) fn exit_status(code: i32) -> std::process::ExitStatus {
     use std::os::unix::process::ExitStatusExt;
     std::process::ExitStatus::from_raw(code << 8)
 }
 
 /// An exit status with `code`, for an answer pixi did not have to give.
 #[cfg(windows)]
-fn exit_status(code: i32) -> std::process::ExitStatus {
+pub(crate) fn exit_status(code: i32) -> std::process::ExitStatus {
     use std::os::windows::process::ExitStatusExt;
     std::process::ExitStatus::from_raw(code as u32)
 }
