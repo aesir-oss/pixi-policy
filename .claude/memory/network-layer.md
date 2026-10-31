@@ -30,6 +30,12 @@ reduced to the newest release and upload times. #58 moved the cache to `pixi-pol
 (`PIXI_CACHE_DIR`, `RATTLER_CACHE_DIR`, then the platform cache's `rattler/cache`), beside pixi-sbom's. Tests that
 check with `[licenses]` run offline with an empty cache so they never reach PyPI.
 
+0.4.0: on 2026-10-31 the feedstock list's home, `regro/cf-graph-countyfair`, was gone (404). The bot now publishes the
+same file at `conda-forge/conda-forge-bot-data` (`main`). Until #82 moved the default, every `[freshness]` check with
+conda-forge packages failed. #84 made each freshness source fail on its own. `fetch::probe` (#76) classifies a failed
+request by layer (DNS, proxy, TLS, timeout, connection) for `pixi policy doctor`, which found #82. Run the doctor when a
+fetch-based family reports `*.unavailable`; it names the upstream that is down.
+
 **Why:** pixi-sbom kept the "shared network stack" at the split, so this crate had none until #1.
 
 **How to apply:** `ring` is the first C dependency here. The release wheels build from the tag, so a dry run cannot
