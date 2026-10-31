@@ -206,11 +206,11 @@ fn check(args: &Args) -> miette::Result<i32> {
         .as_ref()
         .and_then(|lock| pixi_policy::rules::freshness::gather_from_env(lock, &policy));
     let (freshness, stale) = match freshness {
-        Some((data, error)) => (
+        Some((data, missing)) => (
             Some(std::sync::Arc::new(data)),
-            error.map(|message| pixi_policy::rules::freshness::unavailable(&message)),
+            missing.iter().map(pixi_policy::rules::freshness::unavailable).collect(),
         ),
-        None => (None, None),
+        None => (None, Vec::new()),
     };
     let hygiene = lock
         .as_ref()

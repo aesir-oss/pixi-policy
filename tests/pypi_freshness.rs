@@ -79,3 +79,30 @@ fn pypi_false_leaves_pypi_packages_out_and_missing_data_fails() {
         "{found:?}"
     );
 }
+
+#[test]
+fn a_source_that_cannot_be_read_leaves_the_others_checks_running() {
+    // No repodata and no feedstock lists are cached, only PyPI's release data (#84).
+    let policy = "[freshness]\nmax-build-age-days = 1500\nmax-majors-behind = 99\n";
+    let found = findings(policy, &root().join("tests/fixtures/pypi/cache"));
+    let unavailable: Vec<&str> = found
+        .iter()
+        .filter(|(rule, ..)| rule == "freshness.unavailable")
+        .map(|(_, _, message)| message.as_str())
+        .collect();
+    assert_eq!(unavailable.len(), 2, "{unavailable:?}");
+    assert!(
+        unavailable[0].starts_with("how far conda packages are behind"),
+        "{unavailable:?}"
+    );
+    assert!(
+        unavailable[1].starts_with("whether conda-forge packages come from archived"),
+        "{unavailable:?}"
+    );
+    assert!(
+        found.iter().any(|(rule, package, m)| rule == "freshness.build-age"
+            && package == "pytest"
+            && m.starts_with("uploaded")),
+        "PyPI's data is still used: {found:?}"
+    );
+}
