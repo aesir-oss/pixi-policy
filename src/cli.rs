@@ -31,6 +31,11 @@ pub struct Args {
     #[arg(long, value_enum, default_value_t, global = true)]
     pub color: ColorChoice,
 
+    /// Print the version with the settings a run would use (pixi, the cache, offline, proxy, TLS, URL overrides,
+    /// schema versions) and exit.
+    #[arg(long, visible_alias = "build-info")]
+    pub version_details: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

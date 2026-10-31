@@ -135,6 +135,27 @@ job log.
 Use the exit code to pass or fail the job, and `--format json --output policy.json` for anything that reads the
 results: a dashboard, a comment bot, an artifact to keep. The [JSON report](output.md#json) has a published schema.
 
+## When two machines disagree
+
+A check that passes on a laptop and fails in CI, or reports `*.unavailable` on one network only, usually differs in
+its environment rather than its policy. `pixi policy --version-details` prints the build and the settings a run would
+use, with where each came from; paste it into an issue as it is (a proxy's password is masked):
+
+```console
+$ pixi policy --version-details
+pixi-policy 0.4.0 (aarch64 macos)
+pixi:      pixi 0.58.0 (PIXI_EXE)
+cache:     /Users/me/Library/Caches/rattler/cache/pixi-policy (the platform cache directory; exists)
+offline:   no
+proxy:     http://proxy.example:3128 (HTTPS_PROXY)
+no-proxy:  localhost,.internal
+TLS:       the operating system's trust store (platform verifier)
+overrides: PIXI_POLICY_OSV_URL=https://osv.mirror.example
+schemas:   report 1, facts 1
+```
+
+`overrides` lists every `PIXI_POLICY_*_URL` that moves an upstream to a mirror; a forgotten one is a common cause.
+
 ## Who owns the policy
 
 Changing `pixi-policy.toml` changes what the workspace may contain, so review it like code: put it under

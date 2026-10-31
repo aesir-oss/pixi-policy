@@ -9,6 +9,7 @@ pub mod advisories;
 pub mod check;
 pub mod cli;
 pub mod cvss;
+pub mod details;
 pub mod explain;
 pub mod extends;
 pub mod facts;

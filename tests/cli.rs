@@ -746,3 +746,31 @@ fn an_error_into_a_closed_pipe_still_exits_2() {
         assert_eq!(child.wait().unwrap().code(), Some(2));
     }
 }
+
+#[test]
+fn version_details_needs_no_workspace_and_names_the_settings() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = policy()
+        .current_dir(dir.path())
+        .arg("--version-details")
+        .env("PIXI_POLICY_OSV_URL", "https://osv.mirror.example")
+        .env("PIXI_EXE", dir.path().join("no-pixi-here"))
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(out).unwrap();
+    assert!(
+        text.starts_with(&format!("pixi-policy {} (", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
+    assert!(text.contains("pixi:      not found\n"), "{text}");
+    assert!(text.contains("offline:   yes (PIXI_POLICY_OFFLINE)\n"), "{text}");
+    assert!(text.contains("(PIXI_POLICY_CACHE_DIR; "), "{text}");
+    assert!(
+        text.contains("overrides: PIXI_POLICY_OSV_URL=https://osv.mirror.example\n"),
+        "{text}"
+    );
+    policy().arg("--build-info").assert().success();
+}

@@ -34,30 +34,41 @@ impl Settings {
     }
 
     fn from_vars(var: impl Fn(&str) -> Option<std::ffi::OsString>) -> Self {
-        let var = |name: &str| var(name).filter(|value| !value.is_empty());
-        let cache = var("PIXI_POLICY_CACHE_DIR")
-            .map(PathBuf::from)
-            .or_else(|| pixi_cache_dir(&|name| var(name).map(PathBuf::from)).map(|dir| dir.join("pixi-policy")));
         Self {
-            cache,
-            offline: var("PIXI_POLICY_OFFLINE").is_some_and(|value| value != "0"),
+            cache: cache_dir(&var).map(|(dir, _)| dir),
+            offline: offline(&var),
         }
     }
 }
 
-/// pixi's cache directory, resolved the way pixi resolves it: `PIXI_CACHE_DIR`, then `RATTLER_CACHE_DIR`, then the
-/// platform cache directory's `rattler/cache`. pixi-sbom keeps its cache there too.
-fn pixi_cache_dir(var: &dyn Fn(&str) -> Option<PathBuf>) -> Option<PathBuf> {
-    var("PIXI_CACHE_DIR").or_else(|| var("RATTLER_CACHE_DIR")).or_else(|| {
-        let platform = if cfg!(windows) {
-            var("LOCALAPPDATA")
-        } else if cfg!(target_os = "macos") {
-            var("HOME").map(|home| home.join("Library").join("Caches"))
-        } else {
-            var("XDG_CACHE_HOME").or_else(|| var("HOME").map(|home| home.join(".cache")))
-        };
-        platform.map(|base| base.join("rattler").join("cache"))
-    })
+/// Whether `PIXI_POLICY_OFFLINE` forbids the network: set, and not empty or `0`.
+pub fn offline(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> bool {
+    var("PIXI_POLICY_OFFLINE").is_some_and(|value| !value.is_empty() && value != "0")
+}
+
+/// The cache directory and the setting that chose it: `PIXI_POLICY_CACHE_DIR`, or `pixi-policy/` in pixi's cache
+/// directory (#58), which is `PIXI_CACHE_DIR`, then `RATTLER_CACHE_DIR`, then the platform cache directory's
+/// `rattler/cache`, the way pixi resolves it. pixi-sbom keeps its cache there too.
+pub fn cache_dir(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> Option<(PathBuf, &'static str)> {
+    let var = |name: &str| var(name).filter(|value| !value.is_empty()).map(PathBuf::from);
+    if let Some(dir) = var("PIXI_POLICY_CACHE_DIR") {
+        return Some((dir, "PIXI_POLICY_CACHE_DIR"));
+    }
+    let pixi = |dir: PathBuf, source| Some((dir.join("pixi-policy"), source));
+    if let Some(dir) = var("PIXI_CACHE_DIR") {
+        return pixi(dir, "PIXI_CACHE_DIR");
+    }
+    if let Some(dir) = var("RATTLER_CACHE_DIR") {
+        return pixi(dir, "RATTLER_CACHE_DIR");
+    }
+    let platform = if cfg!(windows) {
+        var("LOCALAPPDATA")
+    } else if cfg!(target_os = "macos") {
+        var("HOME").map(|home| home.join("Library").join("Caches"))
+    } else {
+        var("XDG_CACHE_HOME").or_else(|| var("HOME").map(|home| home.join(".cache")))
+    };
+    platform.and_then(|base| pixi(base.join("rattler").join("cache"), "the platform cache directory"))
 }
 
 /// The sha256 of `bytes`, in lower-case hex.

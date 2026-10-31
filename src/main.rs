@@ -27,6 +27,14 @@ fn main() -> ExitCode {
 }
 
 fn run(args: &Args) -> miette::Result<i32> {
+    if args.version_details {
+        let text = pixi_policy::details::render(&|name| std::env::var_os(name), pixi_policy::details::pixi());
+        let mut out = pixi_policy::pipe::stdout();
+        out.write_all(text.as_bytes())
+            .and_then(|()| out.flush())
+            .into_diagnostic()?;
+        return Ok(EXIT_OK);
+    }
     match args.command() {
         Command::Check => check(args),
         Command::Lock {
