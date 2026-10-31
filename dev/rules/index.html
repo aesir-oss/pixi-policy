@@ -1716,7 +1716,7 @@
 </tr>
 <tr>
 <td><a href="#freshness-unavailable"><code>freshness.unavailable</code></a></td>
-<td>The channel or PyPI data cannot be read, so no package could be checked for freshness</td>
+<td>A source of channel, PyPI or feedstock data cannot be read, so the checks it feeds could not run</td>
 </tr>
 <tr>
 <td><a href="#python-older"><code>python.older</code></a></td>
@@ -1911,8 +1911,8 @@
 </code></pre></div>
 <p>Keys: <a href="../reference/#freshness"><code>[freshness] max-build-age-days</code></a>, <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>, <a href="../reference/#freshness"><code>[freshness] unknown</code></a>.</p>
 <h2 id="freshness-unavailable"><code>freshness.unavailable</code><a class="headerlink" href="#freshness-unavailable" title="Permanent link">&para;</a></h2>
-<p>The channel or PyPI data cannot be read, so no package could be checked for freshness.</p>
-<p>Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. The check fails rather than pass packages it could not look at.</p>
+<p>A source of channel, PyPI or feedstock data cannot be read, so the checks it feeds could not run.</p>
+<p>Key: [freshness]. The channel's repodata, conda-forge's feedstock lists or PyPI's JSON API could not be read: the network is down and nothing is cached, or PIXI_POLICY_OFFLINE is set and the cache is empty. Each source that could not be read gives one finding naming the checks it feeds; the checks the other sources feed still run. The check fails rather than pass packages it could not look at. <code>pixi policy doctor</code> asks each source whether it answers.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[freshness]</span>
 </code></pre></div>
 <p>Keys: <a href="../reference/#freshness"><code>[freshness] max-majors-behind</code></a>, <a href="../reference/#freshness"><code>[freshness] archived</code></a>, <a href="../reference/#freshness"><code>[freshness] pypi</code></a>.</p>
