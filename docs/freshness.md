@@ -48,8 +48,8 @@ a download of tens of megabytes the first time each day. No repodata is fetched 
 `archived` asks whether conda-forge has archived the feedstock that builds a conda-forge package: archived feedstocks
 get no new builds, so no fixes either. It reads two files the conda-forge bot publishes:
 
-- [`all_feedstocks.json`](https://github.com/regro/cf-graph-countyfair/blob/master/all_feedstocks.json) from
-  `regro/cf-graph-countyfair`, listing active and archived feedstocks;
+- [`all_feedstocks.json`](https://github.com/conda-forge/conda-forge-bot-data/blob/main/all_feedstocks.json) from
+  `conda-forge/conda-forge-bot-data`, the conda-forge bot's data, listing active and archived feedstocks;
 - [`feedstock-outputs.json`](https://github.com/conda-forge/feedstock-outputs/tree/single-file) from
   `conda-forge/feedstock-outputs`, naming the feedstocks that build each package.
 
@@ -95,7 +95,7 @@ Repodata always comes from each package's own channel. The feedstock lists and P
 
 | Variable | Default |
 |---|---|
-| `PIXI_POLICY_FEEDSTOCKS_URL` | `https://raw.githubusercontent.com/regro/cf-graph-countyfair/master/all_feedstocks.json` |
+| `PIXI_POLICY_FEEDSTOCKS_URL` | `https://raw.githubusercontent.com/conda-forge/conda-forge-bot-data/main/all_feedstocks.json` |
 | `PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL` | `https://raw.githubusercontent.com/conda-forge/feedstock-outputs/single-file/feedstock-outputs.json` |
 | `PIXI_POLICY_PYPI_URL` | `https://pypi.org` (`/pypi/<name>/json` below it) |
 

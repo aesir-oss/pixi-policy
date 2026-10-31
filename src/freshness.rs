@@ -19,7 +19,7 @@ use rattler_conda_types::{Shard, ShardedRepodata};
 use serde::Deserialize;
 
 pub const FEEDSTOCKS_URL: &str =
-    "https://raw.githubusercontent.com/regro/cf-graph-countyfair/master/all_feedstocks.json";
+    "https://raw.githubusercontent.com/conda-forge/conda-forge-bot-data/main/all_feedstocks.json";
 pub const OUTPUTS_URL: &str =
     "https://raw.githubusercontent.com/conda-forge/feedstock-outputs/single-file/feedstock-outputs.json";
 
@@ -635,6 +635,18 @@ pub mod tests {
     use std::sync::Mutex;
 
     use super::*;
+
+    #[test]
+    fn the_feedstock_list_is_read_from_the_bots_data_repository() {
+        // regro/cf-graph-countyfair, the list's first home, is gone (#82).
+        let endpoints = Endpoints::default();
+        assert!(
+            endpoints
+                .feedstocks
+                .starts_with("https://raw.githubusercontent.com/conda-forge/conda-forge-bot-data/")
+        );
+        assert!(endpoints.feedstocks.ends_with("/all_feedstocks.json"));
+    }
 
     #[test]
     fn pypis_json_is_reduced_to_the_newest_release_and_the_upload_times() {
