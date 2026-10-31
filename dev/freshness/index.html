@@ -1030,8 +1030,8 @@ a download of tens of megabytes the first time each day. No repodata is fetched 
 <p><code>archived</code> asks whether conda-forge has archived the feedstock that builds a conda-forge package: archived feedstocks
 get no new builds, so no fixes either. It reads two files the conda-forge bot publishes:</p>
 <ul>
-<li><a href="https://github.com/regro/cf-graph-countyfair/blob/master/all_feedstocks.json"><code>all_feedstocks.json</code></a> from
-  <code>regro/cf-graph-countyfair</code>, listing active and archived feedstocks;</li>
+<li><a href="https://github.com/conda-forge/conda-forge-bot-data/blob/main/all_feedstocks.json"><code>all_feedstocks.json</code></a> from
+  <code>conda-forge/conda-forge-bot-data</code>, the conda-forge bot's data, listing active and archived feedstocks;</li>
 <li><a href="https://github.com/conda-forge/feedstock-outputs/tree/single-file"><code>feedstock-outputs.json</code></a> from
   <code>conda-forge/feedstock-outputs</code>, naming the feedstocks that build each package.</li>
 </ul>
@@ -1077,7 +1077,7 @@ data. To run offline in CI, run once online and keep <code>PIXI_POLICY_CACHE_DIR
 <tbody>
 <tr>
 <td><code>PIXI_POLICY_FEEDSTOCKS_URL</code></td>
-<td><code>https://raw.githubusercontent.com/regro/cf-graph-countyfair/master/all_feedstocks.json</code></td>
+<td><code>https://raw.githubusercontent.com/conda-forge/conda-forge-bot-data/main/all_feedstocks.json</code></td>
 </tr>
 <tr>
 <td><code>PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL</code></td>
