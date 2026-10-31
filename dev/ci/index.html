@@ -539,6 +539,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-two-machines-disagree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When two machines disagree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#who-owns-the-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1001,6 +1012,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-two-machines-disagree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When two machines disagree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#who-owns-the-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1142,6 +1164,22 @@ job log.</p>
 <h2 id="other-ci-systems">Other CI systems<a class="headerlink" href="#other-ci-systems" title="Permanent link">&para;</a></h2>
 <p>Use the exit code to pass or fail the job, and <code>--format json --output policy.json</code> for anything that reads the
 results: a dashboard, a comment bot, an artifact to keep. The <a href="../output/#json">JSON report</a> has a published schema.</p>
+<h2 id="when-two-machines-disagree">When two machines disagree<a class="headerlink" href="#when-two-machines-disagree" title="Permanent link">&para;</a></h2>
+<p>A check that passes on a laptop and fails in CI, or reports <code>*.unavailable</code> on one network only, usually differs in
+its environment rather than its policy. <code>pixi policy --version-details</code> prints the build and the settings a run would
+use, with where each came from; paste it into an issue as it is (a proxy's password is masked):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>pixi<span class="w"> </span>policy<span class="w"> </span>--version-details
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">pixi-policy 0.4.0 (aarch64 macos)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">pixi:      pixi 0.58.0 (PIXI_EXE)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">cache:     /Users/me/Library/Caches/rattler/cache/pixi-policy (the platform cache directory; exists)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">offline:   no</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go">proxy:     http://proxy.example:3128 (HTTPS_PROXY)</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go">no-proxy:  localhost,.internal</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go">TLS:       the operating system's trust store (platform verifier)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go">overrides: PIXI_POLICY_OSV_URL=https://osv.mirror.example</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="go">schemas:   report 1, facts 1</span>
+</code></pre></div>
+<p><code>overrides</code> lists every <code>PIXI_POLICY_*_URL</code> that moves an upstream to a mirror; a forgotten one is a common cause.</p>
 <h2 id="who-owns-the-policy">Who owns the policy<a class="headerlink" href="#who-owns-the-policy" title="Permanent link">&para;</a></h2>
 <p>Changing <code>pixi-policy.toml</code> changes what the workspace may contain, so review it like code: put it under
 <code>CODEOWNERS</code>, so a new waiver or a loosened rule needs its owner's approval.</p>
