@@ -774,3 +774,40 @@ fn version_details_needs_no_workspace_and_names_the_settings() {
     );
     policy().arg("--build-info").assert().success();
 }
+
+#[test]
+fn doctor_reports_offline_without_asking_and_fails_on_a_missing_lockfile() {
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lock");
+    let dir = tempfile::tempdir().unwrap();
+    let out = policy()
+        .current_dir(fixtures.join("in-sync"))
+        .args(["doctor", "--all"])
+        .env("PIXI_EXE", dir.path().join("no-pixi-here"))
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(out).unwrap();
+    assert!(
+        text.starts_with(&format!("pixi-policy {} (", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
+    assert!(text.contains("\nUpstreams (every one):\n  skipped   OSV "), "{text}");
+    assert!(text.contains("  in sync   unknown: "), "{text}");
+    assert!(text.ends_with("No problems found.\n"), "{text}");
+
+    let out = policy()
+        .current_dir(fixtures.join("missing-lockfile"))
+        .arg("doctor")
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert!(
+        String::from_utf8(out)
+            .unwrap()
+            .ends_with("1 problem: the workspace has no pixi.lock.\n")
+    );
+}

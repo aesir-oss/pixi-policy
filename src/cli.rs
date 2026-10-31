@@ -66,6 +66,13 @@ pub enum Command {
     },
     /// Write what pixi.lock says about every environment and platform as JSON, for a policy engine such as OPA.
     Facts,
+    /// Ask every upstream the policy uses whether it answers, say what the caches hold and whether pixi.lock is
+    /// current; exit 1 when something a run needs is not there. Needs no workspace.
+    Doctor {
+        /// Ask every upstream, not only the ones the policy turns on.
+        #[arg(long)]
+        all: bool,
+    },
     /// Say what a rule checks, its keys and an example; without RULE, list every rule.
     Explain {
         /// A rule ID, such as licenses.deny.

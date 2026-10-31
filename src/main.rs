@@ -130,6 +130,34 @@ fn run(args: &Args) -> miette::Result<i32> {
             }
             Ok(EXIT_OK)
         }
+        Command::Doctor { all } => {
+            let cwd = std::env::current_dir()
+                .into_diagnostic()
+                .wrap_err("cannot read the working directory")?;
+            let var = |name: &str| std::env::var_os(name);
+            let input = pixi_policy::doctor::Input {
+                cwd: &cwd,
+                manifest_path: args.manifest_path.as_deref(),
+                policy_path: args.policy.as_deref(),
+                all: *all,
+            };
+            let world = pixi_policy::doctor::World {
+                var: &var,
+                probe: &pixi_policy::fetch::probe,
+                pixi: &pixi_policy::rules::lock::run_pixi,
+                now: std::time::SystemTime::now(),
+            };
+            let (report, failed) = pixi_policy::doctor::run(&input, &world);
+            let text = format!(
+                "{}\n{report}",
+                pixi_policy::details::render(&var, pixi_policy::details::pixi())
+            );
+            let mut out = pixi_policy::pipe::stdout();
+            out.write_all(text.as_bytes())
+                .and_then(|()| out.flush())
+                .into_diagnostic()?;
+            Ok(if failed { EXIT_FAILED } else { EXIT_OK })
+        }
         Command::Explain { rule } => {
             let text = match rule {
                 None => pixi_policy::explain::list(),

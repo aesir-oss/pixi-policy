@@ -10,6 +10,7 @@ pub mod check;
 pub mod cli;
 pub mod cvss;
 pub mod details;
+pub mod doctor;
 pub mod explain;
 pub mod extends;
 pub mod facts;
