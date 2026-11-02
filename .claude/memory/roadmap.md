@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: "pixi-policy release history and what each milestone holds; 0.3.0 final 2026-10-16, 0.4.0 cut early for #82"
+description: "pixi-policy release history and what each milestone holds; 0.3.0 final 2026-10-16, 0.4.0 final 2026-11-01"
 metadata:
   type: project
 ---
@@ -24,7 +24,7 @@ metadata:
   (init's cooldown against shorter overrides), found by dry-running the new checklist steps before rc.1. rc.1's round
   passed, so the final followed it unchanged. Steps 26 onward of the field-test checklist
   cover them.
-- 0.4.0 (2026-10-31) was cut early to ship #82, because releases can only be cut from main. It holds #75
+- 0.4.0 (rc.1 2026-10-31, final 2026-11-01; rc.1's round passed, so the final followed it unchanged) was cut early to ship #82, because releases can only be cut from main. It holds #75
   `--version-details`, #76 `pixi policy doctor`, #82 the feedstock list's new URL, #84 freshness sources failing one at
   a time, and #81 (RUSTSEC-2026-0381/0382/0385 in rustls-webpki, webpki-roots and ctutils). 0.5.0 holds what was
   planned for 0.4.0, each with its decision recorded on the issue: #77 `--ca-bundle` (replaces the system trust
