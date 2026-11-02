@@ -1030,8 +1030,8 @@ a download of tens of megabytes the first time each day. No repodata is fetched 
 <p><code>archived</code> asks whether conda-forge has archived the feedstock that builds a conda-forge package: archived feedstocks
 get no new builds, so no fixes either. It reads two files the conda-forge bot publishes:</p>
 <ul>
-<li><a href="https://github.com/regro/cf-graph-countyfair/blob/master/all_feedstocks.json"><code>all_feedstocks.json</code></a> from
-  <code>regro/cf-graph-countyfair</code>, listing active and archived feedstocks;</li>
+<li><a href="https://github.com/conda-forge/conda-forge-bot-data/blob/main/all_feedstocks.json"><code>all_feedstocks.json</code></a> from
+  <code>conda-forge/conda-forge-bot-data</code>, the conda-forge bot's data, listing active and archived feedstocks;</li>
 <li><a href="https://github.com/conda-forge/feedstock-outputs/tree/single-file"><code>feedstock-outputs.json</code></a> from
   <code>conda-forge/feedstock-outputs</code>, naming the feedstocks that build each package.</li>
 </ul>
@@ -1063,9 +1063,11 @@ not apply to PyPI. Nothing is fetched from PyPI unless one of the two limits is 
 <p>Answers are cached beside the <a href="../extends/#extending-a-url">extended policies</a>: the shard index, a channel's whole
 repodata reduced to the newest version of each package, each PyPI project reduced to its newest release and upload
 times, and the feedstock lists for a day, shards for good (they are named by their content's hash). When a download fails, a stale copy stands in.</p>
-<p>When the data cannot be read at all, because the network is down and nothing is cached or <code>PIXI_POLICY_OFFLINE</code> is
-set with an empty cache, <code>freshness.unavailable</code> fails the check; build ages are still judged, since they need no
-data. To run offline in CI, run once online and keep <code>PIXI_POLICY_CACHE_DIR</code> in the CI cache.</p>
+<p>When a source cannot be read at all, because the network is down and nothing is cached or <code>PIXI_POLICY_OFFLINE</code> is
+set with an empty cache, <code>freshness.unavailable</code> fails the check, once for each source, naming the checks it feeds.
+The checks the other sources feed still run, and conda build ages are always judged, since they need only pixi.lock.
+<code>pixi policy doctor</code> says which source does not answer. To run offline in CI, run once online and keep
+<code>PIXI_POLICY_CACHE_DIR</code> in the CI cache.</p>
 <p>Repodata always comes from each package's own channel. The feedstock lists and PyPI's JSON API can come from mirrors:</p>
 <table>
 <thead>
@@ -1077,7 +1079,7 @@ data. To run offline in CI, run once online and keep <code>PIXI_POLICY_CACHE_DIR
 <tbody>
 <tr>
 <td><code>PIXI_POLICY_FEEDSTOCKS_URL</code></td>
-<td><code>https://raw.githubusercontent.com/regro/cf-graph-countyfair/master/all_feedstocks.json</code></td>
+<td><code>https://raw.githubusercontent.com/conda-forge/conda-forge-bot-data/main/all_feedstocks.json</code></td>
 </tr>
 <tr>
 <td><code>PIXI_POLICY_FEEDSTOCK_OUTPUTS_URL</code></td>
